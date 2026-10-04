@@ -38,4 +38,4 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           USER_REQUEST: ${{ inputs.request }}
         run: |
-          printf '%s\n' "$USER_REQUEST" | python estimate_multiple.py
+          printf '%s\n' "$USER_REQUEST" | python estimate_multiple_2.0.py
