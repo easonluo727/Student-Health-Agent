@@ -51,7 +51,7 @@ if requested_network is not None:
         requested_network = requested_network.lower().strip()
 
 
-with open("insurance_rules.json", "r") as file:
+with open("normalized_pdf_insurance_rules.json", "r") as file:
         stored_rules = json.load(file)
 
 matched_rule = None
