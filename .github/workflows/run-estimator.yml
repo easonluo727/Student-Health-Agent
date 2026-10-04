@@ -1,5 +1,3 @@
-name: run insurance estimator
-# Name displayed in the GitHub Actions tab
 name: Run insurance estimator
 
 # Allow the workflow to be started manually
