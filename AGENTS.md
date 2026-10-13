@@ -10,6 +10,10 @@ A prototype that estimates out-of-pocket costs for international students under 
 
 **Every LLM call in this project must go to the AMD API. No other provider is allowed, including OpenAI, and this applies during development and testing too.** The `openai` Python package may stay as the client library, pointed at the AMD endpoint via `base_url`. The current code still calls OpenAI models (`gpt-5-nano`, `gpt-6-luna`); migrating it is in progress. Do not add OpenAI defaults or fallbacks.
 
+In practice, "the AMD API" means the team's own vLLM server (an OpenAI-compatible endpoint) on an AMD Developer Cloud MI300X droplet. This project is an entry in the AMD Developer Hackathon: ACT III.
+
+**`docs/technical-plan.md` is the agreed technical path.** It covers the architecture, the insurance catalog and its data sources, deep search, model deployment, and the schedule. Follow it, and update it before changing direction. Plan knowledge lives in a verifiable catalog (`policies/*.json`, rules JSON v2), never in model memory. Never fine-tune on extraction output that a human has not verified, and never let a coding assistant author catalog data: catalog data must come from the AMD model or from humans. `docs/research/hark-interaction-patterns.md` describes the reference UI interaction patterns. Borrow the patterns only; do not copy code or visuals.
+
 Because the runtime models are open-source and weaker than frontier models, put capability into code written at development time. Keep runtime LLM tasks narrow: choosing from fixed options, filling parameters, and writing short text. Constrain outputs with JSON schemas, and keep all numbers in Python.
 
 ## Running
@@ -43,6 +47,7 @@ Pipeline:
    - **Percentages use 0–100 units.** The current import prompt asks for whole numbers. The archived JSON still has 0–1 values (e.g. `0.8`), which will fail the "sum to 100" check.
 4. **Two front ends over the calculator:**
    - `agent.py` + `agent_tools.py` (current direction): `PolicyTools` loads rules for one plan and exposes three tools to the model: `get_catalog`, `get_policy_rule`, and `calculate_estimate`. The model must retrieve a rule before it calculates. The behavioral contract lives in the long `INSTRUCTIONS` prompt in `agent.py`. Examples: missing amounts are null, never 0. Billed price ≠ allowed amount. Annual deductible ≠ remaining deductible. One service occurrence per estimate. A provisional walkthrough is allowed only when the result is `needs_review`. Edit that prompt carefully, because each line encodes a specific failure that was observed.
+   - `guards.py` enforces "ask when unsure" in code, not in the prompt, so keep it in the loop when changing `agent.py` (including the AMD migration). It has three hooks. `pre_tool` blocks any amount the user never stated. `post_tool` withholds an `estimated` result until the user confirms the understood service, network, and amounts in the terminal. `check_reply` rejects replies containing dollar amounts traceable to neither the user nor a tool, and replies that fail to ask for missing fields; after 2 retries it substitutes a deterministic question. Tests: `python -m unittest discover tests`.
    - `estimate_pro.py` + `interpret_request.py` (older): a fixed pipeline. A Pydantic structured-output call matches the request to catalog entries and may return a clarification question. Python then prompts for amounts and calls the calculator.
 
 ## Known inconsistencies

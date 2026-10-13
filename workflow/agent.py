@@ -1,6 +1,6 @@
 """Terminal insurance agent. Run: python agent.py
 
-Requires agent_tools.py, calculate_cost.py, normalized_pdf_insurance_rules.json,
+Requires agent_tools.py, calculate_cost.py, guards.py, normalized_pdf_insurance_rules.json,
 the openai package, and OPENAI_API_KEY. No web search in this version.
 """
 
@@ -10,6 +10,7 @@ import math
 import os
 
 from agent_tools import DEFAULT_RULES_PATH, PolicyTools
+from guards import MAX_REPLY_RETRIES, ConversationGuard
 
 
 INSTRUCTIONS = """
@@ -100,7 +101,7 @@ def unique_object(pairs):
     return result
 
 
-def execute_tool(call, tools, inspected_ids):
+def execute_tool(call, tools, inspected_ids, guard):
     """Allowlist names and validate arguments even when strict mode is enabled."""
     allowed = {
         "get_policy_rule": {"rule_id"},
@@ -128,15 +129,31 @@ def execute_tool(call, tools, inspected_ids):
         result = tools.get_policy_rule(**args)
         if result.get("status") == "found":
             inspected_ids.add(args["rule_id"])
-        return result
+        return guard.post_tool(call.name, args, result, result.get("rule"))
     if args["rule_id"] not in inspected_ids:
         return {"status": "lookup_required", "message": "Call get_policy_rule for this ID before calculating."}
-    return tools.calculate_estimate(**args)
+    blocked = guard.pre_tool(call.name, args)
+    if blocked is not None:
+        return blocked
+    result = tools.calculate_estimate(**args)
+    rule = tools.get_policy_rule(args["rule_id"]).get("rule")
+    return guard.post_tool(call.name, args, result, rule)
 
 
-def run_turn(client, model, tools, history, instructions, max_steps=8):
+def confirm_in_terminal(summary):
+    """Ask the user directly; the model cannot answer this on the user's behalf."""
+    print("\n" + summary)
+    answer = input("Is this correct? [y/n] ").strip()
+    if answer.lower() in {"y", "yes"}:
+        return True, answer
+    return False, input("What should change? ").strip()
+
+
+def run_turn(client, model, tools, history, instructions, guard, max_steps=8):
     # Fresh lookup per user turn avoids using an unseen rule after a correction.
     inspected_ids = set()
+    guard.start_turn()
+    rejected_replies = 0
     for _ in range(max_steps):
         print("Thinking...", flush=True)
         response = client.responses.create(
@@ -158,14 +175,24 @@ def run_turn(client, model, tools, history, instructions, max_steps=8):
         if not calls:
             if not response.output_text.strip():
                 raise RuntimeError("The model returned no answer or tool request.")
-            print("\nAgent:", response.output_text)
-            return response.output_text
+            feedback = guard.check_reply(response.output_text)
+            if feedback is None:
+                print("\nAgent:", response.output_text)
+                return response.output_text
+            rejected_replies += 1
+            if rejected_replies > MAX_REPLY_RETRIES:
+                reply = guard.fallback_reply()
+                history.append({"role": "assistant", "content": reply})
+                print("\nAgent:", reply)
+                return reply
+            history.append({"role": "developer", "content": "Automatic check rejected your reply: " + feedback})
+            continue
         if len(calls) > 4:
             raise RuntimeError("Unexpectedly many tool calls; stopped without executing them.")
 
         for call in calls:
             print(f"Tool: {call.name}", flush=True)
-            result = execute_tool(call, tools, inspected_ids)
+            result = execute_tool(call, tools, inspected_ids, guard)
             if call.name == "calculate_estimate":
                 # Direct Python output remains visible independently of LLM prose.
                 print("\nCalculator result:")
@@ -194,6 +221,7 @@ def main():
         {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
     )
     history = []
+    guard = ConversationGuard(confirm=confirm_in_terminal)
     print(f"Plan: {tools.selected_plan} | Model: {args.model}")
     print("One service occurrence at a time. Type quit to exit or /reset to clear the conversation.")
     turns = 0
@@ -204,6 +232,7 @@ def main():
             return
         if text == "/reset":
             history.clear()
+            guard.reset()
             turns = 0
             closing = False
             print("Conversation cleared.")
@@ -216,8 +245,9 @@ def main():
         if len(text) > 12000 or turns >= 30:
             print("Please shorten your message or use /reset to start a new conversation.")
             continue
+        guard.record_user(text)
         history.append({"role": "user", "content": text})
-        reply = run_turn(client, args.model, tools, history, instructions)
+        reply = run_turn(client, args.model, tools, history, instructions, guard)
         closing = reply.rstrip().endswith("any other questions?")
         turns += 1
 
