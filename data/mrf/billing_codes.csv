@@ -15,3 +15,28 @@ code,code_type,service,source,verified_by
 29540,CPT,Ankle strapping,task spec candidate list,
 29515,CPT,Short leg splint,task spec candidate list,
 99395,CPT,"Preventive visit, established, age 18-39",task spec candidate list,
+90791,CPT,Psychiatric diagnostic evaluation (therapy intake),expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+90834,CPT,"Psychotherapy, 45 minutes",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+90837,CPT,"Psychotherapy, 60 minutes",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+98005,CPT,"Telehealth visit (audio-video), established patient, low complexity",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+98006,CPT,"Telehealth visit (audio-video), established patient, moderate complexity",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+80053,CPT,Comprehensive metabolic panel,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+85025,CPT,Complete blood count with differential,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+80061,CPT,Lipid panel,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+81001,CPT,"Urinalysis, automated, with microscopy",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+87086,CPT,"Urine culture, colony count",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+87491,CPT,Chlamydia test (NAAT),expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+87591,CPT,Gonorrhea test (NAAT),expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+86701,CPT,HIV-1 antibody test,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+J7300,HCPCS,Copper IUD (device),expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+11981,CPT,Insertion of drug-delivery implant (contraceptive implant),expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+90686,CPT,"Influenza vaccine, quadrivalent, preservative-free",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+90715,CPT,Tdap vaccine,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+72148,CPT,MRI lumbar spine without contrast,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+73721,CPT,MRI knee (lower extremity joint) without contrast,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+70450,CPT,CT head without contrast,expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+71046,CPT,"Chest X-ray, 2 views",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+97110,CPT,"Physical therapy: therapeutic exercise, 15 min",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+97161,CPT,"Physical therapy evaluation, low complexity",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+99281,CPT,"Emergency department visit, minimal",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14
+99282,CPT,"Emergency department visit, low",expansion candidate list (chat 2026-10-14),user approved category in chat 2026-10-14

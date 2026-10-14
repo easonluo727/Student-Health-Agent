@@ -24,7 +24,7 @@ from lookup import load_encounters, lookup_allowed_amount  # noqa: E402
 
 DATA = os.path.join(ROOT, "data", "mrf")
 ER_CODES = {"99281", "99282", "99283", "99284", "99285"}
-POS_LABEL = {"11": "office", "20": "urgent care", "22": "outpatient hospital", "23": "ER", "81": "lab", None: "any"}
+POS_LABEL = {"02": "telehealth", "10": "telehealth at home", "11": "office", "20": "urgent care", "22": "outpatient hospital", "23": "ER", "81": "lab", None: "any"}
 CLASS_SHORT = {"professional": "prof", "institutional": "inst"}
 
 A_COLS = ["insurer", "network", "encounter", "allowed_amount", "allowed_amount_basis", "status", "components",
@@ -48,7 +48,7 @@ def load_codes() -> list[dict]:
         return list(csv.DictReader(f))
 
 
-REPORT_POS = ("11", "20", "22", "23", "81")
+REPORT_POS = ("02", "10", "11", "20", "22", "23", "81")
 
 
 def component_combos(con, codes: list[dict], encounters: dict[str, list[dict]]) -> list[tuple[str, str, str | None, str]]:
