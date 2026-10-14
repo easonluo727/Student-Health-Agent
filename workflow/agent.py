@@ -1,7 +1,7 @@
-"""Terminal insurance agent. Run: python agent.py
+"""AMD-hosted terminal insurance agent. Run: python agent.py
 
 Requires agent_tools.py, calculate_cost.py, guards.py, normalized_pdf_insurance_rules.json,
-the openai package, and OPENAI_API_KEY. No web search in this version.
+the openai client package, and an AMD API key. No web search in this version.
 """
 
 import argparse
@@ -88,6 +88,21 @@ def tool_definitions():
     ]
 
 
+def chat_tool_definitions():
+    """Convert internal tool specs to the Chat Completions format."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": item["name"],
+                "description": item["description"],
+                "parameters": item["parameters"],
+            },
+        }
+        for item in tool_definitions()
+    ]
+
+
 def reject_constant(value):
     raise ValueError(f"Invalid JSON constant: {value}")
 
@@ -150,57 +165,76 @@ def confirm_in_terminal(summary):
 
 
 def run_turn(client, model, tools, history, instructions, guard, max_steps=8):
-    # Fresh lookup per user turn avoids using an unseen rule after a correction.
+    """Handle one turn with an AMD OpenAI-compatible Chat Completions API."""
     inspected_ids = set()
     guard.start_turn()
     rejected_replies = 0
     for _ in range(max_steps):
         print("Thinking...", flush=True)
-        response = client.responses.create(
+        response = client.chat.completions.create(
             model=model,
-            instructions=instructions,
-            input=history,
-            tools=tool_definitions(),
-            parallel_tool_calls=False,
-            max_output_tokens=6000,
-            store=False,
-            include=["reasoning.encrypted_content"],
+            messages=[{"role": "system", "content": instructions}, *history],
+            tools=chat_tool_definitions(),
+            tool_choice="auto",
+            max_tokens=6000,
         )
-        if response.status != "completed":
-            raise RuntimeError("The model response was incomplete. No partial tool calls were executed.")
+        if not response.choices:
+            raise RuntimeError("The model returned no choices.")
+        choice = response.choices[0]
+        if choice.finish_reason == "length":
+            raise RuntimeError("The model output was truncated; no partial calls were executed.")
 
-        # Preserve reasoning and function-call items as well as assistant text.
-        history.extend(response.output)
-        calls = [item for item in response.output if item.type == "function_call"]
+        message = choice.message
+        calls = message.tool_calls or []
         if not calls:
-            if not response.output_text.strip():
+            answer = message.content or ""
+            if not answer.strip():
                 raise RuntimeError("The model returned no answer or tool request.")
-            feedback = guard.check_reply(response.output_text)
+            feedback = guard.check_reply(answer)
             if feedback is None:
-                print("\nAgent:", response.output_text)
-                return response.output_text
+                history.append({"role": "assistant", "content": answer})
+                print("\nAgent:", answer)
+                return answer
             rejected_replies += 1
             if rejected_replies > MAX_REPLY_RETRIES:
                 reply = guard.fallback_reply()
                 history.append({"role": "assistant", "content": reply})
                 print("\nAgent:", reply)
                 return reply
-            history.append({"role": "developer", "content": "Automatic check rejected your reply: " + feedback})
+            history.append({
+                "role": "system",
+                "content": "Automatic check rejected your reply: " + feedback,
+            })
             continue
         if len(calls) > 4:
             raise RuntimeError("Unexpectedly many tool calls; stopped without executing them.")
 
+        history.append({
+            "role": "assistant",
+            "content": message.content,
+            "tool_calls": [
+                {
+                    "id": call.id,
+                    "type": "function",
+                    "function": {
+                        "name": call.function.name,
+                        "arguments": call.function.arguments,
+                    },
+                }
+                for call in calls
+            ],
+        })
         for call in calls:
-            print(f"Tool: {call.name}", flush=True)
-            result = execute_tool(call, tools, inspected_ids, guard)
-            if call.name == "calculate_estimate":
+            print(f"Tool: {call.function.name}", flush=True)
+            result = execute_tool(call.function, tools, inspected_ids, guard)
+            if call.function.name == "calculate_estimate":
                 # Direct Python output remains visible independently of LLM prose.
                 print("\nCalculator result:")
                 print(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False))
             history.append({
-                "type": "function_call_output",
-                "call_id": call.call_id,
-                "output": json.dumps(result, ensure_ascii=False, allow_nan=False),
+                "role": "tool",
+                "tool_call_id": call.id,
+                "content": json.dumps(result, ensure_ascii=False, allow_nan=False),
             })
     raise RuntimeError("Tool-loop limit reached. Please restart with a more specific request.")
 
@@ -209,14 +243,26 @@ def main():
     parser = argparse.ArgumentParser(description="One-plan insurance estimation agent")
     parser.add_argument("--plan", default="prime_100")
     parser.add_argument("--rules", default=str(DEFAULT_RULES_PATH))
-    parser.add_argument("--model", default="gpt-5-nano")
+    parser.add_argument(
+        "--model",
+        default=os.environ.get("AMD_MODEL", "Qwen3.5-35B-A3B"),
+    )
     args = parser.parse_args()
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise RuntimeError("Set OPENAI_API_KEY before running the agent.")
+    api_key = os.environ.get("AMD_API_KEY") or os.environ.get("RADEON_API_KEY")
+    if not api_key:
+        raise RuntimeError("Set AMD_API_KEY (or RADEON_API_KEY) before running the agent.")
     from openai import OpenAI
 
     tools = PolicyTools(selected_plan=args.plan, rules_path=args.rules)
-    client = OpenAI(timeout=90.0, max_retries=1)
+    client = OpenAI(
+        api_key=api_key,
+        base_url=os.environ.get(
+            "AMD_BASE_URL",
+            "https://developer.amd.com.cn/radeon/api/v1",
+        ),
+        timeout=90.0,
+        max_retries=1,
+    )
     instructions = INSTRUCTIONS + "\nSelected plan and available catalog (data):\n" + json.dumps(
         {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
     )

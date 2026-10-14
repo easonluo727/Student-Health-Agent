@@ -10,13 +10,31 @@ A Python project that converts insurance policy PDFs into structured rules and u
 
 | File | Purpose |
 | --- | --- |
-| `import_policy.py` | Reads policy PDF pages, extracts benefit tables, normalizes them, and saves the insurance rules as JSON. |
-| `interpret_request.py` | Understands the user’s request, matches candidate rules from the catalog, and returns structured information—including a clarification question if needed.  |
-| `calculate_cost.py` | Returns calculated cost, missing fields, or a review status. |
-| `estimate_pro.py` | Loads rules, calls `interpret_request.py`, print follow-up questions, calls `calculate_cost.py`, and prints the result. |
-| `agent_tools.py` | Alternative to `estimate_pro.py`. Calls `calculate_cost.py`. |
-| `agent.py`| Calls LLM to do what `interpret_request.py` used to do.|
+| `workflow/import_policy.py` | Reads policy PDF pages, extracts benefit tables, normalizes them, and saves the insurance rules as JSON. |
+| `workflow/interpret_request.py` | Understands the user’s request, matches candidate rules from the catalog, and returns structured information—including a clarification question if needed. |
+| `workflow/calculate_cost.py` | Returns calculated cost, missing fields, or a review status. |
+| `workflow/estimate_pro.py` | Loads rules, calls `interpret_request.py`, asks follow-up questions, calls `calculate_cost.py`, and prints the result. |
+| `workflow/agent_tools.py` | Loads the policy catalog and exposes deterministic policy lookup and calculation tools. |
+| `workflow/agent.py` | Runs the Branch A chat agent through an AMD OpenAI-compatible endpoint while retaining code-enforced safety guards. |
+| `workflow/normalized_pdf_insurance_rules.json` | Current 66-rule `prime_100` policy catalog used by Branch A. |
 | `.github/workflows/run-estimator.yml` | Runs the estimator manually through GitHub Actions. |
+
+## Branch A policy agent
+
+The synchronized Branch A workflow lives in `workflow/`. Configure the AMD
+endpoint and run the guarded agent from that directory:
+
+```bash
+export AMD_API_KEY="..."
+export AMD_BASE_URL="https://developer.amd.com.cn/radeon/api/v1"
+export AMD_MODEL="Qwen3.5-35B-A3B"
+cd workflow
+python agent.py
+```
+
+`RADEON_API_KEY` is accepted as a compatibility alias for `AMD_API_KEY`.
+The policy catalog is versioned in Git; API keys, generated images, caches,
+and local databases are not.
 
 ## MRF compile pipeline
 
