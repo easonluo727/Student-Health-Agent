@@ -13,7 +13,7 @@ The product is a chat-first matching agent. Each turn, the LLM picks questions f
 
 Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names an insurer that is not in the database, a Playwright search worker on Railway looks it up and streams text progress. Search results inform the judgment but are never used to compute costs. The deployment is Vercel (Next.js frontend, agent flow, Python functions, read-only data) plus Railway (search worker). There is no Supabase, and premium subsidies are not computed.
 
-**None of the frontend, question bank, price database, or search worker exists yet.** All current code is Python CLI scripts in `workflow/`. `archive/` holds superseded scripts.
+**None of the frontend, question bank, or search worker exists yet.** The agent code is Python CLI scripts in `workflow/`. The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see the README section "MRF compile pipeline" and `scripts/mrf/server/README.md`); its outputs are in `data/mrf/` and `scripts/mrf/lookup.py` is the integration hook. `archive/` holds superseded scripts.
 
 ## Hard constraint: AMD-only LLMs
 
@@ -27,7 +27,7 @@ Because the runtime models are open-source and weaker than frontier models, put 
 
 ## Running
 
-There is no build, lint, or test setup. The only dependency in `requirements.txt` is `openai`. `interpret_request.py` also imports `pydantic`. Every LLM call requires `OPENAI_API_KEY`. Run scripts from inside `workflow/`.
+There is no build or lint setup. Tests: `python -m unittest discover tests`. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). `interpret_request.py` also imports `pydantic`. Every LLM call requires `OPENAI_API_KEY`. Run scripts from inside `workflow/`.
 
 ```bash
 pip install -r requirements.txt pydantic

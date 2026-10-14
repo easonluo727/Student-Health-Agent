@@ -36,6 +36,7 @@ from typing import Callable, Iterable, Iterator
 import ijson
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fastscan  # noqa: E402
 from stream import CHUNK, open_source, resolve  # noqa: E402
 
 DEFAULT_CODE_TYPES = frozenset({"CPT", "HCPCS"})
@@ -82,6 +83,9 @@ class ParseStats:
     skipped_code_type: int = 0
     member_rows: int = 0
     pass2_stopped_early: bool = False
+    fast_path_rates: bool = False
+    fast_path_groups: bool = False
+    fast_path_note: str | None = None
     compressed_bytes: int = 0
     decompressed_bytes: int = 0
     pass1_seconds: float = 0.0
@@ -130,6 +134,7 @@ class InNetworkParser:
         spill_dir: str | None = None,
         progress: Callable[["InNetworkParser"], None] | None = None,
         progress_every: float = 60,
+        fast: bool = True,
     ):
         self.codes = {str(c).strip() for c in codes}
         self.networks = None if networks is None else {n.strip().upper() for n in networks}
@@ -140,6 +145,8 @@ class InNetworkParser:
         self.spill_dir = spill_dir
         self.progress = progress
         self.progress_every = progress_every
+        self.fast = fast
+        self._next_tick = 0.0
         self.header: dict = {}
         self.stats = ParseStats()
         self.stream = None  # live MRFStream of the current pass (for progress reporting)
@@ -243,20 +250,71 @@ class InNetworkParser:
         return gid, g
 
     # ---------- pass 1: in_network ----------
-    def _pass_rates(self, src: str, spill) -> Iterator[tuple[str, object]]:
-        self.pass_name = "rates"
-        t0 = time.time()
+    def _tick(self) -> None:
+        if self.progress and time.time() >= self._next_tick:
+            self._next_tick = time.time() + self.progress_every
+            self.progress(self)
+
+    def _is_target(self, meta: dict) -> bool:
+        ctype = str(meta.get("billing_code_type", "")).upper()
+        code = str(meta.get("billing_code", "")).strip()
+        if ctype not in self.code_types:
+            self.stats.skipped_code_type += code in self.codes
+            return False
+        return code in self.codes
+
+    def _want_item(self, head: bytes):
+        self.stats.in_network_items_seen += 1
+        self._tick()
+        meta = fastscan.head_fields(head, fastscan.ITEM_FIELDS)
+        if "billing_code" not in meta or "billing_code_type" not in meta:
+            raise fastscan.FastPathUnavailable("billing_code not in the first bytes of an in_network item")
+        return meta if self._is_target(meta) else None
+
+    def _rate_items_fast(self, src: str):
+        stream = self.stream = self.opener(src)
+        try:
+            for meta, pieces in fastscan.iter_segments(stream, "in_network", "provider_references", self._want_item):
+                if meta:
+                    yield meta, fastscan.parse_rates(pieces)
+        finally:
+            stream.close()
+            self._done_bytes[0] += stream.stats.compressed_bytes
+            self._done_bytes[1] += stream.stats.decompressed_bytes
+
+    def _rate_items_slow(self, src: str):
         for item in self._objects(src, "in_network.item"):
             if self._in_network_offset is None:
                 self._in_network_offset = self.stream.stats.decompressed_bytes
             self.stats.in_network_items_seen += 1
-            ctype = str(item.get("billing_code_type", "")).upper()
-            if ctype not in self.code_types:
-                if str(item.get("billing_code", "")).strip() in self.codes:
-                    self.stats.skipped_code_type += 1
-                continue
-            if str(item.get("billing_code", "")).strip() not in self.codes:
-                continue
+            if self._is_target(item):
+                yield item, iter(item.get("negotiated_rates") or [])
+
+    def _with_fallback(self, fast_gen, slow_gen, flag: str):
+        """Use the byte-level fast path; if the layout rules it out before anything was
+        produced, fall back to the ijson path for this pass."""
+        if self.fast:
+            produced = False
+            try:
+                for x in fast_gen():
+                    produced = True
+                    yield x
+                setattr(self.stats, flag, True)
+                return
+            except fastscan.FastPathUnavailable as e:
+                if produced:
+                    raise
+                self.stats.fast_path_note = str(e)
+                self.stats.in_network_items_seen = self.stats.skipped_code_type = 0
+                self.stats.provider_refs_seen = 0
+        yield from slow_gen()
+
+    def _pass_rates(self, src: str, spill) -> Iterator[tuple[str, object]]:
+        self.pass_name = "rates"
+        t0 = time.time()
+        items = self._with_fallback(lambda: self._rate_items_fast(src), lambda: self._rate_items_slow(src),
+                                    "fast_path_rates")
+        for item, rates in items:
             self.stats.in_network_items_matched += 1
             meta = {
                 "billing_code": str(item.get("billing_code")).strip(),
@@ -265,7 +323,7 @@ class InNetworkParser:
                 "negotiation_arrangement": item.get("negotiation_arrangement"),
                 "name": item.get("name"),
             }
-            for rate in item.get("negotiated_rates") or []:
+            for rate in rates:
                 self.stats.negotiated_rates_matched += 1
                 prices = rate.get("negotiated_prices") or []
                 self.stats.negotiated_prices_matched += len(prices)
@@ -283,14 +341,39 @@ class InNetworkParser:
         self.stats.pass1_seconds = round(time.time() - t0, 3)
 
     # ---------- pass 2: provider_references ----------
-    def _pass_groups(self, src: str) -> Iterator[tuple[str, object]]:
-        self.pass_name = "groups"
-        t0 = time.time()
+    def _want_ref(self, head: bytes):
+        self.stats.provider_refs_seen += 1
+        self._tick()
+        m = fastscan.GID_FIELD.search(head)
+        if not m:
+            raise fastscan.FastPathUnavailable("provider_group_id not in the first bytes of a reference")
+        gid = norm_gid(json.loads(m.group(1)))
+        return gid in self._needed and gid not in self._kept
+
+    def _refs_fast(self, src: str):
+        stream = self.stream = self.opener(src)
+        try:
+            for wanted, pieces in fastscan.iter_segments(stream, "provider_references", "in_network", self._want_ref):
+                if wanted:
+                    yield fastscan.parse_object(pieces)
+        finally:
+            stream.close()
+            self._done_bytes[0] += stream.stats.compressed_bytes
+            self._done_bytes[1] += stream.stats.decompressed_bytes
+
+    def _refs_slow(self, src: str):
         # If references precede in_network, every reference is complete before the byte offset at
         # which pass 1 saw its first in_network item, so the rest of the file need not be read.
         stop = self._in_network_offset if self.stats.first_section == "provider_references" else None
         for ref in self._objects(src, "provider_references.item", stop_after=stop):
             self.stats.provider_refs_seen += 1
+            yield ref
+
+    def _pass_groups(self, src: str) -> Iterator[tuple[str, object]]:
+        self.pass_name = "groups"
+        t0 = time.time()
+        refs = self._with_fallback(lambda: self._refs_fast(src), lambda: self._refs_slow(src), "fast_path_groups")
+        for ref in refs:
             gid = norm_gid(ref.get("provider_group_id"))
             if gid not in self._needed or gid in self._kept:
                 continue

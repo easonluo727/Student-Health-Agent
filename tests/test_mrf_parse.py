@@ -17,9 +17,17 @@ V2 = os.path.join(FIX, "cms_v2")
 V1 = os.path.join(FIX, "cms_v1_3_3")
 
 
+def _canon(out):
+    return sorted(json.dumps([k, o if k == "rate" else o.__dict__], sort_keys=True, default=lambda x: x.__dict__)
+                  for k, o in out)
+
+
 def run(src, codes, networks=None, npis=None, **kw):
+    """Parse with the byte-level fast path and with the ijson path; both must agree."""
     p = InNetworkParser(codes, networks, npis, **kw)
     out = list(p.parse(src))
+    slow = InNetworkParser(codes, networks, npis, fast=False, **{k: v for k, v in kw.items() if k != "opener"})
+    assert _canon(out) == _canon(list(slow.parse(src))), "fast path and ijson path disagree"
     groups = {g.provider_group_id: g for k, g in out if k == "group"}
     rates = [r for k, r in out if k == "rate"]
     return p, groups, rates
@@ -61,7 +69,7 @@ class InlineReferences(unittest.TestCase):
         self.assertEqual(p.stats.provider_refs_seen, 2)
         self.assertEqual(p.stats.provider_refs_needed, 2)   # both groups are referenced by 99214/27447
         self.assertEqual(p.stats.provider_refs_kept, 1)
-        self.assertTrue(p.stats.pass2_stopped_early)  # pass 2 stops where in_network began
+        self.assertTrue(p.stats.fast_path_rates and p.stats.fast_path_groups)
         self.assertEqual(p.header["version"], "2.0.0")
 
     def test_network_match_is_exact_not_substring(self):
@@ -131,7 +139,7 @@ class ReferencesAfterInNetwork(TmpDirCase):
         _, _, expected = run(os.path.join(V2, "in-network-rates-all-negotiated-types-sample.json"),
                              {"99214", "27447", "99285"}, ["Comprehensive Health Network"])
         self.assertEqual(p.stats.first_section, "in_network")
-        self.assertFalse(p.stats.pass2_stopped_early)  # references after in_network: read to the end
+        self.assertTrue(p.stats.fast_path_rates and p.stats.fast_path_groups)
         key = lambda r: json.dumps(r, sort_keys=True)  # noqa: E731
         self.assertEqual(sorted(map(key, rates)), sorted(map(key, expected)))
         self.assertEqual(set(groups), {"1"})
@@ -184,6 +192,51 @@ class ExternalReferences(TmpDirCase):
         p, _, rates = run(src, {"27447"}, ["Any Network"])
         self.assertEqual(rates, [])
         self.assertEqual(p.stats.inline_groups_dropped_no_network, 2)  # one per negotiated_rates object
+
+
+class FastPathLayouts(TmpDirCase):
+    src = os.path.join(V2, "in-network-rates-all-negotiated-types-sample.json")
+
+    def test_pretty_printed_json(self):
+        doc = load(self.src)
+        path = os.path.join(self.tmp, "pretty.json")
+        with open(path, "w") as f:
+            json.dump(doc, f, indent=2)
+        p, _, rates = run(path, {"99214", "27447"}, ["Comprehensive Health Network"])
+        self.assertTrue(p.stats.fast_path_rates)
+        self.assertEqual(len(rates), 3)
+
+    def test_unsafe_first_key_falls_back(self):
+        doc = load(self.src)
+        # billing_code first: nested bundled_codes objects could also start with it -> no fast path
+        doc["in_network"] = [{"billing_code": i["billing_code"], **{k: v for k, v in i.items() if k != "billing_code"}}
+                             for i in doc["in_network"]]
+        p, _, rates = run(self.write("unsafe.json", doc), {"99214"})
+        self.assertFalse(p.stats.fast_path_rates)
+        self.assertIn("may also occur in nested objects", p.stats.fast_path_note)
+        self.assertEqual([r["negotiated_rate"] for r in rates], [150.0])
+
+    def test_code_after_rates_falls_back(self):
+        doc = load(self.src)
+        doc["in_network"] = [{"negotiation_arrangement": i["negotiation_arrangement"],
+                              "negotiated_rates": i["negotiated_rates"] * 40,  # push billing_code past the head
+                              **{k: v for k, v in i.items() if k not in ("negotiation_arrangement", "negotiated_rates")}}
+                             for i in doc["in_network"]]
+        p, _, rates = run(self.write("late.json", doc), {"99214"})
+        self.assertFalse(p.stats.fast_path_rates)
+        self.assertEqual(len(rates), 40)
+
+    def test_chunk_boundaries(self):
+        import fastscan
+        import stream
+        old = (stream.CHUNK, fastscan.CHUNK)
+        stream.CHUNK = fastscan.CHUNK = 7  # every marker and head straddles reads
+        try:
+            p, _, rates = run(self.src, {"99214", "27447", "99285"}, ["Comprehensive Health Network"])
+        finally:
+            stream.CHUNK, fastscan.CHUNK = old
+        self.assertTrue(p.stats.fast_path_rates and p.stats.fast_path_groups)
+        self.assertEqual(len(rates), 3)
 
 
 class TableOfContents(TmpDirCase):
