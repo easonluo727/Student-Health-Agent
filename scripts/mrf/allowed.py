@@ -1,7 +1,8 @@
 """Deterministic rate selection and the single `allowed_amount` value (docs/prompts/mrf-compile.md).
 
 Per provider (NPI), for one billing code / billing class / place of service:
-  1. drop `percentage` and `per diem` rates (counted in n_rates_excluded), and expired rates;
+  1. drop `percentage` and `per diem` rates, expired rates, and $0 rates (capitated/bundled
+     arrangements, not prices); all are counted in n_rates_excluded;
   2. modifiers: use the global (unmodified) rate; for imaging with no global rate, sum TC + 26;
      `mod_26` uses only the professional component (26);
   3. place of service: rates listing the encounter's POS (first match in an ordered preference
@@ -138,7 +139,9 @@ def per_provider(cands: list[Candidate], pos: str | None, modifier_rule: str, as
     mix: dict[str, int] = {}
     for c in cands:
         mix[c.negotiated_type] = mix.get(c.negotiated_type, 0) + 1
-        if c.negotiated_type in EXCLUDED_TYPES or c.negotiated_type not in DOLLAR_TYPES or c.expiration_date < as_of:
+        # A $0 "rate" is a capitated or bundled arrangement (common in L.A. Care IPA contracts), not a price.
+        if (c.negotiated_type in EXCLUDED_TYPES or c.negotiated_type not in DOLLAR_TYPES or c.expiration_date < as_of
+                or c.rate is None or c.rate <= 0):
             n_excluded += 1
             continue
         by_npi.setdefault(c.npi, []).append(c)

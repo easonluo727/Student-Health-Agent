@@ -59,7 +59,7 @@ def synthetic_mrf():
                 ([1], [price(100.0), price(130.0, pos=("20",))]),
                 ([2], [price(90.0), price(999.0, ntype="percentage")]),
                 ([3], [price(80.0, pos=None)]),
-                ([4], [price(70.0), price(10.0, exp="2025-12-31")]),
+                ([4], [price(70.0), price(10.0, exp="2025-12-31"), price(0.0, pos=("20",))]),
                 ([5], [price(1.0)]),
                 ([7], [price(5000.0)]),  # other network: must never appear
             ]),
@@ -144,7 +144,7 @@ class AllowedAmountPipeline(unittest.TestCase):
         self.assertEqual((r.allowed_amount, r.allowed_amount_basis, r.status), (100.0, "ucla_health_rate", "verified_rate"))
         self.assertEqual(r.westwood_area_median, 95.0)        # UCLA 100, Westwood 90
         self.assertEqual(r.la_county_median, 85.0)           # 100, 90, 80 (no-POS fallback), 70
-        self.assertEqual(r.n_rates_excluded, 2)              # one percentage, one expired
+        self.assertEqual(r.n_rates_excluded, 3)              # one percentage, one expired, one $0
         uc = allowed.component(self.con, "test_ppo", "99213", "professional", "20", as_of=AS_OF)
         self.assertEqual(uc.allowed_amount, 130.0)           # POS 20 specific rate preferred
 
