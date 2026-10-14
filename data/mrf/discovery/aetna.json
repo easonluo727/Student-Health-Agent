@@ -1,0 +1,9 @@
+{
+ "insurer": "Aetna (CVS Health)",
+ "official_page": "https://www.aetna.com/insurance-producer/transparency-in-coverage.html",
+ "portal": "https://health1.aetna.com/app/public/#/one/insurerCode=AETNACVS_I&brandCode=ALICSI/machine-readable-transparency-in-coverage",
+ "checked_on": "2026-10-14",
+ "status": "blocked_from_dev_vm",
+ "finding": "TLS to health1.aetna.com fails through this environment's egress proxy (curl and Chromium: certificate issuer not verifiable). TLS verification was not disabled. Files are hosted by HealthSparq like Blue Shield's.",
+ "next_step": "Retry discovery on the server (scripts/mrf/server/README.md). If the portal also challenges there, a human copies the TOC URL from a normal browser."
+}

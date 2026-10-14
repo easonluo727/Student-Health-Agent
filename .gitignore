@@ -13,3 +13,4 @@ data/mrf/raw/
 data/mrf/work/
 data/mrf/*.log
 data/mrf/*.sqlite-journal
+data/mrf/la_npis.csv

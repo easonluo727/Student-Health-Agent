@@ -1,0 +1,143 @@
+{
+ "insurer": "UnitedHealthcare",
+ "official_page": "https://transparency-in-coverage.uhc.com/",
+ "listing_api": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/",
+ "file_month": "2026-10-01",
+ "listing_blobs_total": 155551,
+ "listing_index_files": 68168,
+ "listing_in_network_files": 7316,
+ "listing_in_network_total_gb": 93824.4,
+ "split": "by legal entity x product/network (not by state); one California insurer entity (UHC of California) plus national entities",
+ "candidates": [
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PPO-00_P3_in-network-rates.json.gz",
+   "bytes": 15490205001,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PPO-00_P3_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PP1-00_P3_in-network-rates.json.gz",
+   "bytes": 15490204939,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PP1-00_P3_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_POS-00_S2_in-network-rates.json.gz",
+   "bytes": 15161253270,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_POS-00_S2_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_EPO-00_S1_in-network-rates.json.gz",
+   "bytes": 15159564730,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_EPO-00_S1_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_EP1-50_C1_in-network-rates.json.gz",
+   "bytes": 15151824668,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_EP1-50_C1_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PS1-50_C2_in-network-rates.json.gz",
+   "bytes": 15148475263,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PS1-50_C2_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_GIL-15_S8_in-network-rates.json.gz",
+   "bytes": 14583960566,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_GIL-15_S8_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_GIS-15_S7_in-network-rates.json.gz",
+   "bytes": 14583592078,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_GIS-15_S7_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PS1-63_A3_in-network-rates.json.gz",
+   "bytes": 14279524250,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PS1-63_A3_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Options-PPO_665_in-network-rates.json.gz",
+   "bytes": 9596809093,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Options-PPO_665_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Select-Plus_657_in-network-rates.json.gz",
+   "bytes": 9450074404,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Select-Plus_657_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UHC-of-California_Insurer_Choice-Plus_8_in-network-rates.json.gz",
+   "bytes": 9433856268,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UHC-of-California_Insurer_Choice-Plus_8_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Core_579_in-network-rates.json.gz",
+   "bytes": 8863902218,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Core_579_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_UHC---Embedded-Dental_UHC-Dental_in-network-rates.json.gz",
+   "bytes": 335429245,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_UHC---Embedded-Dental_UHC-Dental_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UHC-of-California_Insurer_UHC---Embedded-Dental_UHC-Dental_in-network-rates.json.gz",
+   "bytes": 335429199,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UHC-of-California_Insurer_UHC---Embedded-Dental_UHC-Dental_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PPO---NDC_PPO-NDC_in-network-rates.json.gz",
+   "bytes": 38179906,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_PPO---NDC_PPO-NDC_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_OHPH-Chiro_28_in-network-rates.json.gz",
+   "bytes": 5560817,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_OHPH-Chiro_28_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UHC-of-California_Insurer_OHPH-Chiro_28_in-network-rates.json.gz",
+   "bytes": 5560771,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UHC-of-California_Insurer_OHPH-Chiro_28_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Optum-Health-Behavioral-Services--OHBS-_5_in-network-rates.json.gz",
+   "bytes": 4885351,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_Optum-Health-Behavioral-Services--OHBS-_5_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UHC-of-California_Insurer_Optum-Health-Behavioral-Services--OHBS-_5_in-network-rates.json.gz",
+   "bytes": 4885305,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UHC-of-California_Insurer_Optum-Health-Behavioral-Services--OHBS-_5_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_OHPH-ST_30_in-network-rates.json.gz",
+   "bytes": 760358,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_OHPH-ST_30_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UHC-of-California_Insurer_OHPH-ST_30_in-network-rates.json.gz",
+   "bytes": 760312,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UHC-of-California_Insurer_OHPH-ST_30_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_UHC---Embedded-Vision_UHC-Vision_in-network-rates.json.gz",
+   "bytes": 708390,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_UHC---Embedded-Vision_UHC-Vision_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UHC-of-California_Insurer_UHC---Embedded-Vision_UHC-Vision_in-network-rates.json.gz",
+   "bytes": 708344,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UHC-of-California_Insurer_UHC---Embedded-Vision_UHC-Vision_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_OHPH-Acupuncture-Massage-Naturopath_31_in-network-rates.json.gz",
+   "bytes": 393668,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UnitedHealthcare-Benefits-Plan-of-California_Insurer_OHPH-Acupuncture-Massage-Naturopath_31_in-network-rates.json.gz"
+  },
+  {
+   "name": "2026-10-01_UHC-of-California_Insurer_OHPH-Acupuncture-Massage-Naturopath_31_in-network-rates.json.gz",
+   "bytes": 393622,
+   "url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/download/2026-10-01/2026-10-01_UHC-of-California_Insurer_OHPH-Acupuncture-Massage-Naturopath_31_in-network-rates.json.gz"
+  }
+ ]
+}

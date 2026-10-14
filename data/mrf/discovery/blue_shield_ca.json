@@ -1,0 +1,9 @@
+{
+ "insurer": "Blue Shield of California",
+ "official_page": "https://www.blueshieldca.com/en/home/help-and-resources/machine-readable-files",
+ "portal": "https://web.healthsparq.com/healthsparq/public/#/one/insurerCode=BSCA_I&brandCode=BSCA/machine-readable-transparency-in-coverage",
+ "checked_on": "2026-10-14",
+ "status": "blocked",
+ "finding": "The official page links only to a HealthSparq (Kyruus) portal. Loading it in headless Chromium returns a bot-protection challenge page and no file listing; mrf.healthsparq.com returns 403 at the root. Per the task rules we stop instead of evading.",
+ "next_step": "A human opens the portal in a normal browser, copies the table-of-contents URL into data/plan_profiles.v1.json (toc_url), and the server pipeline streams it. If file downloads are also challenged, Blue Shield is impractical for automation."
+}

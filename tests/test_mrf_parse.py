@@ -57,10 +57,11 @@ class InlineReferences(unittest.TestCase):
         # 27447 references groups 1 and 2; group 2 is another network, so only group-1 rows remain.
         self.assertEqual(sorted((r["billing_code"], r["negotiated_rate"]) for r in rates),
                          [("27447", 8500.0), ("27447", 12000.0), ("99214", 150.0)])
-        self.assertEqual(p.stats.section_order, ["provider_references", "in_network"])
+        self.assertEqual(p.stats.first_section, "provider_references")
         self.assertEqual(p.stats.provider_refs_seen, 2)
+        self.assertEqual(p.stats.provider_refs_needed, 2)   # both groups are referenced by 99214/27447
         self.assertEqual(p.stats.provider_refs_kept, 1)
-        self.assertEqual(p.stats.rates_spilled, 0)
+        self.assertTrue(p.stats.pass2_stopped_early)  # pass 2 stops where in_network began
         self.assertEqual(p.header["version"], "2.0.0")
 
     def test_network_match_is_exact_not_substring(self):
@@ -129,8 +130,8 @@ class ReferencesAfterInNetwork(TmpDirCase):
         p, groups, rates = run(path, {"99214", "27447", "99285"}, ["Comprehensive Health Network"])
         _, _, expected = run(os.path.join(V2, "in-network-rates-all-negotiated-types-sample.json"),
                              {"99214", "27447", "99285"}, ["Comprehensive Health Network"])
-        self.assertEqual(p.stats.section_order, ["in_network", "provider_references"])
-        self.assertGreater(p.stats.rates_spilled, 0)
+        self.assertEqual(p.stats.first_section, "in_network")
+        self.assertFalse(p.stats.pass2_stopped_early)  # references after in_network: read to the end
         key = lambda r: json.dumps(r, sort_keys=True)  # noqa: E731
         self.assertEqual(sorted(map(key, rates)), sorted(map(key, expected)))
         self.assertEqual(set(groups), {"1"})
@@ -165,7 +166,8 @@ class ExternalReferences(TmpDirCase):
         self.assertEqual(groups["2"].source, "external_reference")
         self.assertEqual({m.npi for m in groups["2"].members}, {"1111111111", "2222222222"})
         self.assertEqual(p.stats.external_refs_fetched, 1)
-        self.assertEqual(fetched, ["v1.json", "provider-reference.json"])
+        # header scan + pass 1 + pass 2 over the MRF, then the one external file that is needed
+        self.assertEqual(fetched, ["v1.json", "v1.json", "v1.json", "provider-reference.json"])
         # 12003.45 is shared by groups 1 and 2; 12.45 comes from an inline provider_groups object.
         self.assertEqual(sorted((r["provider_group_id"][:7], r["negotiated_rate"]) for r in rates),
                          [("1", 12003.45), ("2", 12003.45), ("inline:", 12.45)])

@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from stream import open_source  # noqa: E402
 
 MAX_SAMPLE_PLANS = 5
+MAX_MATCHED_PLANS = 50
 
 
 @dataclass
@@ -30,6 +31,7 @@ class TocFile:
     n_plans: int = 0
     market_types: dict[str, int] = field(default_factory=dict)
     sample_plans: list[dict] = field(default_factory=list)
+    matched_plans: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -46,14 +48,17 @@ class TocResult:
 
 
 def scan_toc(src: str, keep: Callable[[str, str | None], bool] = lambda loc, desc: True,
-             time_budget: float | None = None, opener=open_source) -> TocResult:
-    """keep(location, description) decides which in-network files to record."""
+             time_budget: float | None = None, opener=open_source, progress_every: float | None = None,
+             plan_match: re.Pattern | None = None) -> TocResult:
+    """keep(location, description) decides which in-network files to record. plan_match, if set,
+    records up to MAX_MATCHED_PLANS plans per file whose name or sponsor matches it."""
     t0 = time.time()
     stream = opener(src)
     header: dict = {}
     files: dict[str, TocFile] = {}
     n_struct = n_refs = 0
     complete = True
+    next_progress = t0 + progress_every if progress_every else None
     try:
         events = ijson.parse(stream, use_float=True)
         items = ijson.items(_tee_header(events, header), "reporting_structure.item")
@@ -72,8 +77,18 @@ def scan_toc(src: str, keep: Callable[[str, str | None], bool] = lambda loc, des
                 for p in plans:
                     mt = p.get("plan_market_type") or "unknown"
                     tf.market_types[mt] = tf.market_types.get(mt, 0) + 1
+                    summary = {k: p.get(k) for k in ("plan_name", "plan_id_type", "plan_id", "plan_market_type")}
                     if len(tf.sample_plans) < MAX_SAMPLE_PLANS:
-                        tf.sample_plans.append({k: p.get(k) for k in ("plan_name", "plan_id_type", "plan_id", "plan_market_type")})
+                        tf.sample_plans.append(summary)
+                    if (plan_match and len(tf.matched_plans) < MAX_MATCHED_PLANS
+                            and plan_match.search(f'{p.get("plan_name") or ""} {p.get("plan_sponsor_name") or ""}')):
+                        tf.matched_plans.append(summary)
+            if next_progress and time.time() >= next_progress:
+                next_progress += progress_every
+                el = time.time() - t0
+                print(f"[toc] {el:.0f}s structures {n_struct} refs {n_refs} kept {len(files)} "
+                      f"{stream.stats.compressed_bytes/1e9:.2f} GB compressed "
+                      f"({stream.stats.compressed_bytes/1e6/el:.1f} MB/s)", file=sys.stderr, flush=True)
             if time_budget is not None and time.time() - t0 > time_budget:
                 complete = False
                 break
@@ -95,11 +110,13 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description="Stream a TOC and record matching in-network file URLs.")
     ap.add_argument("source")
     ap.add_argument("--match", default=None, help="regex on file URL (e.g. '/CA_')")
+    ap.add_argument("--plan-match", help="regex on plan_name/plan_sponsor_name to record per file")
     ap.add_argument("--budget", type=float, default=None, help="stop after N seconds (spikes only)")
     ap.add_argument("--out", help="write JSON result here")
     a = ap.parse_args(argv)
     rx = re.compile(a.match) if a.match else None
-    r = scan_toc(a.source, (lambda loc, d: bool(rx.search(loc))) if rx else (lambda loc, d: True), a.budget)
+    r = scan_toc(a.source, (lambda loc, d: bool(rx.search(loc))) if rx else (lambda loc, d: True), a.budget,
+                 progress_every=60, plan_match=re.compile(a.plan_match, re.I) if a.plan_match else None)
     print(f"structures {r.reporting_structures} | file refs {r.in_network_refs} | unique kept {len(r.files)} | "
           f"{r.compressed_bytes/1e6:.0f} MB compressed in {r.wall_seconds:.0f}s | RSS {r.peak_rss_mb} MB | complete {r.complete}")
     if a.out:

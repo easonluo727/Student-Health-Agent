@@ -1,20 +1,24 @@
 """Streaming filter for Transparency in Coverage in-network rate MRFs (no LLM, no whole-file loads).
 
-One pass over HTTP -> gzip -> ijson events. Two filters run during the stream:
+Two streaming passes over HTTP -> gzip -> ijson (C backend, `items_coro`), so Python only
+touches one JSON object at a time and the section order in the file does not matter:
 
-1. `provider_references`: a group is kept only if its `network_name` matches a target network
-   (exact, case-insensitive) and at least one of its NPIs is in the target NPI set. Only the
-   matching NPIs are kept. Raw TINs never leave this module: they are hashed here.
-2. `in_network`: only items whose `billing_code_type` and `billing_code` are targets are built;
-   every other item is skipped event by event. Each negotiated price yields one row per kept
-   provider group.
+  Pass 1 (`in_network`): keep items whose `billing_code_type` and `billing_code` are targets.
+         Their negotiated rates are spilled to a temp JSONL file; the provider_group_ids they
+         reference become the "needed" set. Inline `negotiated_rates[].provider_groups`
+         (schema 1.x) are filtered here.
+  Pass 2 (`provider_references`): a group is kept only if it is needed, its `network_name`
+         matches a target network (exact, case-insensitive) and at least one of its NPIs is in
+         the target NPI set. Only matching NPIs are kept; raw TINs are hashed here and never
+         leave this module. External references (`location`, schema 1.x) are fetched only for
+         needed groups.
+  Replay: spilled rates are emitted once per kept group and negotiated price.
 
-Layouts handled: references before `in_network` (common), references after `in_network`
-(rates for target codes are spilled to a temp JSONL file and replayed once the references are
-known), external references (`provider_references[].location`, schema 1.x; fetched only when a
-target-code rate needs them), and inline `negotiated_rates[].provider_groups` (schema 1.x).
+Why two passes: Anthem's provider_references alone are >7 GB decompressed per file and list
+~10^8 LA-NPI memberships, almost all for groups no target code uses. Knowing the needed group
+IDs first keeps memory flat; the cost is reading the file twice.
 
-Yields ("group", Group) the first time a group is kept, and ("rate", dict) per rate row.
+Yields ("group", Group) for each kept group, then ("rate", dict) per rate row.
 """
 from __future__ import annotations
 
@@ -30,20 +34,16 @@ from dataclasses import asdict, dataclass, field
 from typing import Callable, Iterable, Iterator
 
 import ijson
-from ijson.common import ObjectBuilder
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from stream import open_source, resolve  # noqa: E402
+from stream import CHUNK, open_source, resolve  # noqa: E402
 
 DEFAULT_CODE_TYPES = frozenset({"CPT", "HCPCS"})
 HEADER_FIELDS = frozenset({
     "reporting_entity_name", "reporting_entity_type", "issuer_name", "plan_name", "plan_id_type",
     "plan_id", "plan_sponsor_name", "plan_market_type", "last_updated_on", "version",
 })
-ITEM_FIELDS = ("negotiation_arrangement", "name", "billing_code_type", "billing_code_type_version",
-               "billing_code", "description")
-_START = ("start_map", "start_array")
-_END = ("end_map", "end_array")
+SECTIONS = ("provider_references", "in_network")
 
 
 @dataclass(frozen=True)
@@ -65,23 +65,27 @@ class Group:
 
 @dataclass
 class ParseStats:
-    section_order: list[str] = field(default_factory=list)
+    first_section: str | None = None
     provider_refs_seen: int = 0
+    provider_refs_needed: int = 0
     provider_refs_network_match: int = 0
     provider_refs_kept: int = 0
-    external_refs_pending: int = 0
     external_refs_fetched: int = 0
     in_network_items_seen: int = 0
     in_network_items_matched: int = 0
     negotiated_rates_matched: int = 0
     negotiated_prices_matched: int = 0
+    groups_referenced: int = 0
     rate_rows_emitted: int = 0
-    rates_spilled: int = 0
     inline_groups_seen: int = 0
     inline_groups_dropped_no_network: int = 0
     skipped_code_type: int = 0
+    member_rows: int = 0
+    pass2_stopped_early: bool = False
     compressed_bytes: int = 0
     decompressed_bytes: int = 0
+    pass1_seconds: float = 0.0
+    pass2_seconds: float = 0.0
     wall_seconds: float = 0.0
     peak_rss_mb: float = 0.0
 
@@ -111,35 +115,8 @@ def hash_tin(tin: dict | None) -> tuple[str | None, str | None, str | None, str 
     return tin.get("type"), hashlib.sha256(raw.encode()).hexdigest(), raw[-4:], tin.get("business_name")
 
 
-def _build(first_event: str, first_value, events) -> object:
-    """Build the JSON value that starts with (first_event, first_value) from the event stream."""
-    b = ObjectBuilder()
-    b.event(first_event, first_value)
-    if first_event not in _START:
-        return b.value
-    depth = 1
-    for _, e, v in events:
-        b.event(e, v)
-        if e in _START:
-            depth += 1
-        elif e in _END:
-            depth -= 1
-            if depth == 0:
-                break
-    return b.value
-
-
-def _skip(first_event: str, events) -> None:
-    if first_event not in _START:
-        return
-    depth = 1
-    for _, e, _v in events:
-        if e in _START:
-            depth += 1
-        elif e in _END:
-            depth -= 1
-            if depth == 0:
-                return
+def rss_mb() -> float:
+    return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
 
 
 class InNetworkParser:
@@ -151,99 +128,219 @@ class InNetworkParser:
         code_types: Iterable[str] = DEFAULT_CODE_TYPES,
         opener: Callable = open_source,
         spill_dir: str | None = None,
+        progress: Callable[["InNetworkParser"], None] | None = None,
+        progress_every: float = 60,
     ):
         self.codes = {str(c).strip() for c in codes}
         self.networks = None if networks is None else {n.strip().upper() for n in networks}
         self.npis = None if npis is None else {str(n).strip() for n in npis}
+        self._npi_ints = None if npis is None else {int(n) for n in self.npis if n.isdigit()}
         self.code_types = {t.upper() for t in code_types}
         self.opener = opener
         self.spill_dir = spill_dir
+        self.progress = progress
+        self.progress_every = progress_every
         self.header: dict = {}
         self.stats = ParseStats()
-        self.kept: dict[str, Group] = {}
-        self._emitted_groups: set[str] = set()
-        self._pending_external: dict[str, tuple[str, list[str]]] = {}
-        self._refs_complete = False
+        self.stream = None  # live MRFStream of the current pass (for progress reporting)
+        self.pass_name = ""
+        self._done_bytes = [0, 0]
+        self._kept: set[str] = set()
+        self._needed: set[str] = set()
+        self._in_network_offset: int | None = None  # decompressed bytes fed when the first item completed
+
+    # ---------- streaming helpers ----------
+    def _objects(self, src: str, prefix: str, stop_after: int | None = None) -> Iterator[dict]:
+        """Yield each JSON object at `prefix` (C parser), one at a time. Stop reading once
+        `stop_after` decompressed bytes have been fed (used when the section is known to end there)."""
+        stream = self.stream = self.opener(src)
+        sink = ijson.sendable_list()
+        coro = ijson.items_coro(sink, prefix, use_float=True)
+        nxt = time.time() + self.progress_every
+        try:
+            while chunk := stream.read(CHUNK):
+                coro.send(chunk)
+                yield from sink
+                del sink[:]
+                if self.progress and time.time() >= nxt:
+                    nxt = time.time() + self.progress_every
+                    self.progress(self)
+                if stop_after is not None and stream.stats.decompressed_bytes >= stop_after:
+                    self.stats.pass2_stopped_early = True
+                    return
+            coro.close()
+            yield from sink
+        finally:
+            stream.close()
+            self._done_bytes[0] += stream.stats.compressed_bytes
+            self._done_bytes[1] += stream.stats.decompressed_bytes
+
+    def _read_header(self, src: str) -> None:
+        """Top-level scalars that precede the first big array (cheap: stops there)."""
+        stream = self.opener(src)
+        try:
+            for prefix, e, v in ijson.parse(stream, use_float=True):
+                if prefix in HEADER_FIELDS and e not in ("start_map", "start_array", "map_key"):
+                    self.header[prefix] = v
+                elif prefix in SECTIONS and e == "start_array":
+                    self.stats.first_section = prefix
+                    break
+        finally:
+            stream.close()
+            self._done_bytes[0] += stream.stats.compressed_bytes
 
     # ---------- provider groups ----------
-    def _network_ok(self, names: list[str] | None) -> bool:
+    def _network_ok(self, names) -> bool:
         if self.networks is None:
             return True
         return any(str(n).strip().upper() in self.networks for n in names or [])
+
+    def _matching_npis(self, npis: list) -> list[str]:
+        if self._npi_ints is None:
+            return [n for n in (norm_npi(x) for x in npis) if n]
+        if npis and all(type(x) is int for x in npis):
+            return [str(x) for x in self._npi_ints.intersection(npis)]
+        return [n for n in (norm_npi(x) for x in npis) if n and n in self.npis]
 
     def _members(self, provider_groups: list[dict]) -> list[Member]:
         out: list[Member] = []
         seen = set()
         for pg in provider_groups or []:
+            hits = self._matching_npis(pg.get("npi") or [])
+            if not hits:
+                continue
             tin_type, tin_hash, last4, bname = hash_tin(pg.get("tin"))
-            for raw in pg.get("npi") or []:
-                npi = norm_npi(raw)
-                if self.npis is not None and npi not in self.npis:
-                    continue
+            for npi in hits:
                 m = Member(npi, tin_type, tin_hash, last4, bname)
                 if m not in seen:
                     seen.add(m)
                     out.append(m)
         return out
 
-    def _keep_group(self, gid: str, names: list[str], provider_groups: list[dict], source: str) -> None:
-        members = self._members(provider_groups)
-        if members:
-            self.kept[gid] = Group(gid, list(names or []), members, source)
-            self.stats.provider_refs_kept += 1
-
-    def _on_reference(self, ref: dict) -> None:
-        self.stats.provider_refs_seen += 1
-        names = ref.get("network_name") or []
-        if not self._network_ok(names):
-            return
-        self.stats.provider_refs_network_match += 1
-        gid = norm_gid(ref.get("provider_group_id"))
-        if ref.get("provider_groups") is not None:
-            self._keep_group(gid, names, ref["provider_groups"], "inline_reference")
-        elif ref.get("location"):
-            self._pending_external[gid] = (ref["location"], list(names))
-            self.stats.external_refs_pending += 1
-
-    def _fetch_external(self, gids: set[str], base: str) -> None:
-        for gid in sorted(gids):
-            if gid not in self._pending_external:
-                continue
-            location, names = self._pending_external.pop(gid)
-            stream = self.opener(resolve(base, location))
-            try:
-                groups = list(ijson.items(stream, "provider_groups.item", use_float=True))
-            finally:
-                stream.close()
-            self.stats.external_refs_fetched += 1
-            self._keep_group(gid, names, groups, "external_reference")
-
-    def _inline_group(self, provider_groups: list[dict]) -> str | None:
-        self.stats.inline_groups_seen += 1
-        if self.networks is not None:  # inline groups carry no network_name; can't verify network
-            self.stats.inline_groups_dropped_no_network += 1
-            return None
+    def _group(self, gid: str, names, provider_groups, source: str) -> Group | None:
         members = self._members(provider_groups)
         if not members:
             return None
+        self._kept.add(gid)
+        self.stats.provider_refs_kept += source != "inline_rate"
+        self.stats.member_rows += len(members)
+        return Group(gid, list(names or []), members, source)
+
+    def _inline_group(self, provider_groups: list[dict]) -> tuple[str | None, Group | None]:
+        """Return (gid, new Group or None). gid is None if the inline group is filtered out."""
+        self.stats.inline_groups_seen += 1
+        if self.networks is not None:  # inline groups carry no network_name; can't verify network
+            self.stats.inline_groups_dropped_no_network += 1
+            return None, None
+        members = self._members(provider_groups)
+        if not members:
+            return None, None
         key = json.dumps([asdict(m) for m in sorted(members, key=lambda m: (m.npi or "", m.tin_sha256 or ""))])
         gid = "inline:" + hashlib.sha256(key.encode()).hexdigest()[:16]
-        if gid not in self.kept:
-            self.kept[gid] = Group(gid, [], members, "inline_rate")
-        return gid
+        if gid in self._kept:
+            return gid, None
+        g = self._group(gid, [], provider_groups, "inline_rate")
+        return gid, g
 
-    def _group_event(self, gid: str):
-        if gid not in self._emitted_groups:
-            self._emitted_groups.add(gid)
-            yield ("group", self.kept[gid])
-
-    # ---------- rates ----------
-    def _rows(self, meta: dict, rate: dict, gids: list[str]):
-        for gid in gids:
-            if gid not in self.kept:
+    # ---------- pass 1: in_network ----------
+    def _pass_rates(self, src: str, spill) -> Iterator[tuple[str, object]]:
+        self.pass_name = "rates"
+        t0 = time.time()
+        for item in self._objects(src, "in_network.item"):
+            if self._in_network_offset is None:
+                self._in_network_offset = self.stream.stats.decompressed_bytes
+            self.stats.in_network_items_seen += 1
+            ctype = str(item.get("billing_code_type", "")).upper()
+            if ctype not in self.code_types:
+                if str(item.get("billing_code", "")).strip() in self.codes:
+                    self.stats.skipped_code_type += 1
                 continue
-            yield from self._group_event(gid)
-            for p in rate.get("negotiated_prices") or []:
+            if str(item.get("billing_code", "")).strip() not in self.codes:
+                continue
+            self.stats.in_network_items_matched += 1
+            meta = {
+                "billing_code": str(item.get("billing_code")).strip(),
+                "billing_code_type": item.get("billing_code_type"),
+                "billing_code_type_version": item.get("billing_code_type_version"),
+                "negotiation_arrangement": item.get("negotiation_arrangement"),
+                "name": item.get("name"),
+            }
+            for rate in item.get("negotiated_rates") or []:
+                self.stats.negotiated_rates_matched += 1
+                prices = rate.get("negotiated_prices") or []
+                self.stats.negotiated_prices_matched += len(prices)
+                gids = [norm_gid(g) for g in rate.get("provider_references") or []]
+                self._needed.update(gids)
+                if rate.get("provider_groups"):
+                    gid, g = self._inline_group(rate["provider_groups"])
+                    if g:
+                        yield ("group", g)
+                    if gid:
+                        gids.append(gid)
+                if gids:
+                    spill.write(json.dumps({"meta": meta, "prices": prices, "gids": gids}) + "\n")
+        self.stats.groups_referenced = len(self._needed)
+        self.stats.pass1_seconds = round(time.time() - t0, 3)
+
+    # ---------- pass 2: provider_references ----------
+    def _pass_groups(self, src: str) -> Iterator[tuple[str, object]]:
+        self.pass_name = "groups"
+        t0 = time.time()
+        # If references precede in_network, every reference is complete before the byte offset at
+        # which pass 1 saw its first in_network item, so the rest of the file need not be read.
+        stop = self._in_network_offset if self.stats.first_section == "provider_references" else None
+        for ref in self._objects(src, "provider_references.item", stop_after=stop):
+            self.stats.provider_refs_seen += 1
+            gid = norm_gid(ref.get("provider_group_id"))
+            if gid not in self._needed or gid in self._kept:
+                continue
+            self.stats.provider_refs_needed += 1
+            names = ref.get("network_name") or []
+            if not self._network_ok(names):
+                continue
+            self.stats.provider_refs_network_match += 1
+            if ref.get("provider_groups") is not None:
+                groups, source = ref["provider_groups"], "inline_reference"
+            elif ref.get("location"):
+                ext = self.opener(resolve(src, ref["location"]))
+                try:
+                    groups = list(ijson.items(ext, "provider_groups.item", use_float=True))
+                finally:
+                    ext.close()
+                self.stats.external_refs_fetched += 1
+                source = "external_reference"
+            else:
+                continue
+            g = self._group(gid, names, groups, source)
+            if g:
+                yield ("group", g)
+        self.stats.pass2_seconds = round(time.time() - t0, 3)
+
+    # ---------- driver ----------
+    def parse(self, src: str) -> Iterator[tuple[str, object]]:
+        t0 = time.time()
+        fd, spill_path = tempfile.mkstemp(prefix="mrf_spill_", suffix=".jsonl", dir=self.spill_dir)
+        try:
+            self._read_header(src)
+            with os.fdopen(fd, "w") as spill:
+                yield from self._pass_rates(src, spill)
+            if self._needed - self._kept:
+                yield from self._pass_groups(src)
+            with open(spill_path) as f:
+                for line in f:
+                    rec = json.loads(line)
+                    yield from self._rows(rec["meta"], rec["prices"], rec["gids"])
+        finally:
+            os.unlink(spill_path)
+            self.stats.compressed_bytes, self.stats.decompressed_bytes = self._done_bytes
+            self.stats.wall_seconds = round(time.time() - t0, 3)
+            self.stats.peak_rss_mb = rss_mb()
+
+    def _rows(self, meta: dict, prices: list[dict], gids: list[str]):
+        for gid in dict.fromkeys(gids):
+            if gid not in self._kept:
+                continue
+            for p in prices:
                 self.stats.rate_rows_emitted += 1
                 yield ("rate", {
                     **meta,
@@ -257,126 +354,6 @@ class InNetworkParser:
                     "billing_code_modifier": list(p.get("billing_code_modifier") or []),
                     "additional_information": p.get("additional_information"),
                 })
-
-    def _on_rate(self, meta: dict, rate: dict, spill):
-        self.stats.negotiated_rates_matched += 1
-        self.stats.negotiated_prices_matched += len(rate.get("negotiated_prices") or [])
-        gids = [norm_gid(g) for g in rate.get("provider_references") or []]
-        for pgs in ([rate["provider_groups"]] if rate.get("provider_groups") else []):
-            gid = self._inline_group(pgs)
-            if gid:
-                gids.append(gid)
-        ready = [g for g in gids if g in self.kept]
-        unresolved = [g for g in gids if g not in self.kept
-                      and (g in self._pending_external or not self._refs_complete)]
-        yield from self._rows(meta, rate, ready)
-        if unresolved:
-            self.stats.rates_spilled += 1
-            spill.write(json.dumps({"meta": meta, "rate": {"negotiated_prices": rate.get("negotiated_prices")},
-                                    "gids": unresolved}) + "\n")
-
-    def _on_item(self, events, spill):
-        """Consume one in_network item. Builds only negotiated_rates of target codes."""
-        self.stats.in_network_items_seen += 1
-        meta: dict = {}
-        buffered: list[dict] = []  # only used if billing_code appears after negotiated_rates
-        target: bool | None = None
-        # Nested values are consumed by _build/_skip, so every event here is at item depth.
-        for prefix, e, v in events:
-            if e == "map_key":
-                continue
-            if prefix.startswith("in_network.item."):
-                key = prefix[len("in_network.item."):]
-                if key in ITEM_FIELDS and e not in _START:
-                    meta[key] = v
-                    if "billing_code" in meta and "billing_code_type" in meta and target is None:
-                        target = self._is_target(meta)
-                    continue
-                if key == "negotiated_rates" and e == "start_array":
-                    yield from self._on_rates_array(events, meta, target, buffered, spill)
-                    continue
-                if e in _START:
-                    _skip(e, events)
-                continue
-            if e == "end_map" and prefix == "in_network.item":
-                break
-        if target is None:
-            target = self._is_target(meta)
-        if target:
-            self.stats.in_network_items_matched += 1
-            m = self._meta(meta)
-            for rate in buffered:
-                yield from self._on_rate(m, rate, spill)
-        elif meta.get("billing_code_type", "").upper() not in self.code_types:
-            self.stats.skipped_code_type += 1
-
-    def _on_rates_array(self, events, meta, target, buffered, spill):
-        for prefix, e, v in events:
-            if e == "end_array" and prefix.endswith("negotiated_rates"):
-                return
-            if e == "start_map":
-                if target is False:
-                    _skip(e, events)
-                elif target is True:
-                    yield from self._on_rate(self._meta(meta), _build(e, v, events), spill)
-                else:
-                    buffered.append(_build(e, v, events))
-
-    def _is_target(self, meta: dict) -> bool:
-        return (str(meta.get("billing_code_type", "")).upper() in self.code_types
-                and str(meta.get("billing_code", "")).strip() in self.codes)
-
-    @staticmethod
-    def _meta(meta: dict) -> dict:
-        return {
-            "billing_code": str(meta.get("billing_code", "")).strip(),
-            "billing_code_type": meta.get("billing_code_type"),
-            "billing_code_type_version": meta.get("billing_code_type_version"),
-            "negotiation_arrangement": meta.get("negotiation_arrangement"),
-            "name": meta.get("name"),
-        }
-
-    # ---------- driver ----------
-    def parse(self, src: str) -> Iterator[tuple[str, object]]:
-        t0 = time.time()
-        stream = self.opener(src)
-        fd, spill_path = tempfile.mkstemp(prefix="mrf_spill_", suffix=".jsonl", dir=self.spill_dir)
-        try:
-            with os.fdopen(fd, "w") as spill:
-                events = ijson.parse(stream, use_float=True)
-                for prefix, e, v in events:
-                    if prefix in HEADER_FIELDS and e not in _START and e != "map_key":
-                        self.header[prefix] = v
-                    elif prefix in ("provider_references", "in_network") and e == "start_array":
-                        self.stats.section_order.append(prefix)
-                    elif prefix == "provider_references" and e == "end_array":
-                        self._refs_complete = True
-                    elif prefix == "provider_references.item" and e == "start_map":
-                        self._on_reference(_build(e, v, events))
-                    elif prefix == "in_network.item" and e == "start_map":
-                        yield from self._on_item(events, spill)
-            self._refs_complete = True
-            yield from self._replay(spill_path, src)
-        finally:
-            stream.close()
-            os.unlink(spill_path)
-            self.stats.compressed_bytes = stream.stats.compressed_bytes
-            self.stats.decompressed_bytes = stream.stats.decompressed_bytes
-            self.stats.wall_seconds = round(time.time() - t0, 3)
-            self.stats.peak_rss_mb = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
-
-    def _replay(self, spill_path: str, src: str):
-        if not self.stats.rates_spilled:
-            return
-        needed: set[str] = set()
-        with open(spill_path) as f:
-            for line in f:
-                needed.update(g for g in json.loads(line)["gids"] if g in self._pending_external)
-        self._fetch_external(needed, src)
-        with open(spill_path) as f:
-            for line in f:
-                rec = json.loads(line)
-                yield from self._rows(rec["meta"], rec["rate"], rec["gids"])
 
 
 def parse_in_network(src: str, codes, networks=None, npis=None, **kw) -> Iterator[tuple[str, object]]:
