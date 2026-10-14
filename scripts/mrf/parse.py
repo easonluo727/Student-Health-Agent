@@ -86,6 +86,7 @@ class ParseStats:
     fast_path_rates: bool = False
     fast_path_groups: bool = False
     fast_path_note: str | None = None
+    refs_parsed_without_head_gid: int = 0
     compressed_bytes: int = 0
     decompressed_bytes: int = 0
     pass1_seconds: float = 0.0
@@ -347,8 +348,9 @@ class InNetworkParser:
         self.stats.provider_refs_seen += 1
         self._tick()
         m = fastscan.GID_FIELD.search(head)
-        if not m:
-            raise fastscan.FastPathUnavailable("provider_group_id not in the first bytes of a reference")
+        if not m:  # e.g. UHC writes provider_groups before provider_group_id: parse it, decide after
+            self.stats.refs_parsed_without_head_gid += 1
+            return True
         gid = norm_gid(json.loads(m.group(1)))
         return gid in self._needed and gid not in self._kept
 

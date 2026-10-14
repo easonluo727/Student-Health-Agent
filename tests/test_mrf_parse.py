@@ -226,6 +226,19 @@ class FastPathLayouts(TmpDirCase):
         self.assertFalse(p.stats.fast_path_rates)
         self.assertEqual(len(rates), 40)
 
+    def test_group_id_after_large_provider_groups(self):
+        doc = load(self.src)
+        big = [{"npi": [1000000000 + i for i in range(600)], "tin": {"type": "ein", "value": "111111111"}}]
+        doc["provider_references"] = [
+            {"provider_groups": r["provider_groups"] + big, "network_name": r["network_name"],
+             "provider_group_id": r["provider_group_id"]} for r in doc["provider_references"]]
+        p, groups, rates = run(self.write("gid_late.json", doc), {"99214"}, ["Comprehensive Health Network"],
+                               {"1234567890"})
+        self.assertTrue(p.stats.fast_path_groups)
+        self.assertGreater(p.stats.refs_parsed_without_head_gid, 0)
+        self.assertEqual(set(groups), {"1"})
+        self.assertEqual(len(rates), 1)
+
     def test_chunk_boundaries(self):
         import fastscan
         import stream
