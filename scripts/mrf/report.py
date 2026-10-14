@@ -24,7 +24,7 @@ from lookup import load_encounters, lookup_allowed_amount  # noqa: E402
 
 DATA = os.path.join(ROOT, "data", "mrf")
 ER_CODES = {"99281", "99282", "99283", "99284", "99285"}
-POS_LABEL = {"11": "office", "20": "urgent care", "22": "outpatient hospital", "23": "ER", None: "any"}
+POS_LABEL = {"11": "office", "20": "urgent care", "22": "outpatient hospital", "23": "ER", "81": "lab", None: "any"}
 CLASS_SHORT = {"professional": "prof", "institutional": "inst"}
 
 A_COLS = ["insurer", "network", "encounter", "allowed_amount", "allowed_amount_basis", "status", "components",
@@ -48,7 +48,12 @@ def load_codes() -> list[dict]:
         return list(csv.DictReader(f))
 
 
-def component_combos(codes: list[dict], encounters: dict[str, list[dict]]) -> list[tuple[str, str, str | None, str]]:
+REPORT_POS = ("11", "20", "22", "23", "81")
+
+
+def component_combos(con, codes: list[dict], encounters: dict[str, list[dict]]) -> list[tuple[str, str, str | None, str]]:
+    """Encounter components plus, per code x billing class, every reported POS setting that occurs
+    in the data (office 11, urgent care 20, outpatient hospital 22, ER 23, lab 81, or none listed)."""
     combos: dict[tuple[str, str, str | None], str] = {}
     for rows in encounters.values():
         for r in rows:
@@ -56,11 +61,12 @@ def component_combos(codes: list[dict], encounters: dict[str, list[dict]]) -> li
                 combos[(code, r["billing_class"], r["place_of_service"] or None)] = r["modifier_rule"]
     for c in codes:
         code = c["code"]
-        if code in ER_CODES:
-            combos.setdefault((code, "professional", "23"), "global")
-            combos.setdefault((code, "institutional", None), "global")
-        else:
-            combos.setdefault((code, "professional", "11"), "global_or_tc_plus_26" if code.startswith("7") else "global")
+        rule = "global_or_tc_plus_26" if code.startswith("7") else "global"
+        for bclass, sc in con.execute("SELECT DISTINCT billing_class, service_codes FROM negotiated_rates "
+                                      "WHERE billing_code=? AND billing_class IN ('professional','institutional')", (code,)):
+            listed = set(sc.split(",")) if sc else set()
+            for pos in [p for p in REPORT_POS if p in listed] or ([None] if not listed else []):
+                combos.setdefault((code, bclass, pos), rule)
     return [(k[0], k[1], k[2], v) for k, v in sorted(combos.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2] or ""))]
 
 
@@ -114,7 +120,7 @@ def build(db: str, as_of: str) -> dict:
     loaded = {r[0] for r in con.execute("SELECT DISTINCT plan_key FROM mrf_sources WHERE status='complete'")}
     plans = [p for p in profiles if p["plan_key"] in loaded]
     codes, encounters = load_codes(), load_encounters()
-    combos = component_combos(codes, encounters)
+    combos = component_combos(con, codes, encounters)
     build_rate_summary(con, plans, combos, as_of)
     dq = data_quality(con, plans, codes)
 
@@ -202,7 +208,7 @@ def write_md(plans, profiles, table_a, table_b, src, dq, as_of, encounters) -> N
     L += ["", "`p10`/`p90`/`ucla_health_rate` for an encounter are sums of the component values (blank if any component lacks one).", "",
           "## Table B — Component allowed amounts", ""]
     L += _md_table(B_COLS, [[r["insurer"], r["network"], r["billing_code"], r["billing_class"],
-                             f'{r["place_of_service"]} ({POS_LABEL.get(r["place_of_service"] or None, "")})' if r["place_of_service"] else "any",
+                             " → ".join(f'{p} ({POS_LABEL.get(p, "")})' for p in r["place_of_service"].split("|")) if r["place_of_service"] else "any",
                              money(r["allowed_amount"]) or "—", r["allowed_amount_basis"], r["status"], r["n_providers"],
                              money(r["p10"]), money(r["p90"]), money(r["ucla_health_rate"]), r["mrf_file_date"],
                              r["negotiated_type_mix"], r["n_rates_excluded"]] for r in table_b])

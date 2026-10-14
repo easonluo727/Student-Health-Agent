@@ -231,7 +231,9 @@ class InNetworkParser:
         self._kept.add(gid)
         self.stats.provider_refs_kept += source != "inline_rate"
         self.stats.member_rows += len(members)
-        return Group(gid, list(names or []), members, source)
+        # Keep only the target network names that matched (Anthem lists dozens per group).
+        names = [n for n in names or [] if self.networks is None or str(n).strip().upper() in self.networks]
+        return Group(gid, names, members, source)
 
     def _inline_group(self, provider_groups: list[dict]) -> tuple[str | None, Group | None]:
         """Return (gid, new Group or None). gid is None if the inline group is filtered out."""

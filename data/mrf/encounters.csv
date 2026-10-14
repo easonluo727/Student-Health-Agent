@@ -1,9 +1,10 @@
 encounter,label,component,codes,billing_class,place_of_service,modifier_rule,verified_by
-urgent_care_flu,Urgent care visit for flu with rapid flu test,visit,99213,professional,20,global,
-urgent_care_flu,Urgent care visit for flu with rapid flu test,flu_test,87804,professional,20,global,
+urgent_care_flu,Urgent care visit for flu with rapid flu test,visit,99213,professional,20|11,global,
+urgent_care_flu,Urgent care visit for flu with rapid flu test,flu_test,87804,professional,20|11|81,global,
 er_ankle_xray,ER visit for ankle sprain with X-ray,er_physician,99284,professional,23,global,
 er_ankle_xray,ER visit for ankle sprain with X-ray,er_facility,99284,institutional,,global,
-er_ankle_xray,ER visit for ankle sprain with X-ray,ankle_xray,73610,professional,23,global_or_tc_plus_26,
+er_ankle_xray,ER visit for ankle sprain with X-ray,xray_read,73610,professional,23|22|11,mod_26,
+er_ankle_xray,ER visit for ankle sprain with X-ray,xray_facility,73610,institutional,,global,
 specialist_followup,Specialist (pulmonology) follow-up visit,visit,99214,professional,11,global,
 office_visit_established,Primary care visit (established patient),visit,99213,professional,11,global,
 office_visit_new,Primary care visit (new patient),visit,99203,professional,11,global,

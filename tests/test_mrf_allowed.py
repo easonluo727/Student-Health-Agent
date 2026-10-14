@@ -148,6 +148,18 @@ class AllowedAmountPipeline(unittest.TestCase):
         uc = allowed.component(self.con, "test_ppo", "99213", "professional", "20", as_of=AS_OF)
         self.assertEqual(uc.allowed_amount, 130.0)           # POS 20 specific rate preferred
 
+    def test_pos_preference_list(self):
+        # 87804 has only no-POS rates; 99213 at "21|20" finds POS 20 for UCLA (130) and falls back
+        # to no-POS rates for the rest.
+        r = allowed.component(self.con, "test_ppo", "99213", "professional", "21|20", as_of=AS_OF)
+        self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (130.0, "ucla_health_rate"))
+        r = allowed.component(self.con, "test_ppo", "99213", "professional", "21|11", as_of=AS_OF)
+        self.assertEqual(r.allowed_amount, 100.0)
+
+    def test_mod_26_only(self):
+        r = allowed.component(self.con, "test_ppo", "73610", "professional", "23", "mod_26", as_of=AS_OF)
+        self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (20.0, "westwood_area_median"))
+
     def test_provider_rate_and_county_fallback(self):
         r = allowed.component(self.con, "test_ppo", "99213", "professional", "11", npi=LA_NPI2, as_of=AS_OF)
         self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (70.0, "provider_rate"))

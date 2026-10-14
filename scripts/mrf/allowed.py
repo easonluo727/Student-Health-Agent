@@ -3,7 +3,9 @@
 Per provider (NPI), for one billing code / billing class / place of service:
   1. drop `percentage` and `per diem` rates (counted in n_rates_excluded), and expired rates;
   2. modifiers: use the global (unmodified) rate; for imaging with no global rate, sum TC + 26;
-  3. place of service: rates listing the encounter's POS, else rates with no POS listed;
+     `mod_26` uses only the professional component (26);
+  3. place of service: rates listing the encounter's POS (first match in an ordered preference
+     list such as "20|11"), else rates with no POS listed;
   4. among what is left keep the latest expiration date; if several dollar values remain
      (e.g. the NPI is in several groups/TINs), take their median.
 Across providers, `allowed_amount` is chosen in priority order:
@@ -99,10 +101,16 @@ def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_
 
 
 def _pick(cands: list[Candidate], pos: str | None) -> float | None:
-    """POS match (else no-POS), latest expiration, median of remaining dollar values."""
+    """POS match, latest expiration, median of remaining dollar values. `pos` may be an ordered
+    preference list "20|11" (from encounters.csv): the first POS with a rate wins, then rates that
+    list no POS."""
     if pos:
-        exact = [c for c in cands if pos in c.service_codes]
-        cands = exact or [c for c in cands if not c.service_codes]
+        chosen: list[Candidate] = []
+        for p in pos.split("|"):
+            chosen = [c for c in cands if p in c.service_codes]
+            if chosen:
+                break
+        cands = chosen or [c for c in cands if not c.service_codes]
     if not cands:
         return None
     latest = max(c.expiration_date for c in cands)
@@ -124,6 +132,11 @@ def per_provider(cands: list[Candidate], pos: str | None, modifier_rule: str, as
     out = {}
     for npi, cs in by_npi.items():
         tier, ucla = cs[0].tier, any(c.ucla for c in cs)
+        if modifier_rule == "mod_26":  # professional component only (e.g. radiologist read in the ER)
+            value = _pick([c for c in cs if c.modifiers == ("26",)], pos)
+            if value is not None:
+                out[npi] = (value, tier, ucla, False)
+            continue
         value = _pick([c for c in cs if not c.modifiers], pos)
         used = False
         if value is None and modifier_rule == "global_or_tc_plus_26":
