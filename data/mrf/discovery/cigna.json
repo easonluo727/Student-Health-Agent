@@ -1,0 +1,209 @@
+{
+ "insurer": "Cigna",
+ "official_page": "https://www.cigna.com/legal/compliance/machine-readable-files",
+ "toc_pointer": "https://www.cigna.com/static/mrf/latest.json",
+ "toc_url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/table-of-contents/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_index.json (CloudFront-signed; query string omitted)",
+ "file_month": "2026-10-01",
+ "toc_compressed_mb": 60,
+ "toc_parse_seconds": 3,
+ "reporting_structures": 25843,
+ "in_network_refs": 101395,
+ "unique_in_network_files": 124,
+ "all_files_total_gb": 29.7,
+ "split": "by network product, national (not by state); Southern California HMO / Select / Value networks have their own small files",
+ "note": "File URLs are CloudFront-signed and expire; re-read latest.json -> TOC at run time. Signatures are not stored.",
+ "candidates": [
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_national-oap_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_national-oap_in-network-rates.json.gz",
+   "bytes": 1589944345,
+   "status": 200,
+   "n_plans": 1562,
+   "market_types": {
+    "group": 1562
+   },
+   "sample_plans": [
+    {
+     "plan_name": "OAP",
+     "plan_id_type": "ein",
+     "plan_id": "815029197",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "OAP",
+     "plan_id_type": "ein",
+     "plan_id": "541689909",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_southern-ca-hmo-cap_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_southern-ca-hmo-cap_in-network-rates.json.gz",
+   "bytes": 89949,
+   "status": 200,
+   "n_plans": 302,
+   "market_types": {
+    "group": 302
+   },
+   "sample_plans": [
+    {
+     "plan_name": "HMO",
+     "plan_id_type": "ein",
+     "plan_id": "95-3310115",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "HMO",
+     "plan_id_type": "ein",
+     "plan_id": "95-3310115",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_southern-ca-hmo_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_southern-ca-hmo_in-network-rates.json.gz",
+   "bytes": 34118373,
+   "status": 200,
+   "n_plans": 302,
+   "market_types": {
+    "group": 302
+   },
+   "sample_plans": [
+    {
+     "plan_name": "HMO",
+     "plan_id_type": "ein",
+     "plan_id": "95-3310115",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "HMO",
+     "plan_id_type": "ein",
+     "plan_id": "95-3310115",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_southern-ca-select-network-cap_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_southern-ca-select-network-cap_in-network-rates.json.gz",
+   "bytes": 17336,
+   "status": 200,
+   "n_plans": 125,
+   "market_types": {
+    "group": 125
+   },
+   "sample_plans": [
+    {
+     "plan_name": "Select",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "Select",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_southern-ca-select-network_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_southern-ca-select-network_in-network-rates.json.gz",
+   "bytes": 1376792,
+   "status": 200,
+   "n_plans": 125,
+   "market_types": {
+    "group": 125
+   },
+   "sample_plans": [
+    {
+     "plan_name": "Select",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "Select",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_national-ppo_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_national-ppo_in-network-rates.json.gz",
+   "bytes": 1587434607,
+   "status": 200,
+   "n_plans": 98,
+   "market_types": {
+    "group": 98
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PPO",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO",
+     "plan_id_type": "ein",
+     "plan_id": "132571986",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_southern-ca-value-network_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_southern-ca-value-network_in-network-rates.json.gz",
+   "bytes": 959237,
+   "status": 200,
+   "n_plans": 16,
+   "market_types": {
+    "group": 16
+   },
+   "sample_plans": [
+    {
+     "plan_name": "Select Value",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "Select Value",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "name": "2026-10-01_cigna-health-life-insurance-company_southern-ca-value-network-cap_in-network-rates.json.gz",
+   "url": "https://d25kgz5rikkq4n.cloudfront.net/cost_transparency/mrf/in-network-rates/reporting_month=2026-10/2026-10-01_cigna-health-life-insurance-company_southern-ca-value-network-cap_in-network-rates.json.gz",
+   "bytes": 15643,
+   "status": 200,
+   "n_plans": 16,
+   "market_types": {
+    "group": 16
+   },
+   "sample_plans": [
+    {
+     "plan_name": "Select Value",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "Select Value",
+     "plan_id_type": "ein",
+     "plan_id": "59-1031071",
+     "plan_market_type": "group"
+    }
+   ]
+  }
+ ]
+}

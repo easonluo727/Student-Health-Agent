@@ -1,0 +1,5116 @@
+{
+ "insurer": "Anthem Blue Cross (California)",
+ "official_page": "https://www.anthem.com/machine-readable-file/search/",
+ "toc_url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/2026-10-01_anthem_index.json.gz",
+ "file_month": "2026-10-01",
+ "toc_header": {
+  "reporting_entity_name": "Anthem Inc",
+  "reporting_entity_type": "health insurance issuer",
+  "last_updated_on": "2026-10-01",
+  "version": "2.0.0"
+ },
+ "toc_compressed_gb": 11.41,
+ "toc_decompressed_gb": 23.27,
+ "toc_parse_seconds": 436.162,
+ "toc_peak_rss_mb": 46.0,
+ "reporting_structures": 147124,
+ "in_network_refs": 42986285,
+ "split": "by state (URL prefix CA_), then by product/contract; the same URL is referenced by many plans (deduplicated)",
+ "ca_unique_files": 167,
+ "ca_total_gb": 221.0,
+ "network_names_in_files": "provider_references[].network_name, e.g. CA PPO PRUDENT BUYER (UC SHIP network), CA PPO PRUDENT BUYER EXCLUDING SUTTER, CA PPO ADVANTAGE, CA HMO CALIFORNIACARE IN",
+ "uc_regents_plan": {
+  "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+  "plan_id_type": "EIN",
+  "plan_id": "943067788",
+  "files": [
+   "CA_PPUCMED0001.json.gz",
+   "CA_CPTNMED0001.json.gz",
+   "CA_PPUCMED0000.json.gz",
+   "CA_MPUCMED0000.json.gz",
+   "CA_ELHOMEDELHO.json.gz",
+   "CA_ENKHMEDENKH.json.gz",
+   "CA_ELRKMEDELRK.json.gz"
+  ]
+ },
+ "files": [
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXCVMED0000.json.gz",
+   "bytes": 2220534775,
+   "n_plans": 11348,
+   "market_types": {
+    "individual": 9828,
+    "group": 1520
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PATHWAY TRANSITION HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "CA PATHWAY HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "PATHWAY X - HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXCVMED0078.json.gz",
+   "bytes": 2210993670,
+   "n_plans": 11348,
+   "market_types": {
+    "individual": 9828,
+    "group": 1520
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PATHWAY TRANSITION HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "CA PATHWAY HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "PATHWAY X - HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HYWCMED0001.json.gz",
+   "bytes": 2210865703,
+   "n_plans": 11348,
+   "market_types": {
+    "individual": 9828,
+    "group": 1520
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PATHWAY TRANSITION HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "CA PATHWAY HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "PATHWAY X - HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXCTMED0000.json.gz",
+   "bytes": 2185064458,
+   "n_plans": 11348,
+   "market_types": {
+    "individual": 9828,
+    "group": 1520
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PATHWAY TRANSITION HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "CA PATHWAY HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "PATHWAY X - HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXCUMED0000.json.gz",
+   "bytes": 2148937371,
+   "n_plans": 11348,
+   "market_types": {
+    "individual": 9828,
+    "group": 1520
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PATHWAY TRANSITION HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "CA PATHWAY HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    },
+    {
+     "plan_name": "PATHWAY X - HMO - INDIV - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "88380VA0750050",
+     "plan_market_type": "individual"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_SHOEMEDSUTT.json.gz",
+   "bytes": 2146806454,
+   "n_plans": 9,
+   "market_types": {
+    "group": 9
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - SUTTER HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942788907",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO - SUTTER HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942788907",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "SH EPO - SUTTER HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942788907",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCETMEDD34C.json.gz",
+   "bytes": 1984705880,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO - DIGNITY HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCETMEDDHEP.json.gz",
+   "bytes": 1967363673,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO - DIGNITY HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PPUCMED0001.json.gz",
+   "bytes": 1959551322,
+   "n_plans": 9,
+   "market_types": {
+    "group": 9
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "UC MEDICARE PPO - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": [
+    {
+     "plan_name": "K HEALTH - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_EPCHMEDCHLA.json.gz",
+   "bytes": 1952587820,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CHLA PPO PLAN - CHILDRENS HOSPITAL LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951690977",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - CHILDRENS HOSPITAL LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951690977",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - CHILDRENS HOSPITAL LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951690977",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCETMEDDH00.json.gz",
+   "bytes": 1950074342,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO - DIGNITY HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GAHSMED0020.json.gz",
+   "bytes": 1930676523,
+   "n_plans": 14,
+   "market_types": {
+    "group": 14
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - SCIENCE APPLICATIONS INTERNATIONAL CORP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "461932921",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "OPEN ACCESS POS - SCIENCE APPLICATIONS INTERNATIONAL CORP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "461932921",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "GENERIC HSA W/SELECTNET - SCIENCE APPLICATIONS INTERNATIONAL CORP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "461932921",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PCMPMED1200.json.gz",
+   "bytes": 1928499118,
+   "n_plans": 4,
+   "market_types": {
+    "group": 4
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - PEBBLE BEACH COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "922610000",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - PEBBLE BEACH COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "922610000",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO CUSTOM - PEBBLE BEACH COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "922610000",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSPPMEDCLD2.json.gz",
+   "bytes": 1926863272,
+   "n_plans": 10,
+   "market_types": {
+    "group": 10
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - ENTERTAINMENT INDUSTRY FLEX PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956832043",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "NJ LOCAL PPO - ENTERTAINMENT INDUSTRY FLEX PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956832043",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - ENTERTAINMENT INDUSTRY FLEX PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956832043",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PCMCMEDCLM2.json.gz",
+   "bytes": 1924678266,
+   "n_plans": 26,
+   "market_types": {
+    "group": 26
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - G&A PARTNERS-CALIFORNIA DBA G&A PARTNERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "301127273",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - G&A PARTNERS-CALIFORNIA DBA G&A PARTNERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "301127273",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO - G&A PARTNERS-CALIFORNIA DBA G&A PARTNERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "301127273",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_JBCHMED0000.json.gz",
+   "bytes": 1923577705,
+   "n_plans": 19549,
+   "market_types": {
+    "group": 17573,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER PPO - PACIFIC SPINE AND ORTHOPEDICS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "921153457",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PACIFIC SPINE AND ORTHOPEDICS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "921153457",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - PACIFIC SPINE AND ORTHOPEDICS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "921153457",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CCDVMED0000.json.gz",
+   "bytes": 1923241800,
+   "n_plans": 18,
+   "market_types": {
+    "group": 18
+   },
+   "sample_plans": [
+    {
+     "plan_name": "SOLUTION PPO - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD VIVITY HMO CUSTOM - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBVDMED0000.json.gz",
+   "bytes": 1922283946,
+   "n_plans": 580,
+   "market_types": {
+    "group": 580
+   },
+   "sample_plans": [
+    {
+     "plan_name": "SOLUTION PPO - INTEGRA CAPITAL GROUP INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "203414809",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE SELECT HMO - INTEGRA CAPITAL GROUP INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "203414809",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - INTEGRA CAPITAL GROUP INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "203414809",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CHMVMED0000.json.gz",
+   "bytes": 1922225477,
+   "n_plans": 363,
+   "market_types": {
+    "group": 363
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VIVITY CLASSIC HMO - JEWISH FAMILY SERVICE OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951691013",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO - JEWISH FAMILY SERVICE OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951691013",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - JEWISH FAMILY SERVICE OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951691013",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSBCMEDCLD2.json.gz",
+   "bytes": 1921969248,
+   "n_plans": 10,
+   "market_types": {
+    "group": 10
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - ENTERTAINMENT INDUSTRY FLEX PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956832043",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "NJ LOCAL PPO - ENTERTAINMENT INDUSTRY FLEX PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956832043",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - ENTERTAINMENT INDUSTRY FLEX PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956832043",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AM3TMED0000.json.gz",
+   "bytes": 1920595947,
+   "n_plans": 5,
+   "market_types": {
+    "group": 5
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ALAMADA PPO 3 TIERED NETWORK - ALAMEDA HEALTH SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943302014",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - ALAMEDA HEALTH SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943302014",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - ALAMEDA HEALTH SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943302014",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CCPBMED0000.json.gz",
+   "bytes": 1919677101,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - LOS ANGELES POLICE RELIEF ASSOCIATION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951660854",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - LOS ANGELES POLICE RELIEF ASSOCIATION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951660854",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - LOS ANGELES POLICE RELIEF ASSOCIATION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951660854",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_MSAPMED0000.json.gz",
+   "bytes": 1919054430,
+   "n_plans": 16,
+   "market_types": {
+    "group": 16
+   },
+   "sample_plans": [
+    {
+     "plan_name": "FEE FOR SERVICE - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ASSURANCE PLUS MEDICARE SUPPLEMENT - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCHSMED0000.json.gz",
+   "bytes": 1918927043,
+   "n_plans": 151851,
+   "market_types": {
+    "group": 148887,
+    "individual": 2964
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - BLAZE LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "611412883",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - BLAZE LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "611412883",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - BLAZE LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "611412883",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_POSWMED362T.json.gz",
+   "bytes": 1918282974,
+   "n_plans": 10,
+   "market_types": {
+    "group": 10
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - CENTRAL GARDEN AND PET - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "680275553",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - CENTRAL GARDEN AND PET - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "680275553",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE PREFERRED - CENTRAL GARDEN AND PET - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "680275553",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDRSBT.json.gz",
+   "bytes": 1914499007,
+   "n_plans": 26,
+   "market_types": {
+    "group": 26
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - THE MCCLATCHY COMPANY LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "852617302",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO - THE MCCLATCHY COMPANY LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "852617302",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - THE MCCLATCHY COMPANY LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "852617302",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0003.json.gz",
+   "bytes": 1913681190,
+   "n_plans": 29,
+   "market_types": {
+    "group": 29
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC TRAD HMO NET NON DUR - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - SELF INSURED SCHOOLS OF CALIFORNIA JAA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMED9022.json.gz",
+   "bytes": 1912291543,
+   "n_plans": 5,
+   "market_types": {
+    "group": 5
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - DIRECTORS GUILD OF AMERICA - PRODUCER HEALTH PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "237067289",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - DIRECTORS GUILD OF AMERICA - PRODUCER HEALTH PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "237067289",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - DIRECTORS GUILD OF AMERICA - PRODUCER HEALTH PLAN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "237067289",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDC274.json.gz",
+   "bytes": 1911875674,
+   "n_plans": 20,
+   "market_types": {
+    "group": 20
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMED9023.json.gz",
+   "bytes": 1911664647,
+   "n_plans": 5,
+   "market_types": {
+    "group": 5
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - WRITERS GUILD INDUSTRY HEALTH FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "237108536",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO PB INCENTIVE - WRITERS GUILD INDUSTRY HEALTH FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "237108536",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - WRITERS GUILD INDUSTRY HEALTH FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "237108536",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPIMED9010.json.gz",
+   "bytes": 1911391966,
+   "n_plans": 205,
+   "market_types": {
+    "group": 205
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - OROHEALTH CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941634554",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - OROHEALTH CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941634554",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - OROHEALTH CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941634554",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPIMED9020.json.gz",
+   "bytes": 1911243384,
+   "n_plans": 9,
+   "market_types": {
+    "group": 9
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - AMPLA HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942210447",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO PB INCENTIVE - AMPLA HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942210447",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - AMPLA HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942210447",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBLAMEDC20L.json.gz",
+   "bytes": 1910605996,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - COUNTY OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000927",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CUST CTSTRPHC PPO PRM NET COLA - COUNTY OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000927",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - COUNTY OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000927",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDMDL7.json.gz",
+   "bytes": 1910582029,
+   "n_plans": 14,
+   "market_types": {
+    "group": 14
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - EXPERIAN INFORMATION SOLUTIONS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "311343192",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - EXPERIAN INFORMATION SOLUTIONS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "311343192",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - EXPERIAN INFORMATION SOLUTIONS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "311343192",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMED0010.json.gz",
+   "bytes": 1910512585,
+   "n_plans": 82,
+   "market_types": {
+    "group": 82
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GAHSMEDWDOC.json.gz",
+   "bytes": 1910469910,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO PB INCENTIVE - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPIMED232V.json.gz",
+   "bytes": 1910464743,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO PB INCENTIVE - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCEXMEDCHKF.json.gz",
+   "bytes": 1910449378,
+   "n_plans": 19,
+   "market_types": {
+    "group": 19
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PPO - THE CHEESECAKE FACTORY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "510340466",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - THE CHEESECAKE FACTORY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "510340466",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "EPO - THE CHEESECAKE FACTORY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "510340466",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GAHSMED23EC.json.gz",
+   "bytes": 1910431496,
+   "n_plans": 103,
+   "market_types": {
+    "group": 103
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BC INCENTIVE PPO - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE SELECT HMO - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCEDMED0264.json.gz",
+   "bytes": 1910419354,
+   "n_plans": 37,
+   "market_types": {
+    "group": 37
+   },
+   "sample_plans": [
+    {
+     "plan_name": "SOLUTION PPO - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD VIVITY HMO CUSTOM - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPCMEDBUTE.json.gz",
+   "bytes": 1910417947,
+   "n_plans": 22,
+   "market_types": {
+    "group": 22
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC TRAD HMO NET NON DUR - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - SELF INSURED SCHOOLS OF CALIFORNIA JAA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GAHSMEDLV01.json.gz",
+   "bytes": 1910351605,
+   "n_plans": 20,
+   "market_types": {
+    "group": 20
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCEXMEDD160.json.gz",
+   "bytes": 1910330551,
+   "n_plans": 57,
+   "market_types": {
+    "group": 57
+   },
+   "sample_plans": [
+    {
+     "plan_name": "FEE FOR SERVICE - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ASSURANCE PLUS MEDICARE SUPPLEMENT - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMED0225.json.gz",
+   "bytes": 1910307694,
+   "n_plans": 48,
+   "market_types": {
+    "group": 48
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BLUE ACCESS CHOICE PPO - ELEVANCE HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113713086",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "EPO - ELEVANCE HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113713086",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "IN GENERIC HSA PLUS - ELEVANCE HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113713086",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPPMEDCAL1.json.gz",
+   "bytes": 1910306774,
+   "n_plans": 8,
+   "market_types": {
+    "group": 8
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS ADVANTAGE HMO - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GAHSMEDLB01.json.gz",
+   "bytes": 1910306629,
+   "n_plans": 4,
+   "market_types": {
+    "group": 4
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - BETHEL CHURCH OF REDDING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941514037",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - BETHEL CHURCH OF REDDING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941514037",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - BETHEL CHURCH OF REDDING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941514037",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDCA82.json.gz",
+   "bytes": 1910268174,
+   "n_plans": 5,
+   "market_types": {
+    "group": 5
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - CRANE COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "882846451",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - CRANE COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "882846451",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CRANE COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "882846451",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPIMEDCAL1.json.gz",
+   "bytes": 1910257361,
+   "n_plans": 8,
+   "market_types": {
+    "group": 8
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS ADVANTAGE HMO - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBITMEDLV01.json.gz",
+   "bytes": 1910236150,
+   "n_plans": 20,
+   "market_types": {
+    "group": 20
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCJAMED9047.json.gz",
+   "bytes": 1910235640,
+   "n_plans": 2368,
+   "market_types": {
+    "group": 2368
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - MONROVIA NURSERY COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951550929",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - MONROVIA NURSERY COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951550929",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MONROVIA NURSERY COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951550929",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCCSMED0500.json.gz",
+   "bytes": 1910228466,
+   "n_plans": 13149,
+   "market_types": {
+    "group": 13149
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PPO PB INCENTIVE - MX HOLDINGS US INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "202356604",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MX HOLDINGS US INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "202356604",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - MX HOLDINGS US INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "202356604",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDT191.json.gz",
+   "bytes": 1910214942,
+   "n_plans": 28,
+   "market_types": {
+    "group": 28
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - ROSS STORES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941390387",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - ROSS STORES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941390387",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - ROSS STORES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941390387",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDCA70.json.gz",
+   "bytes": 1910195549,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BC INCENTIVE PPO - OTSUKA AMERICA INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "911461045",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - OTSUKA AMERICA INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "911461045",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - OTSUKA AMERICA INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "911461045",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CAPHMEDVPHE.json.gz",
+   "bytes": 1910170737,
+   "n_plans": 4,
+   "market_types": {
+    "group": 4
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - VALLEY PRESBYTERIAN HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951945832",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - VALLEY PRESBYTERIAN HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951945832",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA EPO PRES 4TR - VALLEY PRESBYTERIAN HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951945832",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCHSMED0221.json.gz",
+   "bytes": 1910134467,
+   "n_plans": 58,
+   "market_types": {
+    "group": 58
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - TRLG HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "611431785",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC SELECT HMO - TRLG HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "611431785",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - TRLG HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "611431785",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPIMED4002.json.gz",
+   "bytes": 1910114227,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PPO PB INCENTIVE - CALIFORNIA PUBLIC EMPLOYEES RETIREMENT SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "946207465",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CALIFORNIA PUBLIC EMPLOYEES RETIREMENT SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "946207465",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - CALIFORNIA PUBLIC EMPLOYEES RETIREMENT SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "946207465",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCEXMEDCRH0.json.gz",
+   "bytes": 1908686276,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BC EXCLUSIVE PPO - LINKEDIN CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "470912023",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - LINKEDIN CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "470912023",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - LINKEDIN CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "470912023",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDHPBC.json.gz",
+   "bytes": 1908680086,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BC EXCLUSIVE PPO - HP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941081436",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - HP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941081436",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - HP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941081436",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDNTAP.json.gz",
+   "bytes": 1908623005,
+   "n_plans": 5,
+   "market_types": {
+    "group": 5
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - NETAPP INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770307520",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - NETAPP INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770307520",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - NETAPP INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770307520",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCPIMEDD30A.json.gz",
+   "bytes": 1907177810,
+   "n_plans": 9,
+   "market_types": {
+    "group": 9
+   },
+   "sample_plans": [
+    {
+     "plan_name": "GA GEN HSA W ALT NET - GOOGLE INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770493581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "GEN HSA W PPO ALT NY - GOOGLE INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770493581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GOOGLE INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770493581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCETMEDDH01.json.gz",
+   "bytes": 1906625156,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO - DIGNITY HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPSCMED0000.json.gz",
+   "bytes": 1905796235,
+   "n_plans": 1225,
+   "market_types": {
+    "group": 1225
+   },
+   "sample_plans": [
+    {
+     "plan_name": "DEDUCTIBLE HMO SELECT - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC SELECT HMO - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBPIMEDLV01.json.gz",
+   "bytes": 1901728408,
+   "n_plans": 20,
+   "market_types": {
+    "group": 20
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_POSLMED0000.json.gz",
+   "bytes": 1899927878,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - COUNTY OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000927",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CUST CTSTRPHC PPO PRM NET COLA - COUNTY OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000927",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - COUNTY OF LOS ANGELES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000927",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPSCMEDRSBT.json.gz",
+   "bytes": 1896504440,
+   "n_plans": 10,
+   "market_types": {
+    "group": 10
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - RIVERSIDE SHERIFFS ASSOCIATION BENEFIT TRUST - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "923688000",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC SELECT HMO - RIVERSIDE SHERIFFS ASSOCIATION BENEFIT TRUST - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "923688000",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - RIVERSIDE SHERIFFS ASSOCIATION BENEFIT TRUST - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "923688000",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CECSMED0000.json.gz",
+   "bytes": 1894914151,
+   "n_plans": 1386,
+   "market_types": {
+    "group": 1386
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CENTINELA FEED INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "954502202",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - CENTINELA FEED INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "954502202",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DEDUCTIBLE HMO SELECT - CENTINELA FEED INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "954502202",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPSHMED0000.json.gz",
+   "bytes": 1894894910,
+   "n_plans": 372,
+   "market_types": {
+    "group": 372
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - VPM MANAGEMENT INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330765560",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - VPM MANAGEMENT INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330765560",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - VPM MANAGEMENT INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330765560",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PEXSMED0000.json.gz",
+   "bytes": 1894829461,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - HYUNDAI CAPITAL AMERICA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330369347",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "EPO PRUDENT BUYER EXCLUSIVE - HYUNDAI CAPITAL AMERICA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330369347",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - HYUNDAI CAPITAL AMERICA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330369347",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPVSMED0000.json.gz",
+   "bytes": 1894206263,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PPO PB INCENTIVE - CALIFORNIA PUBLIC EMPLOYEES RETIREMENT SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "946207465",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CALIFORNIA PUBLIC EMPLOYEES RETIREMENT SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "946207465",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - CALIFORNIA PUBLIC EMPLOYEES RETIREMENT SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "946207465",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BNOSMED9040.json.gz",
+   "bytes": 1892390097,
+   "n_plans": 70,
+   "market_types": {
+    "group": 70
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - HABERFELDE FORD INC DBA JIM BURKE FORD - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "952275238",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - HABERFELDE FORD INC DBA JIM BURKE FORD - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "952275238",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - HABERFELDE FORD INC DBA JIM BURKE FORD - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "952275238",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PNOSMED9012.json.gz",
+   "bytes": 1887489185,
+   "n_plans": 14,
+   "market_types": {
+    "group": 14
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - GENERAL TEAMSTERS AND EMPLOYERS TRUST FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956060456",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - GENERAL TEAMSTERS AND EMPLOYERS TRUST FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956060456",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL TEAMSTERS AND EMPLOYERS TRUST FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956060456",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPSCMEDAB00.json.gz",
+   "bytes": 1887013744,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL ATOMICS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953735102",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PRIORITY SELECT HMO - GENERAL ATOMICS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953735102",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL ATOMICS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953735102",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPSCMED0001.json.gz",
+   "bytes": 1886090725,
+   "n_plans": 56,
+   "market_types": {
+    "group": 56
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GSHSMEDL001.json.gz",
+   "bytes": 1886046119,
+   "n_plans": 75,
+   "market_types": {
+    "group": 75
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - TRI COUNTIES BANK - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942261923",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "SELECT PPO - TRI COUNTIES BANK - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942261923",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - TRI COUNTIES BANK - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942261923",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CECNMED0000.json.gz",
+   "bytes": 1885618532,
+   "n_plans": 1065,
+   "market_types": {
+    "group": 1065
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BLUE CROSS HMO - TAP PLASTICS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941558896",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - TAP PLASTICS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941558896",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "EPO  PRUDENT BUYER EXCLUSIVE - TAP PLASTICS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941558896",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALPMED0000.json.gz",
+   "bytes": 1884934169,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - LOS ANGELES POLICE RELIEF ASSOCIATION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951660854",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - LOS ANGELES POLICE RELIEF ASSOCIATION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951660854",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - LOS ANGELES POLICE RELIEF ASSOCIATION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951660854",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CAVDMED0000.json.gz",
+   "bytes": 1884596732,
+   "n_plans": 1132,
+   "market_types": {
+    "group": 1132
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CALCARE PLUS PBP PORTION - SHERIFFS EMPLOYEES BENEFIT ASSOCIATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "996798921",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - SHERIFFS EMPLOYEES BENEFIT ASSOCIATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "996798921",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - SHERIFFS EMPLOYEES BENEFIT ASSOCIATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "996798921",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CCEDMED0000.json.gz",
+   "bytes": 1884428637,
+   "n_plans": 18,
+   "market_types": {
+    "group": 18
+   },
+   "sample_plans": [
+    {
+     "plan_name": "SOLUTION PPO - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD VIVITY HMO CUSTOM - MARINA DEL REY HOSPITAL - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "201645949",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPTNMED0000.json.gz",
+   "bytes": 1884402564,
+   "n_plans": 806,
+   "market_types": {
+    "group": 806
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - CRISP ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330934203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - CRISP ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330934203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE SELECT HMO - CRISP ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330934203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CACHMED0000.json.gz",
+   "bytes": 1884339841,
+   "n_plans": 21,
+   "market_types": {
+    "group": 21
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PECHANGA BAND OF INDIANS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953859626",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PECHANGA BAND OF INDIANS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953859626",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER SELECT HMO - PECHANGA BAND OF INDIANS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953859626",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPPSMED0000.json.gz",
+   "bytes": 1884337127,
+   "n_plans": 760,
+   "market_types": {
+    "group": 760
+   },
+   "sample_plans": [
+    {
+     "plan_name": "DEDUCTIBLE HMO SELECT - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC SELECT HMO - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CADVMED0000.json.gz",
+   "bytes": 1884298076,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - LOYOLA MARYMOUNT UNIVERSITY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643334",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS ADVANTAGE HMO - LOYOLA MARYMOUNT UNIVERSITY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643334",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LOYOLA MARYMOUNT UNIVERSITY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643334",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CECPMED0000.json.gz",
+   "bytes": 1884022465,
+   "n_plans": 742,
+   "market_types": {
+    "group": 742
+   },
+   "sample_plans": [
+    {
+     "plan_name": "EPO  PRUDENT BUYER EXCLUSIVE - CLOUDBASE VENTURES INC DBA FOODJA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "383683500",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE SELECT HMO - CLOUDBASE VENTURES INC DBA FOODJA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "383683500",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ELEM CHOICE HMO PRIORITY SEL - CLOUDBASE VENTURES INC DBA FOODJA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "383683500",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CCPSMED0000.json.gz",
+   "bytes": 1883463416,
+   "n_plans": 976,
+   "market_types": {
+    "group": 976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "DEDUCTIBLE HMO SELECT - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC SELECT HMO - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - PACIFIC PRODUCTION PLUMBING - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710876006",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_IACCMED0000.json.gz",
+   "bytes": 1882661548,
+   "n_plans": 4,
+   "market_types": {
+    "group": 4
+   },
+   "sample_plans": [
+    {
+     "plan_name": "INDUSTRY ADVANTAGE CALCARE - MOTION PICTURE AND TELEVISION FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951652916",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MOTION PICTURE AND TELEVISION FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951652916",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - MOTION PICTURE AND TELEVISION FUND - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951652916",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0001.json.gz",
+   "bytes": 1876003708,
+   "n_plans": 103,
+   "market_types": {
+    "group": 103
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BC INCENTIVE PPO - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE SELECT HMO - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CADVMED0003.json.gz",
+   "bytes": 1875790664,
+   "n_plans": 8,
+   "market_types": {
+    "group": 8
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS ADVANTAGE HMO - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - CALIFORNIA INSTITUTE OF TECHNOLOGY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951643307",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPTNMED0001.json.gz",
+   "bytes": 1875620482,
+   "n_plans": 76,
+   "market_types": {
+    "group": 76
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": [
+    {
+     "plan_name": "K HEALTH - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_FFSMEDHPBC.json.gz",
+   "bytes": 1874967966,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BC EXCLUSIVE PPO - HP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941081436",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - HP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941081436",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - HP - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941081436",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CPPSMED0003.json.gz",
+   "bytes": 1874456258,
+   "n_plans": 43,
+   "market_types": {
+    "group": 43
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC TRAD HMO NET NON DUR - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - SELF INSURED SCHOOLS OF CALIFORNIA JAA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBEXMEDRSBT.json.gz",
+   "bytes": 1874045539,
+   "n_plans": 10,
+   "market_types": {
+    "group": 10
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - RIVERSIDE SHERIFFS ASSOCIATION BENEFIT TRUST - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "923688000",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC SELECT HMO - RIVERSIDE SHERIFFS ASSOCIATION BENEFIT TRUST - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "923688000",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - RIVERSIDE SHERIFFS ASSOCIATION BENEFIT TRUST - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "923688000",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_IACCMED0003.json.gz",
+   "bytes": 1873571174,
+   "n_plans": 4,
+   "market_types": {
+    "group": 4
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - UNIVERSAL STUDIOS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "952011468",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "INDUSTRY ADVANTAGE CALCARE - UNIVERSAL STUDIOS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "952011468",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - UNIVERSAL STUDIOS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "952011468",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXBDMED0000.json.gz",
+   "bytes": 1862702510,
+   "n_plans": 4,
+   "market_types": {
+    "group": 4
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PLIVO INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "364710676",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PLIVO INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "364710676",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - PLIVO INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "364710676",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CSCHMED0000.json.gz",
+   "bytes": 1859714210,
+   "n_plans": 21,
+   "market_types": {
+    "group": 21
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - RACHAS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "262396678",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CLASSIC CHOICE SELECT HMO - RACHAS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "262396678",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO - RACHAS INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "262396678",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CVDHMED0000.json.gz",
+   "bytes": 1859703505,
+   "n_plans": 1208,
+   "market_types": {
+    "group": 1208
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CENTINELA FEED INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "954502202",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - CENTINELA FEED INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "954502202",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DEDUCTIBLE HMO SELECT - CENTINELA FEED INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "954502202",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BNOSMED0001.json.gz",
+   "bytes": 1859388088,
+   "n_plans": 5,
+   "market_types": {
+    "group": 5
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - FEDERAL EXPRESS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710427007",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - FEDERAL EXPRESS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710427007",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - FEDERAL EXPRESS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "710427007",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CVSHMED0000.json.gz",
+   "bytes": 1858707785,
+   "n_plans": 1179,
+   "market_types": {
+    "group": 1179
+   },
+   "sample_plans": [
+    {
+     "plan_name": "EPO  PRUDENT BUYER EXCLUSIVE - CLOUDBASE VENTURES INC DBA FOODJA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "383683500",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE SELECT HMO - CLOUDBASE VENTURES INC DBA FOODJA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "383683500",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ELEM CHOICE HMO PRIORITY SEL - CLOUDBASE VENTURES INC DBA FOODJA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "383683500",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CVDHMED0003.json.gz",
+   "bytes": 1849915119,
+   "n_plans": 43,
+   "market_types": {
+    "group": 43
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BC INCENTIVE PPO - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE SELECT HMO - SEMPRA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330732627",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXDLMED0000.json.gz",
+   "bytes": 1839243092,
+   "n_plans": 31863,
+   "market_types": {
+    "group": 30875,
+    "individual": 988
+   },
+   "sample_plans": [
+    {
+     "plan_name": "SELECT HMO - JANA COMMUNICATIONS INC - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "27603CA1211004",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - JANA COMMUNICATIONS INC - ANTHEM",
+     "plan_id_type": "HIOS",
+     "plan_id": "27603CA1211004",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRECISION TAX INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "260132226",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXBCMED0000.json.gz",
+   "bytes": 1835043782,
+   "n_plans": 34750,
+   "market_types": {
+    "group": 32774,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CALIFORNIA CARE HMO - LARS BJORN JONSSON DDS MS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "203566174",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - LARS BJORN JONSSON DDS MS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "203566174",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - LARS BJORN JONSSON DDS MS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "203566174",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_DHADMEDDHHM.json.gz",
+   "bytes": 1827564191,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO - DIGNITY HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXEEMED0000.json.gz",
+   "bytes": 1789322862,
+   "n_plans": 13588,
+   "market_types": {
+    "group": 12600,
+    "individual": 988
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - VALA SCIENCES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "200906350",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - VALA SCIENCES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "200906350",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CALIFORNIA CARE HMO - VALA SCIENCES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "200906350",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PPUCMED0000.json.gz",
+   "bytes": 1756245916,
+   "n_plans": 9,
+   "market_types": {
+    "group": 9
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "UC MEDICARE PPO - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": [
+    {
+     "plan_name": "K HEALTH - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_MPUCMED0000.json.gz",
+   "bytes": 1755703228,
+   "n_plans": 9,
+   "market_types": {
+    "group": 9
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "UC MEDICARE PPO - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": [
+    {
+     "plan_name": "K HEALTH - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_DHNSMED0000.json.gz",
+   "bytes": 1755627612,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO - DIGNITY HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_BCEXMEDC10D.json.gz",
+   "bytes": 1263265244,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "PRUDENT BUYER INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD INCENTIVE - DIGNITY HEALTH VENTURA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO - DIGNITY HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "941196203",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HYZBMED0000.json.gz",
+   "bytes": 1188612991,
+   "n_plans": 146,
+   "market_types": {
+    "group": 146
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PREMIER OFFICE CENTERS LLC DBA PREMIER WORKSPACES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770590719",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - PREMIER OFFICE CENTERS LLC DBA PREMIER WORKSPACES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770590719",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO - PREMIER OFFICE CENTERS LLC DBA PREMIER WORKSPACES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770590719",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_01_09.json.gz",
+   "bytes": 1179698054,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_01_08.json.gz",
+   "bytes": 1165553421,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_01_08.json.gz",
+   "bytes": 1160326289,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_01_08.json.gz",
+   "bytes": 1138043996,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HYGKMED0000.json.gz",
+   "bytes": 856704642,
+   "n_plans": 5782,
+   "market_types": {
+    "group": 5782
+   },
+   "sample_plans": [
+    {
+     "plan_name": "SELECT PPO - DATA SURGE LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "841982444",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - DATA SURGE LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "841982444",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - DATA SURGE LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "841982444",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSELMEDBUT1.json.gz",
+   "bytes": 856680442,
+   "n_plans": 22,
+   "market_types": {
+    "group": 22
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC TRAD HMO NET NON DUR - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - SELF INSURED SCHOOLS OF CALIFORNIA JAA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - SISC-SELF INSURED SCHOOLS OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770162263",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSLIMED9040.json.gz",
+   "bytes": 856568763,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PIPELINE HEALTH SYSTEM HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "832865675",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - PIPELINE HEALTH SYSTEM HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "832865675",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO UC SHIP - PIPELINE HEALTH SYSTEM HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "832865675",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GAHEMED0000.json.gz",
+   "bytes": 856565196,
+   "n_plans": 12,
+   "market_types": {
+    "group": 12
+   },
+   "sample_plans": [
+    {
+     "plan_name": "SOLUTION PPO - THE ACT 1 GROUP INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953278704",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - AGILE 1 - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953278704",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS HMO SELECT - AGILE 1 - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953278704",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSELMED0001.json.gz",
+   "bytes": 856492705,
+   "n_plans": 20,
+   "market_types": {
+    "group": 20
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER PPO MODIFIED - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC PLUS PPO - PRISM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "942707306",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PBCSMEDCL00.json.gz",
+   "bytes": 856389470,
+   "n_plans": 92,
+   "market_types": {
+    "group": 92
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - GOTTS PARTNERS LP DBA GOTTS ROADSIDE - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113691836",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - GOTTS PARTNERS LP DBA GOTTS ROADSIDE - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113691836",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DEDUCTIBLE HMO TRAD - GOTTS PARTNERS LP DBA GOTTS ROADSIDE - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113691836",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSELMEDCLM2.json.gz",
+   "bytes": 856275303,
+   "n_plans": 21,
+   "market_types": {
+    "group": 21
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - KW INTERNATIONAL INC DBA KW GROUP OF COMPANIES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "274438390",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - KW INTERNATIONAL INC DBA KW GROUP OF COMPANIES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "274438390",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO EPO - KW INTERNATIONAL INC DBA KW GROUP OF COMPANIES - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "274438390",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSINMED9040.json.gz",
+   "bytes": 852357278,
+   "n_plans": 5,
+   "market_types": {
+    "group": 5
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CA PPO SELECT W/O SUTTER - GOOD FOOD HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953750445",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - GOOD FOOD HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953750445",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GOOD FOOD HOLDINGS LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "953750445",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HXBEMED0000.json.gz",
+   "bytes": 824863283,
+   "n_plans": 24081,
+   "market_types": {
+    "group": 24081
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - VALA SCIENCES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "200906350",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - VALA SCIENCES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "200906350",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CALIFORNIA CARE HMO - VALA SCIENCES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "200906350",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GPCAMEDHPND_01_04.json.gz",
+   "bytes": 793379815,
+   "n_plans": 174,
+   "market_types": {
+    "group": 174
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "GA EPO - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSELMED0000_01_03.json.gz",
+   "bytes": 593136389,
+   "n_plans": 78,
+   "market_types": {
+    "group": 78
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE COIN TRAD HMO NET NON DU - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_04_08.json.gz",
+   "bytes": 174134756,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_04_08.json.gz",
+   "bytes": 172776375,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_02_08.json.gz",
+   "bytes": 170355257,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_08_08.json.gz",
+   "bytes": 165358116,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_04_09.json.gz",
+   "bytes": 165128545,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_08_08.json.gz",
+   "bytes": 164048651,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_02_08.json.gz",
+   "bytes": 164031133,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_08_08.json.gz",
+   "bytes": 163842236,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_04_08.json.gz",
+   "bytes": 163222559,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_02_08.json.gz",
+   "bytes": 158174701,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GPCAMEDHPND_02_04.json.gz",
+   "bytes": 148615201,
+   "n_plans": 174,
+   "market_types": {
+    "group": 174
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "GA EPO - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_09_09.json.gz",
+   "bytes": 147772438,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSELMED0000_03_03.json.gz",
+   "bytes": 143003227,
+   "n_plans": 78,
+   "market_types": {
+    "group": 78
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE COIN TRAD HMO NET NON DU - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GPCAMEDHPND_04_04.json.gz",
+   "bytes": 123311920,
+   "n_plans": 174,
+   "market_types": {
+    "group": 174
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "GA EPO - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_PSELMED0000_02_03.json.gz",
+   "bytes": 120345098,
+   "n_plans": 78,
+   "market_types": {
+    "group": 78
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "VALUE COIN TRAD HMO NET NON DU - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - CALIFORNIA SCHOOL EMPLOYEE BENEFIT ORGANIZATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770298706",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_GPCAMEDHPND_03_04.json.gz",
+   "bytes": 115670204,
+   "n_plans": 174,
+   "market_types": {
+    "group": 174
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "GA EPO - PACIFIC DENTAL SERVICES LLC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330681491",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_02_09.json.gz",
+   "bytes": 102884618,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_05_08.json.gz",
+   "bytes": 99056453,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_05_08.json.gz",
+   "bytes": 97279889,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_05_08.json.gz",
+   "bytes": 89870744,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_06_09.json.gz",
+   "bytes": 86109975,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_03_09.json.gz",
+   "bytes": 85580473,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_06_08.json.gz",
+   "bytes": 61653271,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_06_08.json.gz",
+   "bytes": 58156679,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_06_08.json.gz",
+   "bytes": 58015586,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_07_09.json.gz",
+   "bytes": 56443255,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_FFSMEDCR75.json.gz",
+   "bytes": 52827287,
+   "n_plans": 9,
+   "market_types": {
+    "group": 9
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BLUE CARD VIVITY  HMO CUSTOM - CEDARS SINAI HEALTH SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951644600",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CARD VIVITY HMO CUSTOM - CEDARS SINAI HEALTH SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951644600",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - CEDARS SINAI HEALTH SYSTEM - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951644600",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_FFSMED0000.json.gz",
+   "bytes": 52823309,
+   "n_plans": 56,
+   "market_types": {
+    "group": 56
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BLUE ACCESS CHOICE PPO - ELEVANCE HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113713086",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "EPO - ELEVANCE HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113713086",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "IN GENERIC HSA PLUS - ELEVANCE HEALTH - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "113713086",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_FFSMEDC271.json.gz",
+   "bytes": 52804743,
+   "n_plans": 8,
+   "market_types": {
+    "group": 8
+   },
+   "sample_plans": [
+    {
+     "plan_name": "FEE FOR SERVICE - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ASSURANCE PLUS MEDICARE SUPPLEMENT - LACERS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956045463",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_07_08.json.gz",
+   "bytes": 52750499,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_FFSMED7000.json.gz",
+   "bytes": 52745154,
+   "n_plans": 27,
+   "market_types": {
+    "group": 27
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - DOLE PACKAGED FOODS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "260130381",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "FEE FOR SERVICE - DOLE PACKAGED FOODS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "260130381",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - DOLE PACKAGED FOODS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "260130381",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_MFSPMED0000.json.gz",
+   "bytes": 52743087,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - SAN GABRIEL VALLEY WATER COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951499179",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO PB INCENTIVE - SAN GABRIEL VALLEY WATER COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951499179",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "FFS MEDICARE SUPPLEMENT - SAN GABRIEL VALLEY WATER COMPANY - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "951499179",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_MSASMED0000.json.gz",
+   "bytes": 52740752,
+   "n_plans": 4,
+   "market_types": {
+    "group": 4
+   },
+   "sample_plans": [
+    {
+     "plan_name": "LIVE HEALTH ONLINE - COUNTY OF KERN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000925",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - COUNTY OF KERN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000925",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ASSURANCE MEDICARE SUPPLEMENT - COUNTY OF KERN - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "956000925",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_07_08.json.gz",
+   "bytes": 52577224,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_07_08.json.gz",
+   "bytes": 51939659,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_08_09.json.gz",
+   "bytes": 50918864,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CBCVMED0000_05_09.json.gz",
+   "bytes": 48546013,
+   "n_plans": 485,
+   "market_types": {
+    "group": 485
+   },
+   "sample_plans": [
+    {
+     "plan_name": "VALUE COIN SELECT HMO NON DUR - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "DED HMO PRIORITY SELECT NET - MURRIETTA CIRCUITS - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330540581",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPNMED0000_03_08.json.gz",
+   "bytes": 45559139,
+   "n_plans": 39791,
+   "market_types": {
+    "group": 37815,
+    "individual": 1976
+   },
+   "sample_plans": [
+    {
+     "plan_name": "ENTPRS DIABETS - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PRUDENT BUYER PPO - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - LAHARGOU ENTERPRISES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "352674842",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_CALCMED0000_03_08.json.gz",
+   "bytes": 45375839,
+   "n_plans": 3188,
+   "market_types": {
+    "group": 3188
+   },
+   "sample_plans": [
+    {
+     "plan_name": "CLASSIC SELECT HMO - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - GENERAL UNDERGROUND FIRE PROTECTION INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330147570",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_AHPHMEDCA00_03_08.json.gz",
+   "bytes": 43772700,
+   "n_plans": 1097,
+   "market_types": {
+    "group": 1097
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA GENERIC HLTH SAVINGS ACCT - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - PROCORE TECHNOLOGIES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "731636261",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HNCAMED23EB.json.gz",
+   "bytes": 20888655,
+   "n_plans": 7,
+   "market_types": {
+    "group": 7
+   },
+   "sample_plans": [
+    {
+     "plan_name": "EPO UT PREF BLU OPTION NTWK - EBAY INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770430924",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "K HEALTH - EBAY INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770430924",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BC INCENTIVE PPO - EBAY INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "770430924",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_HNCAMEDCAB6.json.gz",
+   "bytes": 20875848,
+   "n_plans": 6,
+   "market_types": {
+    "group": 6
+   },
+   "sample_plans": [
+    {
+     "plan_name": "K HEALTH - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PPO PB INCENTIVE - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "CA BLUEHPN EPO - WESTERN DIGITAL CORPORATION - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "330956711",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": []
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_ELHOMEDELHO.json.gz",
+   "bytes": 3952,
+   "n_plans": 642373,
+   "market_types": {
+    "group": 642373
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BLUE PREFERRED - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": [
+    {
+     "plan_name": "K HEALTH - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_ENKHMEDENKH.json.gz",
+   "bytes": 865,
+   "n_plans": 642373,
+   "market_types": {
+    "group": 642373
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BLUE PREFERRED - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": [
+    {
+     "plan_name": "K HEALTH - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ]
+  },
+  {
+   "url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/CA_ELRKMEDELRK.json.gz",
+   "bytes": 523,
+   "n_plans": 642373,
+   "market_types": {
+    "group": 642373
+   },
+   "sample_plans": [
+    {
+     "plan_name": "BLUE PREFERRED - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - MC SALES INC - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "391034322",
+     "plan_market_type": "group"
+    }
+   ],
+   "regents_of_uc_plans": [
+    {
+     "plan_name": "K HEALTH - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "LIVE HEALTH ONLINE - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "PREMIER TRAD HMO NET NON DUR - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "ENTPRS DIABETS - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    },
+    {
+     "plan_name": "BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA - ANTHEM",
+     "plan_id_type": "EIN",
+     "plan_id": "943067788",
+     "plan_market_type": "group"
+    }
+   ]
+  }
+ ]
+}

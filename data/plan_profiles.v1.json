@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "notes": "Plan/network metadata for the MRF importer. network_names must match provider_references[].network_name exactly as written in the insurer's files (verified by streaming probes, see data/mrf/discovery/). TOC URLs are monthly; YYYY-MM is the reporting month.",
+  "plans": [
+    {
+      "plan_key": "anthem_ca_prudent_buyer_ppo",
+      "insurer": "Anthem Blue Cross (California)",
+      "parent": "Elevance Health",
+      "network_names": [
+        "CA PPO PRUDENT BUYER"
+      ],
+      "official_page": "https://www.anthem.com/machine-readable-file/search/",
+      "toc_url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/YYYY-MM-01_anthem_index.json.gz",
+      "file_selection": "TOC in_network_files whose URL contains /CA_ (state-split files), deduplicated by URL",
+      "discovery": "toc_stream",
+      "file_regex": "/CA_[^/]*\\.json\\.gz$",
+      "region": "CA",
+      "notes": "UC SHIP uses the Anthem Blue Cross Prudent Buyer PPO network."
+    },
+    {
+      "plan_key": "uhc_ca_choice_plus",
+      "insurer": "UnitedHealthcare",
+      "network_names": [
+        "Choice-Plus"
+      ],
+      "official_page": "https://transparency-in-coverage.uhc.com/",
+      "toc_url": "https://transparency-in-coverage.uhc.com/api/v1/uhc/blobs/",
+      "file_selection": "Blob listing name YYYY-MM-01_UHC-of-California_Insurer_Choice-Plus_8_in-network-rates.json.gz",
+      "discovery": "uhc_blob_listing",
+      "file_regex": "_UHC-of-California_Insurer_Choice-Plus_\\d+_in-network-rates\\.json\\.gz$",
+      "region": "CA",
+      "notes": "UHC of California fully insured Choice Plus file; UHC splits by legal entity x product, not by state."
+    },
+    {
+      "plan_key": "cigna_national_ppo",
+      "insurer": "Cigna",
+      "network_names": [
+        "NATIONAL PPO"
+      ],
+      "official_page": "https://www.cigna.com/legal/compliance/machine-readable-files",
+      "toc_url": "https://www.cigna.com/static/mrf/latest.json",
+      "file_selection": "latest.json -> CloudFront-signed TOC -> file name *_cigna-health-life-insurance-company_national-ppo_in-network-rates.json.gz (signed URLs expire; resolve at run time)",
+      "discovery": "cigna_latest",
+      "file_regex": "_cigna-health-life-insurance-company_national-ppo_in-network-rates\\.json\\.gz",
+      "region": "national (filtered to LA NPIs)",
+      "notes": "Cigna files are split by network product, nationally."
+    },
+    {
+      "plan_key": "blue_shield_ca_ppo",
+      "insurer": "Blue Shield of California",
+      "network_names": null,
+      "official_page": "https://www.blueshieldca.com/en/home/help-and-resources/machine-readable-files",
+      "toc_url": null,
+      "file_selection": "Files are on a HealthSparq portal (web.healthsparq.com, insurerCode=BSCA_I) behind a bot-protection challenge; not reachable from automation. A human must open the portal and copy the TOC URL.",
+      "discovery": "manual",
+      "file_regex": null,
+      "region": "CA",
+      "notes": "blocked: see data/mrf/discovery/blue_shield_ca.json"
+    },
+    {
+      "plan_key": "aetna_ppo",
+      "insurer": "Aetna (CVS Health)",
+      "network_names": null,
+      "official_page": "https://health1.aetna.com/app/public/#/one/insurerCode=AETNACVS_I&brandCode=ALICSI/machine-readable-transparency-in-coverage",
+      "toc_url": null,
+      "file_selection": "HealthSparq-hosted portal; TLS to health1.aetna.com failed through this environment's egress proxy (certificate chain not verifiable). Retry from the server.",
+      "discovery": "manual",
+      "file_regex": null,
+      "region": "national",
+      "notes": "blocked from the dev VM: see data/mrf/discovery/aetna.json"
+    }
+  ]
+}
