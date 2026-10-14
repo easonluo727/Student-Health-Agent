@@ -48,6 +48,32 @@ These were measured on a home connection with `scripts/mrf/spike/*.py` (Python 3
 - **Scope shortcut to test first:** negotiated rates follow the *network*, so many CA files likely repeat the same Prudent Buyer rates for different employer plans. Process **one representative large CA file** end to end, then process a second one and compare rates for the same code and NPI. If they match, one or two files are enough for the demo. Report this before scaling up.
 - Approximate cost per 2.2 GB file: about 8–10 min at 4–5 MB/s per process. On a server, run one process per file in parallel.
 
+## Prior teammate design to build on (`MRF_pipeline/MRF_WORKFLOW.md`)
+
+A teammate has already designed an MRF importer. Read `MRF_pipeline/MRF_WORKFLOW.md`. **If its code exists in the repo or on a branch** (`mrf_rate_store.py`, `import_mrf_rates.py`, `branch_b.py`, `agent_amd_two_branches.py`, `data/plan_profiles.v1.json`, `data/service_code_catalog.v1.json`), **extend it instead of rewriting it**, and keep its file names and CLI where reasonable. If the code is not present, implement the design below in `scripts/mrf/` and say so in your Phase 0 report. Per that document, its database had a schema but **no imported rows yet**, so the large-file path is unproven.
+
+**Adopt these practices from it:**
+- **Join through `provider_group_id`.** `in_network[].negotiated_rates[].provider_references` holds group IDs, and `provider_references[].provider_groups` maps each ID to NPIs and TINs.
+- **Use its three-table schema** in place of this prompt's earlier draft:
+  - `mrf_sources`: source URL, insurer, plan / network, region, file date, TOC URL, bytes read, rows scanned and kept, import status
+  - `negotiated_rates`: billing code and type, provider group ID, negotiated amount and type, expiration date, billing class, place-of-service codes, modifiers, source ID
+  - `provider_members`: provider group ID, NPI, **SHA-256 hash of the TIN plus its last four digits and TIN type (never store raw TINs)**, plus ZIP, taxonomy, and tier joined from NPPES
+  
+  Add `rate_summary` (per network × code × billing class × place of service × tier: n, p10, median, p90) on top.
+- **Keep plan and network metadata in a versioned JSON file** (`data/plan_profiles.v1.json`): plan key, insurer, network name exactly as written in the MRF, official TOC URL, and region.
+- **Use a CLI importer** with a repeatable `--code` flag that defaults to the service-code catalog file, and record the source URL with every import.
+- **Lookup order:** a provider-specific rate, then a network median that is **explicitly labeled as an estimate**, then `rate_unavailable`. Never invent a price. This order is already folded into "The single `allowed_amount` value" rules above.
+- **Keep Medicare benchmark data separate.** Never present Medicare benchmarks (`data/la_service_price_benchmarks.v1.json`) as commercial negotiated rates.
+- **Commit periodically and keep import-run status.** That design commits only at the end, so an interruption loses everything. Add periodic commits, checkpoints, resumable imports, and an import status per source.
+
+**Change these parts of that design** to match the measured spike findings above:
+1. **Filter `provider_references` while streaming, before any SQLite write.** Keep a group only if its `network_name` includes the target network (for Anthem, `CA PPO PRUDENT BUYER`) **and** at least one NPI is in the LA NPI set. Don't import all provider members, because in Anthem's files this section alone is more than 1.67 GB decompressed.
+2. **Treat the network as a filter, not a label.** `--network` must match `provider_references[].network_name`; it is not free text attached after the fact.
+3. **The table of contents is not small.** Anthem's is 11.4 GB gzipped. Stream it, keep only `CA_*` in-network file URLs, and deduplicate by URL.
+4. **Read MRFs directly from URLs.** Stream HTTP → gzip → `ijson` with no local copy. Keep local-file input for tests.
+5. **Filter by region with LA NPIs from NPPES**, not just a `CA` region label.
+6. **Lookup returns one `allowed_amount`, not a list of candidates.** Apply the rate selection rules and encounter templates above, then put a single dollar value in `allowed_amount` with its basis.
+
 ## Billing codes (candidates — a human must verify)
 
 The demo persona is a 26-year-old UCLA PhD student with mild asthma, one flu episode at urgent care, and one ankle sprain at the ER with an X-ray. The candidate codes below are a starting point. **Do not treat them as final.** Put them in `data/mrf/billing_codes.csv` with a `verified_by` column left empty, and ask the human to confirm them before Phase 3.
@@ -128,7 +154,7 @@ The final deliverables must be small (a few MB). Raw data is streamed and discar
 
 ### Phase 0 — Parser against official samples (local, no big downloads)
 1. Get the official example files from the CMS price-transparency guide repository on GitHub (`CMSgov/price-transparency-guide`), covering in-network rates, provider references (inline and external), and the table of contents.
-2. Write `scripts/mrf/parse.py`: a streaming parser that yields normalized rows from an in-network file, given a set of billing codes and a set of NPIs. Support gzip and plain JSON, and file paths or URLs.
+2. Check for the teammate's existing MRF code (see "Prior teammate design to build on"). Then write or extend the streaming parser (`scripts/mrf/parse.py`, or the existing `mrf_rate_store.py`). It yields normalized rows from an in-network file, given a set of billing codes, a target network name, and a set of NPIs, and it filters `provider_references` during the stream. Support gzip and plain JSON, and file paths or URLs.
 3. Write `tests/test_mrf_parse.py` (stdlib `unittest`, to match the repo) covering: inline provider references, external provider references, references after `in_network`, multiple `negotiated_prices` per code, the `negotiated_type` variants (negotiated, derived, fee schedule, percentage, per diem), and `billing_code_type` filtering.
 4. **Report:** test results, and any schema-version differences you noticed.
 
@@ -151,10 +177,7 @@ For each insurer:
 
 ### Phase 3 — Full compile (on the server)
 1. Run all approved files with checkpointing, using Tier B NPIs.
-2. Load the results into `data/mrf/rates.sqlite` with these tables:
-   - `sources(source_id, insurer, network_name, plan_ids, file_url, file_date, toc_url, bytes_read, rows_scanned, rows_kept, processed_at)`
-   - `rates(insurer, network_name, billing_code, billing_code_type, npi, tin, provider_taxonomy, zip, tier, negotiated_rate, negotiated_type, billing_class, service_code, billing_code_modifier, expiration_date, source_id)`
-   - `rate_summary(insurer, network_name, billing_code, billing_class, service_code, tier, n_providers, p10, median, p90, min, max)`: a view or table used for regional low / mid / high estimates
+2. Load the results into `data/mrf/rates.sqlite` using the adopted schema: `mrf_sources`, `negotiated_rates`, `provider_members` (TINs hashed), and `rate_summary`. See "Prior teammate design to build on".
 3. Add data-quality checks: no negative rates; flag rates far outside the 1st–99th percentile per code; flag percentage-type rates (they need a base amount and are not dollar amounts); report the share of codes with zero matches.
 4. **Report** the final counts per insurer and code, and any gaps.
 
@@ -168,7 +191,7 @@ For each insurer:
 - [ ] Anthem Blue Cross California PPO rates exist for every human-verified billing code in Tier A, or each missing code is explained.
 - [ ] Every row of Tables A and B has a single dollar value in the `allowed_amount` column (or `status = rate_unavailable`), with `allowed_amount_basis` filled in.
 - [ ] `allowed_amounts.md` renders cleanly on GitHub, and Table C lets a reader compare insurers at a glance.
-- [ ] Every row in `rates` traces to a `sources` row with a real URL and file date.
+- [ ] Every row in `negotiated_rates` traces to an `mrf_sources` row with a real URL and file date, and no raw TIN is stored anywhere.
 - [ ] Processing is resumable, and the memory footprint stays flat as file size grows (no whole-file loads).
 - [ ] The README section reproduces the pipeline end to end and reports real measured numbers.
 - [ ] No LLM calls anywhere in the pipeline, and no fabricated values.
