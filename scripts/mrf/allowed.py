@@ -5,7 +5,7 @@ Per provider (NPI), for one billing code / billing class / place of service:
   2. modifiers: use the global (unmodified) rate; for imaging with no global rate, sum TC + 26;
      `mod_26` uses only the professional component (26);
   3. place of service: rates listing the encounter's POS (first match in an ordered preference
-     list such as "20|11"), else rates with no POS listed;
+     list such as "20|11"), else rates with no POS listed or the CMS all-POS value CSTM-00;
   4. among what is left keep the latest expiration date; if several dollar values remain
      (e.g. the NPI is in several groups/TINs), take their median.
 Across providers, `allowed_amount` is chosen in priority order:
@@ -16,6 +16,7 @@ No value is ever invented: every number is a median of real per-provider negotia
 from __future__ import annotations
 
 import datetime as dt
+import functools
 import re
 import sqlite3
 import statistics
@@ -30,7 +31,7 @@ STATUS = {"provider_rate": "verified_rate", "ucla_health_rate": "verified_rate",
           "westwood_area_median": "estimated_rate", "la_county_median": "estimated_rate"}
 
 
-@dataclass
+@dataclass(slots=True)
 class Candidate:
     npi: str
     tier: str
@@ -79,7 +80,19 @@ def _r(x):
     return None if x is None else round(x, 2)
 
 
-def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_class: str):
+def ucla_health_tins(con: sqlite3.Connection) -> frozenset[str]:
+    """Hashed TINs that are UCLA Health organization NPIs (table built by report.py from NPPES)."""
+    try:
+        return frozenset(r[0] for r in con.execute("SELECT tin_sha256 FROM ucla_health_tins"))
+    except sqlite3.OperationalError:
+        return frozenset()
+
+
+@functools.lru_cache(maxsize=4)
+def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_class: str) -> tuple[Candidate, ...]:
+    """All (provider, price) pairs for one plan/code/class. A provider counts as UCLA Health
+    (Tier A only) if its NPI is a UCLA organization NPI, its TIN *is* a UCLA organization NPI
+    (Anthem reports TINs as organization NPIs), or its TIN business name names UCLA/Regents."""
     q = """
     SELECT m.npi, m.tier, m.ucla_health, m.tin_business_name, m.tin_sha256,
            r.negotiated_rate, r.negotiated_type, r.expiration_date, r.service_codes, r.modifiers,
@@ -89,15 +102,14 @@ def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_
     JOIN provider_members m ON m.source_id = r.source_id AND m.provider_group_id = r.provider_group_id
     WHERE s.plan_key = ? AND r.billing_code = ? AND r.billing_class IN (?, 'both') AND m.npi IS NOT NULL
     """
-    rows = con.execute(q, (plan_key, code, billing_class)).fetchall()
-    ucla_tins = {r[4] for r in rows if r[4] and (r[2] or UCLA_PATTERN.search(r[3] or ""))}
+    ucla_tins = ucla_health_tins(con)
     out = []
-    for npi, tier, ucla_org, bname, tin, rate, ntype, exp, sc, mods, fdate, url in rows:
-        ucla = bool(ucla_org or UCLA_PATTERN.search(bname or "") or (tin in ucla_tins))
+    for npi, tier, ucla_org, bname, tin, rate, ntype, exp, sc, mods, fdate, url in con.execute(q, (plan_key, code, billing_class)):
+        ucla = bool(ucla_org or (tin in ucla_tins) or UCLA_PATTERN.search(bname or ""))
         out.append(Candidate(npi, tier or "B", ucla and tier == "A", rate, (ntype or "").lower(), exp or "9999-12-31",
                              tuple(x for x in (sc or "").split(",") if x), tuple(x for x in (mods or "").split(",") if x),
                              fdate or "", url))
-    return out
+    return tuple(out)
 
 
 def _pick(cands: list[Candidate], pos: str | None) -> float | None:
@@ -110,7 +122,8 @@ def _pick(cands: list[Candidate], pos: str | None) -> float | None:
             chosen = [c for c in cands if p in c.service_codes]
             if chosen:
                 break
-        cands = chosen or [c for c in cands if not c.service_codes]
+        # CSTM-00 = "same rate for every place of service" (CMS schema), i.e. like no POS listed
+        cands = chosen or [c for c in cands if not c.service_codes or "CSTM-00" in c.service_codes]
     if not cands:
         return None
     latest = max(c.expiration_date for c in cands)

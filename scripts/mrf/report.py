@@ -65,9 +65,24 @@ def component_combos(con, codes: list[dict], encounters: dict[str, list[dict]]) 
         for bclass, sc in con.execute("SELECT DISTINCT billing_class, service_codes FROM negotiated_rates "
                                       "WHERE billing_code=? AND billing_class IN ('professional','institutional')", (code,)):
             listed = set(sc.split(",")) if sc else set()
-            for pos in [p for p in REPORT_POS if p in listed] or ([None] if not listed else []):
+            any_pos = not listed or "CSTM-00" in listed
+            for pos in [p for p in REPORT_POS if p in listed] or ([None] if any_pos else []):
                 combos.setdefault((code, bclass, pos), rule)
     return [(k[0], k[1], k[2], v) for k, v in sorted(combos.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2] or ""))]
+
+
+def build_ucla_tins(con, npi_csv: str) -> int:
+    """UCLA Health TINs = SHA-256 of UCLA organization NPIs (NPPES name rule in build_npi_set.py).
+    Insurers that report TINs as organization NPIs (Anthem) then match without any raw TIN."""
+    import hashlib
+    con.execute("DROP TABLE IF EXISTS ucla_health_tins")
+    con.execute("CREATE TABLE ucla_health_tins (tin_sha256 TEXT PRIMARY KEY, npi TEXT)")
+    with open(npi_csv, newline="") as f:
+        rows = [(hashlib.sha256(r["npi"].encode()).hexdigest(), r["npi"]) for r in csv.DictReader(f) if r["ucla_org"] == "1"]
+    con.executemany("INSERT OR IGNORE INTO ucla_health_tins VALUES (?,?)", rows)
+    con.commit()
+    allowed.fetch_candidates.cache_clear()
+    return len(rows)
 
 
 def build_rate_summary(con, plans, combos, as_of) -> None:
@@ -114,8 +129,10 @@ def data_quality(con, plans, codes) -> dict:
     return out
 
 
-def build(db: str, as_of: str) -> dict:
+def build(db: str, as_of: str, npi_csv: str | None = None) -> dict:
     con = sqlite3.connect(db)
+    if npi_csv and os.path.exists(npi_csv):
+        build_ucla_tins(con, npi_csv)
     profiles = load_profiles()
     loaded = {r[0] for r in con.execute("SELECT DISTINCT plan_key FROM mrf_sources WHERE status='complete'")}
     plans = [p for p in profiles if p["plan_key"] in loaded]
@@ -231,7 +248,7 @@ def write_md(plans, profiles, table_a, table_b, src, dq, as_of, encounters) -> N
           "ZCTAs ≥50% inside LA County) → `rate_unavailable`. Medians are over per-provider values.",
           "- **Per-provider value:** dollar types only (`negotiated`, `derived`, `fee schedule`); `percentage` and "
           "`per diem` are excluded and counted in `n_rates_excluded` together with expired rates; POS-specific rate "
-          "preferred, else a rate with no POS; latest expiration date; median if a provider still has several values.",
+          "preferred, else a rate with no POS (or CMS `CSTM-00` = all POS); latest expiration date; median if a provider still has several values.",
           "- **Imaging:** global rate, else TC + 26 summed per provider.",
           "- **UC SHIP** is self-funded and uses Anthem Blue Cross Prudent Buyer PPO network rates; the Anthem rows are the demo's prices.",
           "- **Medicare benchmarks are not used** anywhere in this table.",
@@ -251,8 +268,9 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=os.path.join(DATA, "rates.sqlite"))
     ap.add_argument("--as-of", default=dt.date.today().isoformat())
+    ap.add_argument("--npi-csv", default=os.path.join(DATA, "la_npis.csv"), help="for the UCLA Health TIN table")
     a = ap.parse_args(argv)
-    print(json.dumps(build(a.db, a.as_of), indent=1))
+    print(json.dumps(build(a.db, a.as_of, a.npi_csv), indent=1))
 
 
 if __name__ == "__main__":

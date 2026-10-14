@@ -71,7 +71,7 @@ def synthetic_mrf():
                 ([3], [price(200.0, pos=("23",))]),
                 ([6], [price(1500.0, cls="institutional", pos=None)]),
             ]),
-            item("87804", [([3], [price(40.0, pos=None)])]),
+            item("87804", [([3], [price(40.0, pos=None)]), ([4], [price(44.0, pos=("CSTM-00",))])]),
         ],
     }
 
@@ -164,7 +164,8 @@ class AllowedAmountPipeline(unittest.TestCase):
         r = allowed.component(self.con, "test_ppo", "99213", "professional", "11", npi=LA_NPI2, as_of=AS_OF)
         self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (70.0, "provider_rate"))
         flu = allowed.component(self.con, "test_ppo", "87804", "professional", "20", as_of=AS_OF)
-        self.assertEqual((flu.allowed_amount, flu.allowed_amount_basis, flu.status), (40.0, "la_county_median", "estimated_rate"))
+        # 40 (no POS) and 44 (CSTM-00 = all POS) both apply at POS 20
+        self.assertEqual((flu.allowed_amount, flu.allowed_amount_basis, flu.status), (42.0, "la_county_median", "estimated_rate"))
 
     def test_tc_plus_26(self):
         r = allowed.component(self.con, "test_ppo", "73610", "professional", "23", "global_or_tc_plus_26", as_of=AS_OF)
@@ -182,7 +183,7 @@ class AllowedAmountPipeline(unittest.TestCase):
         self.assertEqual([c["billing_class"] for c in r["components"]], ["professional", "institutional", "professional"])
         self.assertEqual(r["source"]["source_urls"], ["https://example.test/CA_TEST.json.gz"])
         flu = lookup.lookup_allowed_amount("test_ppo", None, "urgent_care_flu", con=self.con, as_of=AS_OF)
-        self.assertEqual(flu["allowed_amount"], 170.0)  # 130 (UCLA, POS 20) + 40
+        self.assertEqual(flu["allowed_amount"], 172.0)  # 130 (UCLA, POS 20) + 42
 
     def test_unavailable_never_invents(self):
         r = lookup.lookup_allowed_amount("test_ppo", None, "spirometry", con=self.con, as_of=AS_OF)
