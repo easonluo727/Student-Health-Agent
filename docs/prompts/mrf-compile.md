@@ -35,6 +35,19 @@ Find each insurer's **official** TiC / MRF landing page yourself and record the 
 
 If an insurer turns out to be impractical (for example, there is no way to isolate California files and the full set is many TB), stop and report instead of brute-forcing it.
 
+## Spike findings already measured (2026-10-13, Anthem; don't re-explore)
+
+These were measured on a home connection with `scripts/mrf/spike/*.py` (Python 3.13, `ijson` 3.6 with the `yajl2_c` backend):
+
+- **Streaming works, and memory stays flat.** The Anthem table of contents (`2026-10-01_anthem_index.json.gz`) is **11.4 GB gzipped, one JSON line**. In 90 s the spike streamed 460 MB compressed (938 MB decompressed) at about 5 MB/s, with **peak RSS of 72 MB**. A 2.2 GB rate file streamed 513 MB compressed (1.67 GB decompressed) in 120 s, with **peak RSS of 116 MB**. Raw download speed was 6.5 MB/s, so parsing ran close to network speed.
+- **Anthem splits in-network files by state.** File names start with the state code, for example `.../anthem/CA_HXCVMED0000.json.gz`. The first 1.18 GB of the table of contents already referenced **93 unique `CA_*` files**, the largest being about **1.9–2.2 GB gzipped** each. The table of contents repeats the same file URLs across many plans, so **deduplicate by URL**.
+- **Network names are inside the rate files**, in `provider_references[].network_name`. A large CA file lists `CA PPO PRUDENT BUYER` (the UC SHIP network), `CA PPO ADVANTAGE`, `CA PPO PRUDENT BUYER EXCLUDING SUTTER`, `CA HMO CALIFORNIACARE IN`, and others. **Filter provider groups to `CA PPO PRUDENT BUYER`** for the Anthem network.
+- **`provider_references` comes first and is huge.** More than 1.67 GB decompressed was still provider references; `in_network` had not started yet. So, in one pass:
+  1. While streaming `provider_references`, keep only `provider_group_id`s whose network includes the target network **and** whose NPIs are in the LA NPI set. That gives a small in-memory set.
+  2. Then, while streaming `in_network`, keep only rates for target billing codes that reference those group IDs.
+- **Scope shortcut to test first:** negotiated rates follow the *network*, so many CA files likely repeat the same Prudent Buyer rates for different employer plans. Process **one representative large CA file** end to end, then process a second one and compare rates for the same code and NPI. If they match, one or two files are enough for the demo. Report this before scaling up.
+- Approximate cost per 2.2 GB file: about 8–10 min at 4–5 MB/s per process. On a server, run one process per file in parallel.
+
 ## Billing codes (candidates — a human must verify)
 
 The demo persona is a 26-year-old UCLA PhD student with mild asthma, one flu episode at urgent care, and one ankle sprain at the ER with an X-ray. The candidate codes below are a starting point. **Do not treat them as final.** Put them in `data/mrf/billing_codes.csv` with a `verified_by` column left empty, and ask the human to confirm them before Phase 3.
