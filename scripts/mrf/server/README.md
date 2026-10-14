@@ -7,8 +7,9 @@ of a few hundred MB, the NPPES zip (1.2 GB, which you can delete after step 3), 
 ## 1. Pick a machine
 
 - Linux, Python 3.12+, **8+ vCPUs**, 16 GB RAM, 50 GB disk, good bandwidth.
-  Parsing is CPU-bound at about 9 MB/s compressed per process. Each file is read twice
-  (two passes), so each worker process uses one core.
+  Each file is read twice (two passes) and each worker process uses one core. With the byte-level fast
+  path, Anthem files are network-bound. Cigna's file is CPU-bound, at about 1.7 MB/s compressed,
+  because it holds 1.15M small items.
 - **AWS us-east-1** (EC2 `c7i.2xlarge` or similar) sits next to Anthem's S3 bucket
   (`antm-pt-prod-dataz-nogbd-nophi-us-east1`). Any VPS works, but Anthem downloads are faster in
   us-east-1.
@@ -78,8 +79,10 @@ python scripts/mrf/run_all.py --manifest data/mrf/work/manifest.jsonl --workers 
 - Progress lines go to `data/mrf/work/shards/<file>.log` every 2 min. They contain counts only, never raw data.
 - Keep the request rate polite. Each worker streams one file. Hosts are interleaved, so at most a few
   workers hit one insurer at a time. A 403 or 429 stops that host. **Do not evade a block. Report it.**
-- Expected time for all of Anthem: 221 GB × 2 passes ÷ (9 MB/s × 8 workers) ≈ **1.7 h**. If the
-  network is slower than 72 MB/s in total, it takes proportionally longer.
+- Measured on the dev VM: one Anthem California file takes 2.5–3 min. That is two passes over about 1.8 GB at
+  20–25 MB/s, limited by the network, not the CPU. All 167 files means about 440 GB read, roughly **1–1.5 h with
+  8 workers** if the server sustains about 100 MB/s, or proportionally longer otherwise. UHC's 9.4 GB file takes
+  about 14 min and Cigna's about 16 min, both single process.
 
 ## 6. Merge, report, publish
 
