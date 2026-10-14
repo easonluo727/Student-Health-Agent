@@ -54,7 +54,19 @@ python scripts/mrf/lookup.py anthem_ca_prudent_buyer_ppo er_ankle_xray
 
 To import a single file: `python scripts/mrf/import_mrf_rates.py --input <url> --plan-key <key> [--code 99213 ...]`. The full-run runbook is in `scripts/mrf/server/README.md`.
 
-**Measured numbers.** See `data/mrf/allowed_amounts.md` for the current snapshot and `MRF_MEASUREMENTS` below.
+**Measured numbers** (2026-10 files, measured on the 4-vCPU dev VM, about 26 MB/s download through its proxy). "Read" counts both passes plus the header probe, so it is about twice the file size:
+
+| plan | file | read GB | JSON GB | items / refs scanned | rate rows kept | member rows | min | MB/s | peak RSS MB |
+|---|---|---|---|---|---|---|---|---|---|
+| Anthem Prudent Buyer | `CA_CPTNMED0001` | 3.6 | 14.2 | 41,871 / 55,927 | 7,838 | 586,168 | 3.0 | 20.4 | 220 |
+| Anthem Prudent Buyer | `CA_MPUCMED0000` | 3.4 | 13.4 | 41,183 / 55,427 | 7,758 | 547,920 | 2.8 | 20.5 | 209 |
+| Anthem Prudent Buyer | `CA_PPUCMED0000` (ijson path, reference) | 3.4 | 13.4 | 41,183 / 55,417 | 7,758 | 547,859 | 9.4 | 6.0 | 229 |
+| Anthem Prudent Buyer | `CA_PPUCMED0001` | 3.8 | 14.7 | 41,183 / 57,337 | 7,886 | 599,676 | 2.5 | 24.9 | 218 |
+| Cigna National PPO | `…_national-ppo_in-network-rates` | 1.6 | 35.2 | 1,152,909 / 66,395 | 162,900 | 47,551 | 15.7 | 1.7 | 246 |
+| UHC of California Choice Plus | `…_Choice-Plus_8_in-network-rates` | 9.4 | 188.3 | 18,011 / 33,258 | 89,904 | 22,076 | 13.5 | 11.7 | 302 |
+| **Total** | 6 files | **25.3** | **279.4** | | **284,044** | **2,351,250** | **46.8** | | |
+
+The final SQLite is 515 MB: 284k rate rows, 2.35M member rows, and 53,893 distinct LA NPIs. The Anthem table of contents (11.4 GB, 147k reporting structures, 43M file references, 167 unique `CA_*` files totalling 221 GB) streamed in 436 s with 46 MB RSS. Running all 167 Anthem California files means reading about 440 GB, which takes about 1–2 h with 8 workers on a server (see the runbook).
 
 **Limitations**
 

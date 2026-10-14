@@ -169,12 +169,14 @@ def build(db: str, as_of: str, npi_csv: str | None = None) -> dict:
                             "ucla_health_rate": c.ucla_health_rate, "mrf_file_date": ", ".join(c.mrf_file_dates),
                             "negotiated_type_mix": c.negotiated_type_mix, "n_rates_excluded": c.n_rates_excluded})
 
+    sources = con.execute("""SELECT plan_key, source_url, file_date, reporting_entity, schema_version, rows_kept
+                             FROM mrf_sources WHERE status='complete' ORDER BY plan_key, source_url""").fetchall()
     src = con.execute("""SELECT plan_key, COUNT(*), SUM(compressed_bytes), SUM(decompressed_bytes), SUM(rows_scanned),
                          SUM(rows_kept), SUM(wall_seconds), MIN(file_date), MAX(file_date)
                          FROM mrf_sources WHERE status='complete' GROUP BY plan_key""").fetchall()
     con.close()
     write_csv(table_a, table_b)
-    write_md(plans, profiles, table_a, table_b, src, dq, as_of, encounters)
+    write_md(plans, profiles, table_a, table_b, src, dq, as_of, encounters, sources)
     return {"plans": [p["plan_key"] for p in plans], "table_a": len(table_a), "table_b": len(table_b), "dq": dq}
 
 
@@ -196,7 +198,7 @@ def _md_table(cols, rows) -> list[str]:
     return out
 
 
-def write_md(plans, profiles, table_a, table_b, src, dq, as_of, encounters) -> None:
+def write_md(plans, profiles, table_a, table_b, src, dq, as_of, encounters, sources=()) -> None:
     gb = sum(r[2] or 0 for r in src) / 1e9
     gb_raw = sum(r[3] or 0 for r in src) / 1e9
     scanned = sum(r[4] or 0 for r in src)
@@ -259,7 +261,10 @@ def write_md(plans, profiles, table_a, table_b, src, dq, as_of, encounters) -> N
           f"- `percentage` rates (not dollar amounts; excluded): {dq['percentage_rates']}; `per diem` (excluded): {dq['per_diem_rates']}",
           "- Billing codes with zero matches per insurer: " + "; ".join(
               f"{k}: {v['share']*100:.0f}%" + (f" ({', '.join(v['missing'])})" if v["missing"] else "") for k, v in dq["codes_zero_matches"].items()),
-          ""]
+          "", "### Sources (every rate row traces to one of these files)", ""]
+    L += _md_table(["plan_key", "source_url", "file_date", "reporting_entity", "schema", "rate rows"],
+                   [[pk, url, fd, ent, ver, f"{n:,}"] for pk, url, fd, ent, ver, n in sources])
+    L += [""]
     with open(os.path.join(DATA, "allowed_amounts.md"), "w") as f:
         f.write("\n".join(L))
 
