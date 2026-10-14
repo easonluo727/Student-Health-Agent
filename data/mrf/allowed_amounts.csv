@@ -1,0 +1,57 @@
+table,insurer,network,encounter,allowed_amount,allowed_amount_basis,status,components,n_providers,p10,p90,ucla_health_rate,mrf_file_date,billing_code,billing_class,place_of_service,negotiated_type_mix,n_rates_excluded
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Urgent care visit for flu with rapid flu test,88.04,ucla_health_rate,verified_rate,99213 prof POS 20|11 $76.72 + 87804 prof POS 20|11|81 $11.32,94,86.65,384.7,88.04,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,ER visit for ankle sprain with X-ray,2238.64,la_county_median,estimated_rate,"99284 prof POS 23 $140.87 + 99284 inst $2,077.00 + 73610 prof POS 23|22|11 $10.14 + 73610 inst $10.63",5,321.81,9848.18,,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Specialist (pulmonology) follow-up visit,101.5,ucla_health_rate,verified_rate,99214 prof POS 11 $101.50,97,96.15,468.19,101.5,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Primary care visit (established patient),76.72,ucla_health_rate,verified_rate,99213 prof POS 11 $76.72,97,76.72,320.66,76.72,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Primary care visit (new patient),111.11,ucla_health_rate,verified_rate,99203 prof POS 11 $111.11,97,110.02,465.29,111.11,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Spirometry test,159.71,ucla_health_rate,verified_rate,94010 prof POS 11 $159.71,49,94.81,159.71,159.71,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Annual preventive visit (age 18-39),111.55,ucla_health_rate,verified_rate,99395 prof POS 11 $111.55,94,109.38,512.85,111.55,2026-10-01,,,,,
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,3071.5,la_county_median,estimated_rate,,62,1603.6,7111.7,,2026-10-01,29515,institutional,22,"fee schedule:5, negotiated:57, per diem:175, percentage:37",212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,55.53,ucla_health_rate,verified_rate,,94,49.05,313.85,55.53,2026-10-01,29515,professional,22,fee schedule:116891,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,49.05,ucla_health_rate,verified_rate,,61,49.05,50.27,49.05,2026-10-01,29515,professional,23,fee schedule:116891,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,3071.5,la_county_median,estimated_rate,,62,1603.6,7111.7,,2026-10-01,29540,institutional,22,"fee schedule:5, negotiated:57, per diem:175, percentage:37",212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,36.78,ucla_health_rate,verified_rate,,94,32.58,125.46,36.78,2026-10-01,29540,professional,22,fee schedule:116892,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,32.58,ucla_health_rate,verified_rate,,62,32.58,33.5,32.58,2026-10-01,29540,professional,23,fee schedule:116892,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.72,la_county_median,estimated_rate,,5,8.81,164.27,,2026-10-01,73600,institutional,22,"fee schedule:5, percentage:17",17
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,31.6,ucla_health_rate,verified_rate,,94,28.83,138.54,31.6,2026-10-01,73600,professional,11,fee schedule:333253,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.63,la_county_median,estimated_rate,,5,9.63,188.18,,2026-10-01,73610,institutional,,"fee schedule:5, percentage:17",17
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.63,la_county_median,estimated_rate,,5,9.63,188.18,,2026-10-01,73610,institutional,22,"fee schedule:5, percentage:17",17
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,36.08,ucla_health_rate,verified_rate,,94,33.24,149.84,36.08,2026-10-01,73610,professional,11,fee schedule:333257,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.14,ucla_health_rate,verified_rate,,94,9.18,37.26,10.14,2026-10-01,73610,professional,23|22|11,fee schedule:333257,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,175.03,la_county_median,estimated_rate,,58,102.68,285.53,,2026-10-01,87502,institutional,22,"derived:55, fee schedule:5, percentage:17",17
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,77.64,ucla_health_rate,verified_rate,,94,63.04,370.74,77.64,2026-10-01,87502,professional,81,"fee schedule:106095, percentage:1039",1039
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,30.24,la_county_median,estimated_rate,,58,17.74,49.33,,2026-10-01,87804,institutional,22,"derived:55, fee schedule:5, percentage:17",17
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,11.32,ucla_health_rate,verified_rate,,94,9.93,64.04,11.32,2026-10-01,87804,professional,20|11|81,"fee schedule:106096, percentage:1039",1039
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,11.32,ucla_health_rate,verified_rate,,94,9.93,64.04,11.32,2026-10-01,87804,professional,81,"fee schedule:106096, percentage:1039",1039
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.33,la_county_median,estimated_rate,,3,8.36,9.47,,2026-10-01,94010,institutional,22,"fee schedule:3, percentage:17",17
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,159.71,ucla_health_rate,verified_rate,,49,94.81,159.71,159.71,2026-10-01,94010,professional,11,fee schedule:331947,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,16.74,la_county_median,estimated_rate,,3,15.0,16.99,,2026-10-01,94060,institutional,22,"fee schedule:3, percentage:17",17
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,64.29,ucla_health_rate,verified_rate,,94,58.32,269.5,64.29,2026-10-01,94060,professional,11,fee schedule:331951,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,109.8,la_county_median,estimated_rate,,62,83.04,253.35,,2026-10-01,99203,institutional,22,fee schedule:63,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,111.11,ucla_health_rate,verified_rate,,97,110.02,465.29,111.11,2026-10-01,99203,professional,11,fee schedule:191266,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,80.75,ucla_health_rate,verified_rate,,61,80.75,81.15,80.75,2026-10-01,99203,professional,22,fee schedule:191266,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,80.75,ucla_health_rate,verified_rate,,61,80.75,81.15,80.75,2026-10-01,99203,professional,23,fee schedule:191266,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,185.81,la_county_median,estimated_rate,,62,140.53,428.76,,2026-10-01,99204,institutional,22,fee schedule:63,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,171.87,ucla_health_rate,verified_rate,,97,170.18,701.51,171.87,2026-10-01,99204,professional,11,fee schedule:191266,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,136.67,ucla_health_rate,verified_rate,,61,136.67,137.34,136.67,2026-10-01,99204,professional,22,fee schedule:191266,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,136.67,ucla_health_rate,verified_rate,,61,136.67,137.34,136.67,2026-10-01,99204,professional,23,fee schedule:191266,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.11,la_county_median,estimated_rate,,62,57.56,175.63,,2026-10-01,99213,institutional,22,fee schedule:63,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.72,ucla_health_rate,verified_rate,,97,76.72,320.66,76.72,2026-10-01,99213,professional,11,fee schedule:191322,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.72,ucla_health_rate,verified_rate,,97,76.72,320.66,76.72,2026-10-01,99213,professional,20|11,fee schedule:191322,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,66.35,ucla_health_rate,verified_rate,,61,66.35,66.35,66.35,2026-10-01,99213,professional,22,fee schedule:191322,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,66.35,ucla_health_rate,verified_rate,,61,66.35,66.35,66.35,2026-10-01,99213,professional,23,fee schedule:191322,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,99.07,la_county_median,estimated_rate,,62,74.93,228.61,,2026-10-01,99214,institutional,22,fee schedule:63,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,101.5,ucla_health_rate,verified_rate,,97,96.15,468.19,101.5,2026-10-01,99214,professional,11,fee schedule:191318,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,72.15,ucla_health_rate,verified_rate,,61,72.15,75.95,72.15,2026-10-01,99214,professional,22,fee schedule:191318,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,72.15,ucla_health_rate,verified_rate,,61,72.15,75.95,72.15,2026-10-01,99214,professional,23,fee schedule:191318,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,1969.0,la_county_median,estimated_rate,,73,87.29,4569.0,,2026-10-01,99283,institutional,22,"fee schedule:14, negotiated:60, percentage:27",27
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,77.12,ucla_health_rate,verified_rate,,94,73.45,254.72,77.12,2026-10-01,99283,professional,23,fee schedule:115364,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,73,164.53,9140.0,,2026-10-01,99284,institutional,,"fee schedule:14, negotiated:60, percentage:27",27
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,73,164.53,9140.0,,2026-10-01,99284,institutional,22,"fee schedule:14, negotiated:60, percentage:27",27
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,140.87,ucla_health_rate,verified_rate,,94,138.47,482.74,140.87,2026-10-01,99284,professional,23,fee schedule:115363,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,73,221.08,11879.0,,2026-10-01,99285,institutional,22,"fee schedule:14, negotiated:60, percentage:27",27
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,192.61,ucla_health_rate,verified_rate,,94,186.06,709.71,192.61,2026-10-01,99285,professional,23,fee schedule:115364,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,107.6,la_county_median,estimated_rate,,62,81.37,248.28,,2026-10-01,99395,institutional,22,fee schedule:63,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,111.55,ucla_health_rate,verified_rate,,94,109.38,512.85,111.55,2026-10-01,99395,professional,11,fee schedule:184990,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,79.14,ucla_health_rate,verified_rate,,61,79.14,81.1,79.14,2026-10-01,99395,professional,22,fee schedule:184990,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,79.14,ucla_health_rate,verified_rate,,61,79.14,81.1,79.14,2026-10-01,99395,professional,23,fee schedule:184990,0
