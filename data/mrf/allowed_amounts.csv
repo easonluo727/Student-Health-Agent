@@ -1,57 +1,424 @@
 table,insurer,network,encounter,allowed_amount,allowed_amount_basis,status,components,n_providers,p10,p90,ucla_health_rate,mrf_file_date,billing_code,billing_class,place_of_service,negotiated_type_mix,n_rates_excluded
-A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Urgent care visit for flu with rapid flu test,88.04,ucla_health_rate,verified_rate,99213 prof POS 20|11 $76.72 + 87804 prof POS 20|11|81 $11.32,94,86.65,384.7,88.04,2026-10-01,,,,,
-A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,ER visit for ankle sprain with X-ray,2238.64,la_county_median,estimated_rate,"99284 prof POS 23 $140.87 + 99284 inst $2,077.00 + 73610 prof POS 23|22|11 $10.14 + 73610 inst $10.63",5,321.81,9848.18,,2026-10-01,,,,,
-A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Specialist (pulmonology) follow-up visit,101.5,ucla_health_rate,verified_rate,99214 prof POS 11 $101.50,97,96.15,468.19,101.5,2026-10-01,,,,,
-A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Primary care visit (established patient),76.72,ucla_health_rate,verified_rate,99213 prof POS 11 $76.72,97,76.72,320.66,76.72,2026-10-01,,,,,
-A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Primary care visit (new patient),111.11,ucla_health_rate,verified_rate,99203 prof POS 11 $111.11,97,110.02,465.29,111.11,2026-10-01,,,,,
-A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Spirometry test,159.71,ucla_health_rate,verified_rate,94010 prof POS 11 $159.71,49,94.81,159.71,159.71,2026-10-01,,,,,
-A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Annual preventive visit (age 18-39),111.55,ucla_health_rate,verified_rate,99395 prof POS 11 $111.55,94,109.38,512.85,111.55,2026-10-01,,,,,
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,3071.5,la_county_median,estimated_rate,,62,1603.6,7111.7,,2026-10-01,29515,institutional,22,"fee schedule:5, negotiated:57, per diem:175, percentage:37",212
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,55.53,ucla_health_rate,verified_rate,,94,49.05,313.85,55.53,2026-10-01,29515,professional,22,fee schedule:116891,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,49.05,ucla_health_rate,verified_rate,,61,49.05,50.27,49.05,2026-10-01,29515,professional,23,fee schedule:116891,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,3071.5,la_county_median,estimated_rate,,62,1603.6,7111.7,,2026-10-01,29540,institutional,22,"fee schedule:5, negotiated:57, per diem:175, percentage:37",212
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,36.78,ucla_health_rate,verified_rate,,94,32.58,125.46,36.78,2026-10-01,29540,professional,22,fee schedule:116892,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,32.58,ucla_health_rate,verified_rate,,62,32.58,33.5,32.58,2026-10-01,29540,professional,23,fee schedule:116892,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.72,la_county_median,estimated_rate,,5,8.81,164.27,,2026-10-01,73600,institutional,22,"fee schedule:5, percentage:17",17
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,31.6,ucla_health_rate,verified_rate,,94,28.83,138.54,31.6,2026-10-01,73600,professional,11,fee schedule:333253,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.63,la_county_median,estimated_rate,,5,9.63,188.18,,2026-10-01,73610,institutional,,"fee schedule:5, percentage:17",17
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.63,la_county_median,estimated_rate,,5,9.63,188.18,,2026-10-01,73610,institutional,22,"fee schedule:5, percentage:17",17
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,36.08,ucla_health_rate,verified_rate,,94,33.24,149.84,36.08,2026-10-01,73610,professional,11,fee schedule:333257,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.14,ucla_health_rate,verified_rate,,94,9.18,37.26,10.14,2026-10-01,73610,professional,23|22|11,fee schedule:333257,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,175.03,la_county_median,estimated_rate,,58,102.68,285.53,,2026-10-01,87502,institutional,22,"derived:55, fee schedule:5, percentage:17",17
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,77.64,ucla_health_rate,verified_rate,,94,63.04,370.74,77.64,2026-10-01,87502,professional,81,"fee schedule:106095, percentage:1039",1039
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,30.24,la_county_median,estimated_rate,,58,17.74,49.33,,2026-10-01,87804,institutional,22,"derived:55, fee schedule:5, percentage:17",17
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,11.32,ucla_health_rate,verified_rate,,94,9.93,64.04,11.32,2026-10-01,87804,professional,20|11|81,"fee schedule:106096, percentage:1039",1039
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,11.32,ucla_health_rate,verified_rate,,94,9.93,64.04,11.32,2026-10-01,87804,professional,81,"fee schedule:106096, percentage:1039",1039
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.33,la_county_median,estimated_rate,,3,8.36,9.47,,2026-10-01,94010,institutional,22,"fee schedule:3, percentage:17",17
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,159.71,ucla_health_rate,verified_rate,,49,94.81,159.71,159.71,2026-10-01,94010,professional,11,fee schedule:331947,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,16.74,la_county_median,estimated_rate,,3,15.0,16.99,,2026-10-01,94060,institutional,22,"fee schedule:3, percentage:17",17
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,64.29,ucla_health_rate,verified_rate,,94,58.32,269.5,64.29,2026-10-01,94060,professional,11,fee schedule:331951,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,109.8,la_county_median,estimated_rate,,62,83.04,253.35,,2026-10-01,99203,institutional,22,fee schedule:63,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,111.11,ucla_health_rate,verified_rate,,97,110.02,465.29,111.11,2026-10-01,99203,professional,11,fee schedule:191266,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,80.75,ucla_health_rate,verified_rate,,61,80.75,81.15,80.75,2026-10-01,99203,professional,22,fee schedule:191266,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,80.75,ucla_health_rate,verified_rate,,61,80.75,81.15,80.75,2026-10-01,99203,professional,23,fee schedule:191266,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,185.81,la_county_median,estimated_rate,,62,140.53,428.76,,2026-10-01,99204,institutional,22,fee schedule:63,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,171.87,ucla_health_rate,verified_rate,,97,170.18,701.51,171.87,2026-10-01,99204,professional,11,fee schedule:191266,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,136.67,ucla_health_rate,verified_rate,,61,136.67,137.34,136.67,2026-10-01,99204,professional,22,fee schedule:191266,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,136.67,ucla_health_rate,verified_rate,,61,136.67,137.34,136.67,2026-10-01,99204,professional,23,fee schedule:191266,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.11,la_county_median,estimated_rate,,62,57.56,175.63,,2026-10-01,99213,institutional,22,fee schedule:63,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.72,ucla_health_rate,verified_rate,,97,76.72,320.66,76.72,2026-10-01,99213,professional,11,fee schedule:191322,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.72,ucla_health_rate,verified_rate,,97,76.72,320.66,76.72,2026-10-01,99213,professional,20|11,fee schedule:191322,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,66.35,ucla_health_rate,verified_rate,,61,66.35,66.35,66.35,2026-10-01,99213,professional,22,fee schedule:191322,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,66.35,ucla_health_rate,verified_rate,,61,66.35,66.35,66.35,2026-10-01,99213,professional,23,fee schedule:191322,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,99.07,la_county_median,estimated_rate,,62,74.93,228.61,,2026-10-01,99214,institutional,22,fee schedule:63,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,101.5,ucla_health_rate,verified_rate,,97,96.15,468.19,101.5,2026-10-01,99214,professional,11,fee schedule:191318,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,72.15,ucla_health_rate,verified_rate,,61,72.15,75.95,72.15,2026-10-01,99214,professional,22,fee schedule:191318,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,72.15,ucla_health_rate,verified_rate,,61,72.15,75.95,72.15,2026-10-01,99214,professional,23,fee schedule:191318,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,1969.0,la_county_median,estimated_rate,,73,87.29,4569.0,,2026-10-01,99283,institutional,22,"fee schedule:14, negotiated:60, percentage:27",27
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,77.12,ucla_health_rate,verified_rate,,94,73.45,254.72,77.12,2026-10-01,99283,professional,23,fee schedule:115364,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,73,164.53,9140.0,,2026-10-01,99284,institutional,,"fee schedule:14, negotiated:60, percentage:27",27
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,73,164.53,9140.0,,2026-10-01,99284,institutional,22,"fee schedule:14, negotiated:60, percentage:27",27
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,140.87,ucla_health_rate,verified_rate,,94,138.47,482.74,140.87,2026-10-01,99284,professional,23,fee schedule:115363,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,73,221.08,11879.0,,2026-10-01,99285,institutional,22,"fee schedule:14, negotiated:60, percentage:27",27
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,192.61,ucla_health_rate,verified_rate,,94,186.06,709.71,192.61,2026-10-01,99285,professional,23,fee schedule:115364,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,107.6,la_county_median,estimated_rate,,62,81.37,248.28,,2026-10-01,99395,institutional,22,fee schedule:63,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,111.55,ucla_health_rate,verified_rate,,94,109.38,512.85,111.55,2026-10-01,99395,professional,11,fee schedule:184990,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,79.14,ucla_health_rate,verified_rate,,61,79.14,81.1,79.14,2026-10-01,99395,professional,22,fee schedule:184990,0
-B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,79.14,ucla_health_rate,verified_rate,,61,79.14,81.1,79.14,2026-10-01,99395,professional,23,fee schedule:184990,0
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Urgent care visit for flu with rapid flu test,384.7,ucla_health_rate,verified_rate,99213 prof POS 20|11 $320.66 + 87804 prof POS 20|11|81 $64.04,2900,235.67,384.7,384.7,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,ER visit for ankle sprain with X-ray,2607.63,la_county_median,estimated_rate,"99284 prof POS 23 $482.74 + 99284 inst $2,077.00 + 73610 prof POS 23|22|11 $37.26 + 73610 inst $10.63",5,510.06,9848.18,,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Specialist (pulmonology) follow-up visit,468.19,ucla_health_rate,verified_rate,99214 prof POS 11 $468.19,2902,282.17,468.19,468.19,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Primary care visit (established patient),320.66,ucla_health_rate,verified_rate,99213 prof POS 11 $320.66,2902,198.69,320.66,320.66,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Primary care visit (new patient),465.29,ucla_health_rate,verified_rate,99203 prof POS 11 $465.29,2902,287.66,465.29,465.29,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Spirometry test,159.71,ucla_health_rate,verified_rate,94010 prof POS 11 $159.71,2888,105.83,159.71,159.71,2026-10-01,,,,,
+A_encounter,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,Annual preventive visit (age 18-39),512.85,ucla_health_rate,verified_rate,99395 prof POS 11 $512.85,2900,311.12,512.85,512.85,2026-10-01,,,,,
+A_encounter,UnitedHealthcare,Choice-Plus,Urgent care visit for flu with rapid flu test,,,rate_unavailable,99213 prof POS 20|11 $107.02 + 87804 prof POS 20|11|81 (no rate),78,,,,2026-10-01,,,,,
+A_encounter,UnitedHealthcare,Choice-Plus,ER visit for ankle sprain with X-ray,,,rate_unavailable,99284 prof POS 23 $179.25 + 99284 inst (no rate) + 73610 prof POS 23|22|11 $49.93 + 73610 inst (no rate),9,,,,2026-10-01,,,,,
+A_encounter,UnitedHealthcare,Choice-Plus,Specialist (pulmonology) follow-up visit,154.78,ucla_health_rate,verified_rate,99214 prof POS 11 $154.78,78,109.31,478.61,154.78,2026-10-01,,,,,
+A_encounter,UnitedHealthcare,Choice-Plus,Primary care visit (established patient),107.02,ucla_health_rate,verified_rate,99213 prof POS 11 $107.02,78,74.59,335.85,107.02,2026-10-01,,,,,
+A_encounter,UnitedHealthcare,Choice-Plus,Primary care visit (new patient),153.21,ucla_health_rate,verified_rate,99203 prof POS 11 $153.21,78,108.97,434.88,153.21,2026-10-01,,,,,
+A_encounter,UnitedHealthcare,Choice-Plus,Spirometry test,213.57,ucla_health_rate,verified_rate,94010 prof POS 11 $213.57,599,149.04,213.57,213.57,2026-10-01,,,,,
+A_encounter,UnitedHealthcare,Choice-Plus,Annual preventive visit (age 18-39),170.23,ucla_health_rate,verified_rate,99395 prof POS 11 $170.23,78,116.56,465.27,170.23,2026-10-01,,,,,
+A_encounter,Cigna,NATIONAL PPO,Urgent care visit for flu with rapid flu test,188.54,westwood_area_median,estimated_rate,99213 prof POS 20|11 $106.99 + 87804 prof POS 20|11|81 $81.55,2,153.72,311.42,,2026-10-01,,,,,
+A_encounter,Cigna,NATIONAL PPO,ER visit for ankle sprain with X-ray,458.38,westwood_area_median,estimated_rate,99284 prof POS 23 $191.38 + 99284 inst $166.44 + 73610 prof POS 23|22|11 $41.74 + 73610 inst $58.82,1,381.64,483.89,,2026-10-01,,,,,
+A_encounter,Cigna,NATIONAL PPO,Specialist (pulmonology) follow-up visit,149.79,ucla_health_rate,verified_rate,99214 prof POS 11 $149.79,89,105.62,330.72,149.79,2026-10-01,,,,,
+A_encounter,Cigna,NATIONAL PPO,Primary care visit (established patient),106.99,ucla_health_rate,verified_rate,99213 prof POS 11 $106.99,89,72.17,229.87,106.99,2026-10-01,,,,,
+A_encounter,Cigna,NATIONAL PPO,Primary care visit (new patient),152.9,ucla_health_rate,verified_rate,99203 prof POS 11 $152.90,88,107.52,306.93,152.9,2026-10-01,,,,,
+A_encounter,Cigna,NATIONAL PPO,Spirometry test,185.87,westwood_area_median,estimated_rate,94010 prof POS 11 $185.87,2,185.87,185.87,,2026-10-01,,,,,
+A_encounter,Cigna,NATIONAL PPO,Annual preventive visit (age 18-39),155.31,ucla_health_rate,verified_rate,99395 prof POS 11 $155.31,87,110.48,326.96,155.31,2026-10-01,,,,,
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,5326.0,ucla_health_rate,verified_rate,,3,5326.0,5326.0,5326.0,2026-10-01,29515,institutional,,"fee schedule:20, negotiated:228, per diem:707, percentage:149",856
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,5326.0,ucla_health_rate,verified_rate,,3,5326.0,5326.0,5326.0,2026-10-01,29515,institutional,22,"fee schedule:20, negotiated:228, per diem:707, percentage:149",856
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29515,institutional,23,"fee schedule:20, negotiated:228, per diem:707, percentage:149",856
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29515,professional,11,fee schedule:501272,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29515,professional,20,fee schedule:501272,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,313.85,ucla_health_rate,verified_rate,,2900,181.45,313.85,313.85,2026-10-01,29515,professional,22,fee schedule:501272,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,62.83,ucla_health_rate,verified_rate,,636,49.05,130.65,62.83,2026-10-01,29515,professional,23,fee schedule:501272,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29515,professional,81,fee schedule:501272,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,5326.0,ucla_health_rate,verified_rate,,3,5326.0,5326.0,5326.0,2026-10-01,29540,institutional,,"fee schedule:20, negotiated:228, per diem:707, percentage:149",856
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,5326.0,ucla_health_rate,verified_rate,,3,5326.0,5326.0,5326.0,2026-10-01,29540,institutional,22,"fee schedule:20, negotiated:228, per diem:707, percentage:149",856
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29540,institutional,23,"fee schedule:20, negotiated:228, per diem:707, percentage:149",856
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29540,professional,11,fee schedule:501276,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29540,professional,20,fee schedule:501276,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,125.46,ucla_health_rate,verified_rate,,2900,79.02,125.46,125.46,2026-10-01,29540,professional,22,fee schedule:501276,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,41.7,ucla_health_rate,verified_rate,,637,32.58,85.63,41.7,2026-10-01,29540,professional,23,fee schedule:501276,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,29540,professional,81,fee schedule:501276,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.72,la_county_median,estimated_rate,,5,8.81,164.27,,2026-10-01,73600,institutional,,"fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.72,la_county_median,estimated_rate,,5,8.81,164.27,,2026-10-01,73600,institutional,22,"fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,138.54,ucla_health_rate,verified_rate,,2900,83.69,138.54,138.54,2026-10-01,73600,professional,11,fee schedule:1432960,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73600,professional,20,fee schedule:1432960,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73600,professional,22,fee schedule:1432960,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73600,professional,23,fee schedule:1432960,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73600,professional,81,fee schedule:1432960,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.63,la_county_median,estimated_rate,,5,9.63,188.18,,2026-10-01,73610,institutional,,"fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,10.63,la_county_median,estimated_rate,,5,9.63,188.18,,2026-10-01,73610,institutional,22,"fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,149.84,ucla_health_rate,verified_rate,,2900,91.54,149.84,149.84,2026-10-01,73610,professional,11,fee schedule:1432971,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73610,professional,20,fee schedule:1432971,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73610,professional,22,fee schedule:1432971,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73610,professional,23,fee schedule:1432971,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,37.26,ucla_health_rate,verified_rate,,2900,23.22,37.26,37.26,2026-10-01,73610,professional,23|22|11,fee schedule:1432971,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,73610,professional,81,fee schedule:1432971,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,182.4,la_county_median,estimated_rate,,60,102.68,278.3,,2026-10-01,87502,institutional,,"derived:222, fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,182.4,la_county_median,estimated_rate,,60,102.68,278.3,,2026-10-01,87502,institutional,22,"derived:222, fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87502,professional,11,"fee schedule:457658, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87502,professional,20,"fee schedule:457658, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87502,professional,22,"fee schedule:457658, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87502,professional,23,"fee schedule:457658, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,370.74,ucla_health_rate,verified_rate,,2900,216.89,370.74,370.74,2026-10-01,87502,professional,81,"fee schedule:457658, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,31.51,la_county_median,estimated_rate,,60,17.74,48.08,,2026-10-01,87804,institutional,,"derived:222, fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,31.51,la_county_median,estimated_rate,,60,17.74,48.08,,2026-10-01,87804,institutional,22,"derived:222, fee schedule:20, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,11,"fee schedule:457660, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,20,"fee schedule:457660, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,64.04,ucla_health_rate,verified_rate,,2900,36.98,64.04,64.04,2026-10-01,87804,professional,20|11|81,"fee schedule:457660, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,22,"fee schedule:457660, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,23,"fee schedule:457660, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,64.04,ucla_health_rate,verified_rate,,2900,36.98,64.04,64.04,2026-10-01,87804,professional,81,"fee schedule:457660, percentage:4212",4212
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.33,la_county_median,estimated_rate,,3,8.36,9.47,,2026-10-01,94010,institutional,,"fee schedule:12, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,9.33,la_county_median,estimated_rate,,3,8.36,9.47,,2026-10-01,94010,institutional,22,"fee schedule:12, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,159.71,ucla_health_rate,verified_rate,,2888,105.83,159.71,159.71,2026-10-01,94010,professional,11,fee schedule:1433757,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94010,professional,20,fee schedule:1433757,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94010,professional,22,fee schedule:1433757,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94010,professional,23,fee schedule:1433757,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94010,professional,81,fee schedule:1433757,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,16.74,la_county_median,estimated_rate,,3,15.0,16.99,,2026-10-01,94060,institutional,,"fee schedule:12, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,16.74,la_county_median,estimated_rate,,3,15.0,16.99,,2026-10-01,94060,institutional,22,"fee schedule:12, percentage:76",76
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,269.5,ucla_health_rate,verified_rate,,2900,163.91,269.5,269.5,2026-10-01,94060,professional,11,fee schedule:1433769,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94060,professional,20,fee schedule:1433769,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94060,professional,22,fee schedule:1433769,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94060,professional,23,fee schedule:1433769,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,94060,professional,81,fee schedule:1433769,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,109.8,la_county_median,estimated_rate,,62,83.04,253.35,,2026-10-01,99203,institutional,,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99203,institutional,11,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99203,institutional,20,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,109.8,la_county_median,estimated_rate,,62,83.04,253.35,,2026-10-01,99203,institutional,22,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99203,institutional,23,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99203,institutional,81,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,465.29,ucla_health_rate,verified_rate,,2902,287.66,465.29,465.29,2026-10-01,99203,professional,11,fee schedule:798495,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99203,professional,20,fee schedule:798495,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,103.37,ucla_health_rate,verified_rate,,636,80.75,201.62,103.37,2026-10-01,99203,professional,22,fee schedule:798495,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,103.37,ucla_health_rate,verified_rate,,636,80.75,201.62,103.37,2026-10-01,99203,professional,23,fee schedule:798495,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99203,professional,81,fee schedule:798495,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,185.81,la_county_median,estimated_rate,,62,140.53,428.76,,2026-10-01,99204,institutional,,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99204,institutional,11,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99204,institutional,20,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,185.81,la_county_median,estimated_rate,,62,140.53,428.76,,2026-10-01,99204,institutional,22,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99204,institutional,23,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99204,institutional,81,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,701.51,ucla_health_rate,verified_rate,,2902,435.85,701.51,701.51,2026-10-01,99204,professional,11,fee schedule:798577,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99204,professional,20,fee schedule:798577,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,174.94,ucla_health_rate,verified_rate,,636,136.67,341.2,174.94,2026-10-01,99204,professional,22,fee schedule:798577,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,174.94,ucla_health_rate,verified_rate,,636,136.67,341.2,174.94,2026-10-01,99204,professional,23,fee schedule:798577,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99204,professional,81,fee schedule:798577,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.11,la_county_median,estimated_rate,,62,57.56,175.63,,2026-10-01,99213,institutional,,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99213,institutional,11,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99213,institutional,20,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.11,la_county_median,estimated_rate,,62,57.56,175.63,,2026-10-01,99213,institutional,22,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99213,institutional,23,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99213,institutional,81,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,320.66,ucla_health_rate,verified_rate,,2902,198.69,320.66,320.66,2026-10-01,99213,professional,11,fee schedule:803572,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99213,professional,20,fee schedule:803572,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,320.66,ucla_health_rate,verified_rate,,2902,198.69,320.66,320.66,2026-10-01,99213,professional,20|11,fee schedule:803572,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.72,ucla_health_rate,verified_rate,,636,58.98,142.65,76.72,2026-10-01,99213,professional,22,fee schedule:803572,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,76.72,ucla_health_rate,verified_rate,,636,58.98,142.65,76.72,2026-10-01,99213,professional,23,fee schedule:803572,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99213,professional,81,fee schedule:803572,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,99.07,la_county_median,estimated_rate,,62,74.93,228.61,,2026-10-01,99214,institutional,,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99214,institutional,11,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99214,institutional,20,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,99.07,la_county_median,estimated_rate,,62,74.93,228.61,,2026-10-01,99214,institutional,22,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99214,institutional,23,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99214,institutional,81,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,468.19,ucla_health_rate,verified_rate,,2902,282.17,468.19,468.19,2026-10-01,99214,professional,11,fee schedule:798709,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99214,professional,20,fee schedule:798709,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,92.35,ucla_health_rate,verified_rate,,636,72.15,184.7,92.35,2026-10-01,99214,professional,22,fee schedule:798709,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,92.35,ucla_health_rate,verified_rate,,636,72.15,184.7,92.35,2026-10-01,99214,professional,23,fee schedule:798709,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99214,professional,81,fee schedule:798709,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,1969.0,la_county_median,estimated_rate,,74,88.38,4569.0,,2026-10-01,99283,institutional,,"fee schedule:56, negotiated:234, percentage:108",108
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,1969.0,la_county_median,estimated_rate,,74,88.38,4569.0,,2026-10-01,99283,institutional,22,"fee schedule:56, negotiated:234, percentage:108",108
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99283,professional,11,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99283,professional,20,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99283,professional,22,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,254.72,ucla_health_rate,verified_rate,,2900,164.09,254.72,254.72,2026-10-01,99283,professional,23,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99283,professional,81,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,74,166.6,9140.0,,2026-10-01,99284,institutional,,"fee schedule:56, negotiated:234, percentage:108",108
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,74,166.6,9140.0,,2026-10-01,99284,institutional,22,"fee schedule:56, negotiated:234, percentage:108",108
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99284,professional,11,fee schedule:495131,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99284,professional,20,fee schedule:495131,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99284,professional,22,fee schedule:495131,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,482.74,ucla_health_rate,verified_rate,,2900,310.61,482.74,482.74,2026-10-01,99284,professional,23,fee schedule:495131,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99284,professional,81,fee schedule:495131,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,74,223.87,11879.0,,2026-10-01,99285,institutional,,"fee schedule:56, negotiated:234, percentage:108",108
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,2077.0,la_county_median,estimated_rate,,74,223.87,11879.0,,2026-10-01,99285,institutional,22,"fee schedule:56, negotiated:234, percentage:108",108
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99285,professional,11,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99285,professional,20,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99285,professional,22,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,709.71,ucla_health_rate,verified_rate,,2900,447.88,709.71,709.71,2026-10-01,99285,professional,23,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99285,professional,81,fee schedule:495135,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,107.6,la_county_median,estimated_rate,,62,81.37,248.28,,2026-10-01,99395,institutional,,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,107.6,la_county_median,estimated_rate,,62,81.37,248.28,,2026-10-01,99395,institutional,22,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99395,institutional,23,fee schedule:252,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,512.85,ucla_health_rate,verified_rate,,2900,311.12,512.85,512.85,2026-10-01,99395,professional,11,fee schedule:774703,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99395,professional,20,fee schedule:774703,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,101.82,ucla_health_rate,verified_rate,,638,79.14,210.79,101.82,2026-10-01,99395,professional,22,fee schedule:774703,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,101.82,ucla_health_rate,verified_rate,,638,79.14,210.79,101.82,2026-10-01,99395,professional,23,fee schedule:774703,0
+B_component,Anthem Blue Cross (California),CA PPO PRUDENT BUYER,,,,rate_unavailable,,0,,,,2026-10-01,99395,professional,81,fee schedule:774703,0
+B_component,UnitedHealthcare,Choice-Plus,,178.0,westwood_area_median,estimated_rate,,3,178.0,195.6,,2026-10-01,29515,institutional,,negotiated:58,0
+B_component,UnitedHealthcare,Choice-Plus,,178.0,westwood_area_median,estimated_rate,,3,178.0,195.6,,2026-10-01,29515,institutional,22,negotiated:58,0
+B_component,UnitedHealthcare,Choice-Plus,,178.0,westwood_area_median,estimated_rate,,3,178.0,195.6,,2026-10-01,29515,institutional,23,negotiated:58,0
+B_component,UnitedHealthcare,Choice-Plus,,102.4,ucla_health_rate,verified_rate,,79,72.5,325.68,102.4,2026-10-01,29515,professional,11,negotiated:60414,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,29515,professional,20,negotiated:60414,0
+B_component,UnitedHealthcare,Choice-Plus,,70.4,ucla_health_rate,verified_rate,,79,51.22,225.2,70.4,2026-10-01,29515,professional,22,negotiated:60414,0
+B_component,UnitedHealthcare,Choice-Plus,,70.4,ucla_health_rate,verified_rate,,79,51.22,225.2,70.4,2026-10-01,29515,professional,23,negotiated:60414,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,29515,professional,81,negotiated:60414,0
+B_component,UnitedHealthcare,Choice-Plus,,178.0,westwood_area_median,estimated_rate,,3,178.0,195.6,,2026-10-01,29540,institutional,,negotiated:58,0
+B_component,UnitedHealthcare,Choice-Plus,,178.0,westwood_area_median,estimated_rate,,3,178.0,195.6,,2026-10-01,29540,institutional,22,negotiated:58,0
+B_component,UnitedHealthcare,Choice-Plus,,178.0,westwood_area_median,estimated_rate,,3,178.0,195.6,,2026-10-01,29540,institutional,23,negotiated:58,0
+B_component,UnitedHealthcare,Choice-Plus,,40.99,ucla_health_rate,verified_rate,,79,29.23,126.51,40.99,2026-10-01,29540,professional,11,negotiated:60422,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,29540,professional,20,negotiated:60422,0
+B_component,UnitedHealthcare,Choice-Plus,,24.72,ucla_health_rate,verified_rate,,79,18.41,78.79,24.72,2026-10-01,29540,professional,22,negotiated:60422,0
+B_component,UnitedHealthcare,Choice-Plus,,24.72,ucla_health_rate,verified_rate,,79,18.41,78.79,24.72,2026-10-01,29540,professional,23,negotiated:60422,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,29540,professional,81,negotiated:60422,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,73600,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,73600,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,189.68,ucla_health_rate,verified_rate,,599,134.9,189.68,189.68,2026-10-01,73600,professional,11,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,73600,professional,20,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,46.91,ucla_health_rate,verified_rate,,79,32.12,129.21,46.91,2026-10-01,73600,professional,22,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,46.91,ucla_health_rate,verified_rate,,79,32.12,129.21,46.91,2026-10-01,73600,professional,23,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,73600,professional,81,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,73610,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,73610,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,209.22,ucla_health_rate,verified_rate,,599,149.03,209.22,209.22,2026-10-01,73610,professional,11,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,73610,professional,20,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,51.74,ucla_health_rate,verified_rate,,79,35.37,145.38,51.74,2026-10-01,73610,professional,22,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,51.74,ucla_health_rate,verified_rate,,79,35.37,145.38,51.74,2026-10-01,73610,professional,23,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,49.93,ucla_health_rate,verified_rate,,599,21.21,49.93,49.93,2026-10-01,73610,professional,23|22|11,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,73610,professional,81,negotiated:181206,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,87502,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,87502,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,45.44,westwood_area_median,estimated_rate,,3,45.44,95.48,,2026-10-01,87502,professional,11,negotiated:21937,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87502,professional,20,negotiated:21937,0
+B_component,UnitedHealthcare,Choice-Plus,,43.27,westwood_area_median,estimated_rate,,3,43.27,92.53,,2026-10-01,87502,professional,22,negotiated:21937,0
+B_component,UnitedHealthcare,Choice-Plus,,43.27,westwood_area_median,estimated_rate,,3,43.27,92.53,,2026-10-01,87502,professional,23,negotiated:21937,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87502,professional,81,negotiated:21937,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,87804,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,87804,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,11,negotiated:21911,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,20,negotiated:21911,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,20|11|81,negotiated:21911,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,22,negotiated:21911,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,23,negotiated:21911,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,87804,professional,81,negotiated:21911,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,94010,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,94010,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,213.57,ucla_health_rate,verified_rate,,599,149.04,213.57,213.57,2026-10-01,94010,professional,11,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,94010,professional,20,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,52.81,ucla_health_rate,verified_rate,,79,36.07,129.12,52.81,2026-10-01,94010,professional,22,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,52.81,ucla_health_rate,verified_rate,,79,36.07,129.12,52.81,2026-10-01,94010,professional,23,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,94010,professional,81,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,94060,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,94060,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,357.3,ucla_health_rate,verified_rate,,599,247.23,357.3,357.3,2026-10-01,94060,professional,11,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,94060,professional,20,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,88.35,ucla_health_rate,verified_rate,,79,60.24,215.98,88.35,2026-10-01,94060,professional,22,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,88.35,ucla_health_rate,verified_rate,,79,60.24,215.98,88.35,2026-10-01,94060,professional,23,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,94060,professional,81,negotiated:181164,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99203,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99203,institutional,11,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99203,institutional,20,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99203,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99203,institutional,23,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99203,institutional,81,,0
+B_component,UnitedHealthcare,Choice-Plus,,153.21,ucla_health_rate,verified_rate,,78,108.97,434.88,153.21,2026-10-01,99203,professional,11,negotiated:60317,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99203,professional,20,negotiated:60317,0
+B_component,UnitedHealthcare,Choice-Plus,,104.93,ucla_health_rate,verified_rate,,78,77.17,315.23,104.93,2026-10-01,99203,professional,22,negotiated:60317,0
+B_component,UnitedHealthcare,Choice-Plus,,104.93,ucla_health_rate,verified_rate,,78,77.17,315.23,104.93,2026-10-01,99203,professional,23,negotiated:60317,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99203,professional,81,negotiated:60317,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99204,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99204,institutional,11,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99204,institutional,20,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99204,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99204,institutional,23,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99204,institutional,81,,0
+B_component,UnitedHealthcare,Choice-Plus,,232.12,ucla_health_rate,verified_rate,,78,166.34,656.73,232.12,2026-10-01,99204,professional,11,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99204,professional,20,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,179.5,ucla_health_rate,verified_rate,,78,131.25,521.74,179.5,2026-10-01,99204,professional,22,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,179.5,ucla_health_rate,verified_rate,,78,131.25,521.74,179.5,2026-10-01,99204,professional,23,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99204,professional,81,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99213,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99213,institutional,11,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99213,institutional,20,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99213,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99213,institutional,23,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99213,institutional,81,,0
+B_component,UnitedHealthcare,Choice-Plus,,107.02,ucla_health_rate,verified_rate,,78,74.59,335.85,107.02,2026-10-01,99213,professional,11,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99213,professional,20,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,107.02,ucla_health_rate,verified_rate,,78,74.59,335.85,107.02,2026-10-01,99213,professional,20|11,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,71.22,ucla_health_rate,verified_rate,,78,51.55,239.61,71.22,2026-10-01,99213,professional,22,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,71.22,ucla_health_rate,verified_rate,,78,51.55,239.61,71.22,2026-10-01,99213,professional,23,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99213,professional,81,negotiated:60321,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99214,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99214,institutional,11,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99214,institutional,20,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99214,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99214,institutional,23,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99214,institutional,81,,0
+B_component,UnitedHealthcare,Choice-Plus,,154.78,ucla_health_rate,verified_rate,,78,109.31,478.61,154.78,2026-10-01,99214,professional,11,negotiated:60319,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99214,professional,20,negotiated:60319,0
+B_component,UnitedHealthcare,Choice-Plus,,109.75,ucla_health_rate,verified_rate,,78,79.67,358.23,109.75,2026-10-01,99214,professional,22,negotiated:60319,0
+B_component,UnitedHealthcare,Choice-Plus,,109.75,ucla_health_rate,verified_rate,,78,79.67,358.23,109.75,2026-10-01,99214,professional,23,negotiated:60319,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99214,professional,81,negotiated:60319,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99283,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99283,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,70.24,westwood_area_median,estimated_rate,,9,70.24,174.35,,2026-10-01,99283,professional,11,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99283,professional,20,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,105.36,westwood_area_median,estimated_rate,,9,105.36,170.31,,2026-10-01,99283,professional,22,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,105.36,westwood_area_median,estimated_rate,,9,105.36,170.31,,2026-10-01,99283,professional,23,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99283,professional,81,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99284,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99284,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,119.5,westwood_area_median,estimated_rate,,9,119.5,319.14,,2026-10-01,99284,professional,11,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99284,professional,20,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,179.25,westwood_area_median,estimated_rate,,9,179.25,311.75,,2026-10-01,99284,professional,22,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,179.25,westwood_area_median,estimated_rate,,9,179.25,311.75,,2026-10-01,99284,professional,23,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99284,professional,81,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99285,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99285,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,173.1,westwood_area_median,estimated_rate,,9,173.1,463.14,,2026-10-01,99285,professional,11,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99285,professional,20,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,259.65,westwood_area_median,estimated_rate,,9,259.65,452.41,,2026-10-01,99285,professional,22,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,259.65,westwood_area_median,estimated_rate,,9,259.65,452.41,,2026-10-01,99285,professional,23,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99285,professional,81,negotiated:22203,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99395,institutional,,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99395,institutional,22,,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,,99395,institutional,23,,0
+B_component,UnitedHealthcare,Choice-Plus,,170.23,ucla_health_rate,verified_rate,,78,116.56,465.27,170.23,2026-10-01,99395,professional,11,negotiated:60348,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99395,professional,20,negotiated:60348,0
+B_component,UnitedHealthcare,Choice-Plus,,125.2,ucla_health_rate,verified_rate,,78,87.21,345.51,125.2,2026-10-01,99395,professional,22,negotiated:60348,0
+B_component,UnitedHealthcare,Choice-Plus,,125.2,ucla_health_rate,verified_rate,,78,87.21,345.51,125.2,2026-10-01,99395,professional,23,negotiated:60348,0
+B_component,UnitedHealthcare,Choice-Plus,,,,rate_unavailable,,0,,,,2026-10-01,99395,professional,81,negotiated:60348,0
+B_component,Cigna,NATIONAL PPO,,95.09,westwood_area_median,estimated_rate,,2,88.17,102.0,,2026-10-01,29515,institutional,,"derived:381, fee schedule:91, negotiated:2, percentage:1",1
+B_component,Cigna,NATIONAL PPO,,95.09,westwood_area_median,estimated_rate,,2,88.17,102.0,,2026-10-01,29515,institutional,22,"derived:381, fee schedule:91, negotiated:2, percentage:1",1
+B_component,Cigna,NATIONAL PPO,,95.09,westwood_area_median,estimated_rate,,2,88.17,102.0,,2026-10-01,29515,institutional,23,"derived:381, fee schedule:91, negotiated:2, percentage:1",1
+B_component,Cigna,NATIONAL PPO,,118.29,ucla_health_rate,verified_rate,,63,69.75,203.23,118.29,2026-10-01,29515,professional,11,"fee schedule:67247, negotiated:1135, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,118.29,ucla_health_rate,verified_rate,,63,69.75,203.23,118.29,2026-10-01,29515,professional,20,"fee schedule:67247, negotiated:1135, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,76.93,ucla_health_rate,verified_rate,,63,49.64,137.29,76.93,2026-10-01,29515,professional,22,"fee schedule:67247, negotiated:1135, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,76.93,ucla_health_rate,verified_rate,,63,49.64,137.29,76.93,2026-10-01,29515,professional,23,"fee schedule:67247, negotiated:1135, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,118.29,ucla_health_rate,verified_rate,,63,69.75,203.23,118.29,2026-10-01,29515,professional,81,"fee schedule:67247, negotiated:1135, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,27.39,westwood_area_median,estimated_rate,,2,27.09,27.7,,2026-10-01,29540,institutional,,"derived:381, fee schedule:91, negotiated:2, percentage:1",1
+B_component,Cigna,NATIONAL PPO,,27.39,westwood_area_median,estimated_rate,,2,27.09,27.7,,2026-10-01,29540,institutional,22,"derived:381, fee schedule:91, negotiated:2, percentage:1",1
+B_component,Cigna,NATIONAL PPO,,27.39,westwood_area_median,estimated_rate,,2,27.09,27.7,,2026-10-01,29540,institutional,23,"derived:381, fee schedule:91, negotiated:2, percentage:1",1
+B_component,Cigna,NATIONAL PPO,,45.64,ucla_health_rate,verified_rate,,58,26.87,76.75,45.64,2026-10-01,29540,professional,11,"fee schedule:64491, negotiated:11500, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,45.64,ucla_health_rate,verified_rate,,58,26.87,76.75,45.64,2026-10-01,29540,professional,20,"fee schedule:64491, negotiated:11500, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,33.89,ucla_health_rate,verified_rate,,58,17.62,48.59,33.89,2026-10-01,29540,professional,22,"fee schedule:64491, negotiated:11500, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,33.89,ucla_health_rate,verified_rate,,58,17.62,48.59,33.89,2026-10-01,29540,professional,23,"fee schedule:64491, negotiated:11500, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,45.64,ucla_health_rate,verified_rate,,58,26.87,76.75,45.64,2026-10-01,29540,professional,81,"fee schedule:64491, negotiated:11500, per diem:36, percentage:53",89
+B_component,Cigna,NATIONAL PPO,,51.47,westwood_area_median,estimated_rate,,1,51.47,51.47,,2026-10-01,73600,institutional,,"derived:1563, fee schedule:97",0
+B_component,Cigna,NATIONAL PPO,,51.47,westwood_area_median,estimated_rate,,1,51.47,51.47,,2026-10-01,73600,institutional,22,"derived:1563, fee schedule:97",0
+B_component,Cigna,NATIONAL PPO,,34.23,westwood_area_median,estimated_rate,,14,34.23,126.09,,2026-10-01,73600,professional,11,"fee schedule:120989, negotiated:11614, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,156.17,westwood_area_median,estimated_rate,,2,156.17,156.17,,2026-10-01,73600,professional,20,"fee schedule:120989, negotiated:11614, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,41.92,westwood_area_median,estimated_rate,,2,30.74,53.1,,2026-10-01,73600,professional,22,"fee schedule:120989, negotiated:11614, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,41.92,westwood_area_median,estimated_rate,,2,30.74,53.1,,2026-10-01,73600,professional,23,"fee schedule:120989, negotiated:11614, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,156.17,westwood_area_median,estimated_rate,,2,156.17,156.17,,2026-10-01,73600,professional,81,"fee schedule:120989, negotiated:11614, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,58.82,westwood_area_median,estimated_rate,,1,58.82,58.82,,2026-10-01,73610,institutional,,"derived:1563, fee schedule:97",0
+B_component,Cigna,NATIONAL PPO,,58.82,westwood_area_median,estimated_rate,,1,58.82,58.82,,2026-10-01,73610,institutional,22,"derived:1563, fee schedule:97",0
+B_component,Cigna,NATIONAL PPO,,41.08,westwood_area_median,estimated_rate,,14,41.08,144.29,,2026-10-01,73610,professional,11,"fee schedule:120989, negotiated:11615, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,178.68,westwood_area_median,estimated_rate,,2,178.68,178.68,,2026-10-01,73610,professional,20,"fee schedule:120989, negotiated:11615, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,48.16,westwood_area_median,estimated_rate,,2,35.46,60.87,,2026-10-01,73610,professional,22,"fee schedule:120989, negotiated:11615, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,48.16,westwood_area_median,estimated_rate,,2,35.46,60.87,,2026-10-01,73610,professional,23,"fee schedule:120989, negotiated:11615, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,41.74,westwood_area_median,estimated_rate,,2,41.74,41.74,,2026-10-01,73610,professional,23|22|11,"fee schedule:120989, negotiated:11615, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,178.68,westwood_area_median,estimated_rate,,2,178.68,178.68,,2026-10-01,73610,professional,81,"fee schedule:120989, negotiated:11615, percentage:54",54
+B_component,Cigna,NATIONAL PPO,,182.6,westwood_area_median,estimated_rate,,3,124.66,182.6,,2026-10-01,87502,institutional,,"derived:1008, fee schedule:98",0
+B_component,Cigna,NATIONAL PPO,,182.6,westwood_area_median,estimated_rate,,3,124.66,182.6,,2026-10-01,87502,institutional,22,"derived:1008, fee schedule:98",0
+B_component,Cigna,NATIONAL PPO,,461.76,westwood_area_median,estimated_rate,,3,171.86,461.76,,2026-10-01,87502,professional,11,"fee schedule:53090, negotiated:99, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,461.76,westwood_area_median,estimated_rate,,2,461.76,461.76,,2026-10-01,87502,professional,20,"fee schedule:53090, negotiated:99, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,99.38,westwood_area_median,estimated_rate,,1,99.38,99.38,,2026-10-01,87502,professional,22,"fee schedule:53090, negotiated:99, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,99.38,westwood_area_median,estimated_rate,,1,99.38,99.38,,2026-10-01,87502,professional,23,"fee schedule:53090, negotiated:99, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,461.76,westwood_area_median,estimated_rate,,2,461.76,461.76,,2026-10-01,87502,professional,81,"fee schedule:53090, negotiated:99, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,38.0,westwood_area_median,estimated_rate,,3,19.93,38.0,,2026-10-01,87804,institutional,,"derived:966, fee schedule:100",0
+B_component,Cigna,NATIONAL PPO,,38.0,westwood_area_median,estimated_rate,,3,19.93,38.0,,2026-10-01,87804,institutional,22,"derived:966, fee schedule:100",0
+B_component,Cigna,NATIONAL PPO,,81.55,westwood_area_median,estimated_rate,,2,81.55,81.55,,2026-10-01,87804,professional,11,"fee schedule:53186, negotiated:9, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,81.55,westwood_area_median,estimated_rate,,2,81.55,81.55,,2026-10-01,87804,professional,20,"fee schedule:53186, negotiated:9, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,81.55,westwood_area_median,estimated_rate,,2,81.55,81.55,,2026-10-01,87804,professional,20|11|81,"fee schedule:53186, negotiated:9, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,15.3,la_county_median,estimated_rate,,5,15.13,15.61,,2026-10-01,87804,professional,22,"fee schedule:53186, negotiated:9, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,15.3,la_county_median,estimated_rate,,5,15.13,15.61,,2026-10-01,87804,professional,23,"fee schedule:53186, negotiated:9, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,81.55,westwood_area_median,estimated_rate,,2,81.55,81.55,,2026-10-01,87804,professional,81,"fee schedule:53186, negotiated:9, percentage:439",439
+B_component,Cigna,NATIONAL PPO,,47.37,westwood_area_median,estimated_rate,,1,47.37,47.37,,2026-10-01,94010,institutional,,"derived:1563, fee schedule:9",0
+B_component,Cigna,NATIONAL PPO,,47.37,westwood_area_median,estimated_rate,,1,47.37,47.37,,2026-10-01,94010,institutional,22,"derived:1563, fee schedule:9",0
+B_component,Cigna,NATIONAL PPO,,185.87,westwood_area_median,estimated_rate,,2,185.87,185.87,,2026-10-01,94010,professional,11,"fee schedule:121811, negotiated:10, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,185.87,westwood_area_median,estimated_rate,,2,185.87,185.87,,2026-10-01,94010,professional,20,"fee schedule:121811, negotiated:10, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,33.22,la_county_median,estimated_rate,,7,30.84,36.65,,2026-10-01,94010,professional,22,"fee schedule:121811, negotiated:10, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,33.22,la_county_median,estimated_rate,,7,30.84,36.65,,2026-10-01,94010,professional,23,"fee schedule:121811, negotiated:10, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,185.87,westwood_area_median,estimated_rate,,2,185.87,185.87,,2026-10-01,94010,professional,81,"fee schedule:121811, negotiated:10, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,84.42,westwood_area_median,estimated_rate,,1,84.42,84.42,,2026-10-01,94060,institutional,,"derived:1563, fee schedule:8",0
+B_component,Cigna,NATIONAL PPO,,84.42,westwood_area_median,estimated_rate,,1,84.42,84.42,,2026-10-01,94060,institutional,22,"derived:1563, fee schedule:8",0
+B_component,Cigna,NATIONAL PPO,,200.63,westwood_area_median,estimated_rate,,4,56.89,326.25,,2026-10-01,94060,professional,11,"fee schedule:121805, negotiated:159, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,326.25,westwood_area_median,estimated_rate,,2,326.25,326.25,,2026-10-01,94060,professional,20,"fee schedule:121805, negotiated:159, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,62.07,westwood_area_median,estimated_rate,,2,51.71,72.42,,2026-10-01,94060,professional,22,"fee schedule:121805, negotiated:159, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,62.07,westwood_area_median,estimated_rate,,2,51.71,72.42,,2026-10-01,94060,professional,23,"fee schedule:121805, negotiated:159, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,326.25,westwood_area_median,estimated_rate,,2,326.25,326.25,,2026-10-01,94060,professional,81,"fee schedule:121805, negotiated:159, percentage:58",58
+B_component,Cigna,NATIONAL PPO,,126.84,westwood_area_median,estimated_rate,,1,126.84,126.84,,2026-10-01,99203,institutional,,"derived:381, fee schedule:55",0
+B_component,Cigna,NATIONAL PPO,,126.84,westwood_area_median,estimated_rate,,1,126.84,126.84,,2026-10-01,99203,institutional,11,"derived:381, fee schedule:55",0
+B_component,Cigna,NATIONAL PPO,,126.84,westwood_area_median,estimated_rate,,1,126.84,126.84,,2026-10-01,99203,institutional,20,"derived:381, fee schedule:55",0
+B_component,Cigna,NATIONAL PPO,,126.84,westwood_area_median,estimated_rate,,1,126.84,126.84,,2026-10-01,99203,institutional,22,"derived:381, fee schedule:55",0
+B_component,Cigna,NATIONAL PPO,,126.84,westwood_area_median,estimated_rate,,1,126.84,126.84,,2026-10-01,99203,institutional,23,"derived:381, fee schedule:55",0
+B_component,Cigna,NATIONAL PPO,,126.84,westwood_area_median,estimated_rate,,1,126.84,126.84,,2026-10-01,99203,institutional,81,"derived:381, fee schedule:55",0
+B_component,Cigna,NATIONAL PPO,,152.9,ucla_health_rate,verified_rate,,88,107.52,306.93,152.9,2026-10-01,99203,professional,11,"fee schedule:76385, negotiated:15543, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,152.9,ucla_health_rate,verified_rate,,88,107.52,306.93,152.9,2026-10-01,99203,professional,20,"fee schedule:76385, negotiated:15543, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,107.11,ucla_health_rate,verified_rate,,88,74.64,221.58,107.11,2026-10-01,99203,professional,22,"fee schedule:76385, negotiated:15543, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,107.11,ucla_health_rate,verified_rate,,88,74.64,221.58,107.11,2026-10-01,99203,professional,23,"fee schedule:76385, negotiated:15543, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,152.9,ucla_health_rate,verified_rate,,88,107.52,306.93,152.9,2026-10-01,99203,professional,81,"fee schedule:76385, negotiated:15543, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,192.62,westwood_area_median,estimated_rate,,1,192.62,192.62,,2026-10-01,99204,institutional,,"derived:381, fee schedule:54",0
+B_component,Cigna,NATIONAL PPO,,192.62,westwood_area_median,estimated_rate,,1,192.62,192.62,,2026-10-01,99204,institutional,11,"derived:381, fee schedule:54",0
+B_component,Cigna,NATIONAL PPO,,192.62,westwood_area_median,estimated_rate,,1,192.62,192.62,,2026-10-01,99204,institutional,20,"derived:381, fee schedule:54",0
+B_component,Cigna,NATIONAL PPO,,192.62,westwood_area_median,estimated_rate,,1,192.62,192.62,,2026-10-01,99204,institutional,22,"derived:381, fee schedule:54",0
+B_component,Cigna,NATIONAL PPO,,192.62,westwood_area_median,estimated_rate,,1,192.62,192.62,,2026-10-01,99204,institutional,23,"derived:381, fee schedule:54",0
+B_component,Cigna,NATIONAL PPO,,192.62,westwood_area_median,estimated_rate,,1,192.62,192.62,,2026-10-01,99204,institutional,81,"derived:381, fee schedule:54",0
+B_component,Cigna,NATIONAL PPO,,223.75,ucla_health_rate,verified_rate,,88,162.65,460.07,223.75,2026-10-01,99204,professional,11,"fee schedule:76416, negotiated:14619, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,223.75,ucla_health_rate,verified_rate,,88,162.65,460.07,223.75,2026-10-01,99204,professional,20,"fee schedule:76416, negotiated:14619, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,173.02,ucla_health_rate,verified_rate,,88,126.41,363.01,173.02,2026-10-01,99204,professional,22,"fee schedule:76416, negotiated:14619, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,173.02,ucla_health_rate,verified_rate,,88,126.41,363.01,173.02,2026-10-01,99204,professional,23,"fee schedule:76416, negotiated:14619, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,223.75,ucla_health_rate,verified_rate,,88,162.65,460.07,223.75,2026-10-01,99204,professional,81,"fee schedule:76416, negotiated:14619, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,81.95,westwood_area_median,estimated_rate,,1,81.95,81.95,,2026-10-01,99213,institutional,,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,81.95,westwood_area_median,estimated_rate,,1,81.95,81.95,,2026-10-01,99213,institutional,11,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,81.95,westwood_area_median,estimated_rate,,1,81.95,81.95,,2026-10-01,99213,institutional,20,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,81.95,westwood_area_median,estimated_rate,,1,81.95,81.95,,2026-10-01,99213,institutional,22,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,81.95,westwood_area_median,estimated_rate,,1,81.95,81.95,,2026-10-01,99213,institutional,23,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,81.95,westwood_area_median,estimated_rate,,1,81.95,81.95,,2026-10-01,99213,institutional,81,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,106.99,ucla_health_rate,verified_rate,,89,72.17,229.87,106.99,2026-10-01,99213,professional,11,"fee schedule:76590, negotiated:14571, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,106.99,ucla_health_rate,verified_rate,,89,72.17,229.87,106.99,2026-10-01,99213,professional,20,"fee schedule:76590, negotiated:14571, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,106.99,ucla_health_rate,verified_rate,,89,72.17,229.87,106.99,2026-10-01,99213,professional,20|11,"fee schedule:76590, negotiated:14571, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,77.43,ucla_health_rate,verified_rate,,89,49.38,163.72,77.43,2026-10-01,99213,professional,22,"fee schedule:76590, negotiated:14571, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,77.43,ucla_health_rate,verified_rate,,89,49.38,163.72,77.43,2026-10-01,99213,professional,23,"fee schedule:76590, negotiated:14571, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,106.99,ucla_health_rate,verified_rate,,89,72.17,229.87,106.99,2026-10-01,99213,professional,81,"fee schedule:76590, negotiated:14571, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,124.24,westwood_area_median,estimated_rate,,1,124.24,124.24,,2026-10-01,99214,institutional,,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,124.24,westwood_area_median,estimated_rate,,1,124.24,124.24,,2026-10-01,99214,institutional,11,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,124.24,westwood_area_median,estimated_rate,,1,124.24,124.24,,2026-10-01,99214,institutional,20,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,124.24,westwood_area_median,estimated_rate,,1,124.24,124.24,,2026-10-01,99214,institutional,22,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,124.24,westwood_area_median,estimated_rate,,1,124.24,124.24,,2026-10-01,99214,institutional,23,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,124.24,westwood_area_median,estimated_rate,,1,124.24,124.24,,2026-10-01,99214,institutional,81,"derived:381, fee schedule:56",0
+B_component,Cigna,NATIONAL PPO,,149.79,ucla_health_rate,verified_rate,,89,105.62,330.72,149.79,2026-10-01,99214,professional,11,"fee schedule:76572, negotiated:13645, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,149.79,ucla_health_rate,verified_rate,,89,105.62,330.72,149.79,2026-10-01,99214,professional,20,"fee schedule:76572, negotiated:13645, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,110.57,ucla_health_rate,verified_rate,,89,76.25,246.01,110.57,2026-10-01,99214,professional,22,"fee schedule:76572, negotiated:13645, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,110.57,ucla_health_rate,verified_rate,,89,76.25,246.01,110.57,2026-10-01,99214,professional,23,"fee schedule:76572, negotiated:13645, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,149.79,ucla_health_rate,verified_rate,,89,105.62,330.72,149.79,2026-10-01,99214,professional,81,"fee schedule:76572, negotiated:13645, per diem:9, percentage:41",1049
+B_component,Cigna,NATIONAL PPO,,97.73,westwood_area_median,estimated_rate,,1,97.73,97.73,,2026-10-01,99283,institutional,,"derived:381, fee schedule:45",0
+B_component,Cigna,NATIONAL PPO,,97.73,westwood_area_median,estimated_rate,,1,97.73,97.73,,2026-10-01,99283,institutional,22,"derived:381, fee schedule:45",0
+B_component,Cigna,NATIONAL PPO,,118.2,westwood_area_median,estimated_rate,,5,76.55,334.85,,2026-10-01,99283,professional,11,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,334.85,westwood_area_median,estimated_rate,,3,161.53,334.85,,2026-10-01,99283,professional,20,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,112.56,westwood_area_median,estimated_rate,,3,64.54,128.82,,2026-10-01,99283,professional,22,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,112.56,westwood_area_median,estimated_rate,,3,64.54,128.82,,2026-10-01,99283,professional,23,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,334.85,westwood_area_median,estimated_rate,,3,161.53,334.85,,2026-10-01,99283,professional,81,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,166.44,westwood_area_median,estimated_rate,,1,166.44,166.44,,2026-10-01,99284,institutional,,"derived:381, fee schedule:45",0
+B_component,Cigna,NATIONAL PPO,,166.44,westwood_area_median,estimated_rate,,1,166.44,166.44,,2026-10-01,99284,institutional,22,"derived:381, fee schedule:45",0
+B_component,Cigna,NATIONAL PPO,,199.41,westwood_area_median,estimated_rate,,5,133.82,569.92,,2026-10-01,99284,professional,11,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,569.92,westwood_area_median,estimated_rate,,3,273.51,569.92,,2026-10-01,99284,professional,20,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,191.38,westwood_area_median,estimated_rate,,3,114.64,216.89,,2026-10-01,99284,professional,22,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,191.38,westwood_area_median,estimated_rate,,3,114.64,216.89,,2026-10-01,99284,professional,23,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,569.92,westwood_area_median,estimated_rate,,3,273.51,569.92,,2026-10-01,99284,professional,81,"fee schedule:41927, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,241.3,westwood_area_median,estimated_rate,,1,241.3,241.3,,2026-10-01,99285,institutional,,"derived:381, fee schedule:46",0
+B_component,Cigna,NATIONAL PPO,,241.3,westwood_area_median,estimated_rate,,1,241.3,241.3,,2026-10-01,99285,institutional,22,"derived:381, fee schedule:46",0
+B_component,Cigna,NATIONAL PPO,,551.74,westwood_area_median,estimated_rate,,4,180.85,825.91,,2026-10-01,99285,professional,11,"fee schedule:41945, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,825.91,westwood_area_median,estimated_rate,,2,825.91,825.91,,2026-10-01,99285,professional,20,"fee schedule:41945, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,208.48,westwood_area_median,estimated_rate,,2,153.21,263.75,,2026-10-01,99285,professional,22,"fee schedule:41945, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,208.48,westwood_area_median,estimated_rate,,2,153.21,263.75,,2026-10-01,99285,professional,23,"fee schedule:41945, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,825.91,westwood_area_median,estimated_rate,,2,825.91,825.91,,2026-10-01,99285,professional,81,"fee schedule:41945, negotiated:159, percentage:41",41
+B_component,Cigna,NATIONAL PPO,,105.26,westwood_area_median,estimated_rate,,1,105.26,105.26,,2026-10-01,99395,institutional,,"derived:381, fee schedule:4",0
+B_component,Cigna,NATIONAL PPO,,105.26,westwood_area_median,estimated_rate,,1,105.26,105.26,,2026-10-01,99395,institutional,22,"derived:381, fee schedule:4",0
+B_component,Cigna,NATIONAL PPO,,105.26,westwood_area_median,estimated_rate,,1,105.26,105.26,,2026-10-01,99395,institutional,23,"derived:381, fee schedule:4",0
+B_component,Cigna,NATIONAL PPO,,155.31,ucla_health_rate,verified_rate,,87,110.48,326.96,155.31,2026-10-01,99395,professional,11,"fee schedule:81265, negotiated:110, percentage:48",48
+B_component,Cigna,NATIONAL PPO,,155.31,ucla_health_rate,verified_rate,,87,110.48,326.96,155.31,2026-10-01,99395,professional,20,"fee schedule:81265, negotiated:110, percentage:48",48
+B_component,Cigna,NATIONAL PPO,,113.92,ucla_health_rate,verified_rate,,87,81.28,242.5,113.92,2026-10-01,99395,professional,22,"fee schedule:81265, negotiated:110, percentage:48",48
+B_component,Cigna,NATIONAL PPO,,113.92,ucla_health_rate,verified_rate,,87,81.28,242.5,113.92,2026-10-01,99395,professional,23,"fee schedule:81265, negotiated:110, percentage:48",48
+B_component,Cigna,NATIONAL PPO,,155.31,ucla_health_rate,verified_rate,,87,110.48,326.96,155.31,2026-10-01,99395,professional,81,"fee schedule:81265, negotiated:110, percentage:48",48
