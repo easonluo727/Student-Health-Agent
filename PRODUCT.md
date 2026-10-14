@@ -5,97 +5,172 @@
 
 目前针对的主要群体是留学生群体，因为留学生群体不会受到各类政府政策限制，所以可以只用考虑商业保险和学校提供的保险。
 
-
-# The agent NEED to know
-## The policy of the insurance being selected (Policy Flyer of the insurance company)
-    1. deductible （享受保险的门槛）
-    2. copay （服务项目固定的价格）
-    3. coinsurance (percentage copay)
-    4. out-of-pocket max（每年自付封顶）
-    5. 限制条件：既往病史等待期、转诊 / 预授权、不保项目
-
-### Prompt and harness
-1. Schedule of benefits: json to be put in the context window
-2. 准确识别用户 request 并且对应 schedule of benefits
+**产品的本质是 matching**：把用户的需求，和我们提前掌握的大量保险数据、价格数据做匹配，最后告诉用户该怎么选、要花多少钱。
 
 
-## The requirements of user
-    1. personal info (age gender race geographic info): target at international student (insurance is the only choice, no gov supports)
-    2. chronic disease
-    3. 学校 waiver 要求、签证要求（如 J-1 最低保障标准）
+# 产品形式
+1. **主界面是一个对话窗**（类似 Hark）。用户直接用自然语言提问，agent 在对话里回答、追问、展示结果。
+2. **问卷辅助 LLM 做判断**：问卷是提前设计好的，写在 HINT 里注入 LLM 的提示词。LLM 根据用户的第一句话，判断要不要发问卷、发哪一份。问卷在对话中以表单的形式出现，由用户填写。
+3. **三个信息来源一起做 matching**：问卷（来自用户），加上两个我们自己搭建的数据库（保单规则、allowed amount）。LLM 综合这三者来判断怎么匹配；所有数字由 Python 计算。
+
+```
+用户在对话窗里提问
+   ↓
+LLM 判断：要不要发问卷？发哪一份？（问卷模板来自 HINT）
+   ↓
+用户填写问卷 ──────────────────────┐
+                                   ↓
+         ┌───────── matching ─────────┐
+         │ ① 问卷：用户的信息          │
+         │ ② 保单规则数据库            │  → Python 计算 → 对话中展示结果 / dashboard
+         │ ③ allowed amount 数据库     │
+         └────────────────────────────┘
+```
+
+
+# 三个信息来源
+
+## ① 问卷（来自用户）
+- **问卷是提前设计好的**，LLM 不能自己现场编问题，只能从已有的问卷里选。这样做对能力较弱的开源模型更可靠。
+- 问卷模板写在 HINT 里，注入 LLM 的提示词。
+- LLM 根据用户的第一句话判断：
+
+| 用户的第一句话 | LLM 的判断 |
+| --- | --- |
+| “请问你有什么功能？” | 不需要问卷，直接回答 |
+| “我得了某种病，我的保险是 UC SHIP” | 发“看病算费用”问卷 |
+| “我想换一个更便宜的保险” | 发“选保险”问卷 |
+| “我要申请学校的 waiver” | 发“waiver”问卷 |
+
+- 问卷草案（待细化）：
+  - **看病算费用**：诊断或症状、在哪里看病（医院 / 医生）、现有保险、是否在网络内、今年 deductible 还剩多少
+  - **选保险**：学校、签证类型（F-1 / J-1）、年龄、慢性病、常用药、常看的医生、预算
+  - **waiver**：学校、现有保险、保单文件（上传）
+- 设计要求：
+  - **每个问卷字段都要能对应到两个数据库的查询条件**，否则收集到的信息用不上。
+  - 每道题都要有“不知道”或“跳过”选项。用户选“不知道”时，用区间或多种情况分别计算，不能卡住不动。
+  - 选项尽量由后端根据数据生成。例如“在哪里看病”的选项，来自这个保险计划的网络层级。
+  - 答案按字段结构化地交回给 agent，并记录“来自用户问卷”。用户填写的数字直接交给 Python 计算器，模型不能转述或修改。
+
+## ② 保单规则数据库（各家保险的 PDF）
+回答“**保险怎么分担费用**”。
+- 内容：deductible、copay、coinsurance、out-of-pocket max、网络层级、限制条件（既往病史等待期、转诊 / 预授权、不保项目）。
+- 来源：
+  - 团队从官方渠道收集的保单 PDF（Schedule of Benefits / SBC、保费表）
+  - 政府公开的 ACA 计划数据
+  - 用户上传的保单
+  - 深度搜索找到的新计划
+- 处理：在 AMD 上由开源模型读取 PDF，提取成统一的格式（规则 JSON v2，分计划层和规则层两层），再经过程序验证和人工复核。
+- 每个数字都附有出处（保单页码、原文摘录）。
+
+## ③ Allowed amount 数据库（价格）
+回答“**这项服务值多少钱**”。
+- 来源：保险公司依法公开的 **In-Network Rate Machine-Readable Files（MRF）**（Transparency in Coverage）。
+- 流程：
+  1. 用户描述 → 候选的 CPT / HCPCS 服务代码，不能确定时通过问卷澄清
+  2. 确定保险公司、具体计划、医生（NPI）、地区、日期、计费场景
+  3. 获取 MRF
+  4. 用流式 JSON 解析筛选出适用的协商价
+  5. 存进 SQLite
+- 注意：
+  - 只有服务代码和保险公司名称，确定不了某位医生的具体价格。
+  - 公开的协商价，也不保证等于最终理赔时的 allowed amount。
+  - 部分留学生保险可能没有公开 MRF，需要查证。
+- 价格分三种状态：`verified_rate`（查到的）、`estimated_rate`（估算的）、`rate_unavailable`（查不到）。查不到具体医生的价格时，给出地区的低 / 中 / 高区间，并标明是估算以及来源。
+
+**两个数据库要能对上**：同一个计划在规则数据库和 MRF 里的编号不同，需要一张对照表，确保“规则”和“价格”来自同一个计划。
+
+### 辅助对照表
+- 服务对照：用户的通俗说法 → 统一服务名称（`service_key`）→ CPT 代码
+- 计划对照：我们的 `plan_id` → MRF 里的计划编号
+- 医生信息：NPI（政府公开的 NPPES）
+- 学校的 waiver 要求、签证要求（如 J-1 最低保障标准）
 
 
 # Agent 与代码的分工
 原则：**LLM 负责把非结构化的东西变成结构化的，Python 代码负责在结构化数据上做判断和计算。**
 
-| 交给 LLM | 写死在 Python 里 | 无法完全自动化 |
+| 交给 LLM（AMD 上的开源模型） | 写死在 Python 里 | 无法完全自动化 |
 | --- | --- | --- |
-| 读保单 PDF、提取 benefit | 费用计算（deductible → coinsurance → OOP max） | Allowed amount（价格不公开，只能给区间） |
-| 理解用户 request、追问 | 对比打分 / 排序 | 保证理赔结果（需人工核实） |
-| 搜集计划（官网 / computer use） | 数据校验（schema + 规则） | 用户未来的病情（只能按场景假设） |
+| 判断要不要发问卷、发哪一份 | 费用计算（deductible → coinsurance → OOP max） | 协商价 ≠ 最终的 allowed amount（只能估算） |
+| 读保单 PDF、提取 benefit | 数据库查询、matching、对比打分 / 排序 | 保证理赔结果（需人工核实） |
+| 理解用户 request、追问 | 数据校验（schema + 规则） | 用户未来的病情（只能按场景假设） |
+| 用户描述 → 候选服务代码 | “不懂就问”的强制检查（`guards.py`） | |
+| 搜集新计划（深度搜索） | | |
 | 解释结果、引用原文 | | |
 
-Agent 作为调度员，把能力做成 tools：查规则、算钱、估算 allowed amount、对比计划、查原文。每个 tool 内部尽量确定、可测试。
+Agent 作为调度员，把能力做成 tools：发问卷、查规则、查价格、算钱、对比计划、查原文。每个 tool 内部尽量确定、可测试。
 
 
 # Agent Output
 
 ## 情况一：费用预测
 它最终生成的就是一个非常直接的数字，来告诉你用户的计算，然后用表格形式呈现中间计算过程中每一步的消费，所以这是一个非常直接的结果。
-
-### Allowed amount
-1. social media
-2. 根据这个 insurance 和 user info 针对的搜索
-3. 公开价格数据（如 Transparency in Coverage、医院 price transparency 文件）
-
-拿不到确定值时，输出**区间**（低 / 中 / 高三个 allowed amount 各算一遍），并标明是估算及来源。
+- 输入：保单规则（数据库 ②）+ 价格（数据库 ③）+ 用户在问卷里填写的信息（如剩余 deductible）
+- 输出：预计自付金额、计算依据、保单页码、价格来源、假设和不确定性
+- 拿不到确定的价格时，输出**区间**（低 / 中 / 高三个 allowed amount 各算一遍），并标明是估算以及来源。
+- 条款有歧义时保留 `needs_review`，不编造确定的金额。
 
 
 ## 情况二：Insurance Arena
 compare different insurance plans for the user
 
 数据来源：
-1. social media (support)
-2. **insurance company website**
-3. according to user input
+1. **保单规则数据库**（各家保险的 PDF、政府数据）
+2. **allowed amount 数据库**
+3. **用户的问卷**（学校、签证、慢性病、常用药等）
+4. 深度搜索：目录里没有的计划，由 agent 现场搜索，找到后补进数据库
 
-这个 compare 的计划里面会生成一个 dashboard，然后把不同的影响因子放进去，通过可视化的形式展示出来。同时，dashboard 旁边还可以开展一个 bot，来针对 dashboard 上的内容由用户继续提供提问。
+这个 compare 的计划里面会生成一个 dashboard，然后把不同的影响因子放进去，通过可视化的形式展示出来。用户可以在对话里针对 dashboard 上的内容继续提问。
 
 ### 对比 criteria（三层）
 1. **硬性门槛**（不合格直接排除，不打分）：学校 waiver、签证要求、用户必需项目（常用药、医生是否在网、既往病史等待期）。
 2. **核心指标 = 年度总花费** = 年保费 + 预期自付（受 OOP max 封顶），按场景计算：
    - 健康年（体检 + 少量门诊）
-   - 用户的预期使用（根据慢性病推出，用户可调整）
+   - 用户的预期使用（根据问卷里的慢性病推出，用户可调整）
    - 意外大病（急诊 + 住院，衡量最坏情况）
 3. **非价格因素**（只展示，不混进总分）：网络大小、转诊 / 预授权、理赔口碑。
 
 不使用综合评分（如 8.5/10），用"省多少钱 + 有什么风险"说话。区间重叠很多时，直接告诉用户"差不多，看其他因素"。
 
 
-# 前端形式：Dashboard 报告 + Bot
-- **Dashboard**（Next.js，好看、动态），从结论到细节逐层展开：
-  1. 推荐结论（一句话说明原因 + 被排除的计划）
-  2. 场景对比图（每个计划的花费区间，可调整假设）
-  3. 对比表（2–4 个计划并排，和用户病情相关的行高亮）
-  4. 细节和出处（每个数字对应保单页码或估算依据）
-- **Bot 侧栏**：用户可以根据报告进一步提问。
-  - bot 能修改假设（如"我一年看 10 次专科"），dashboard 随之更新
-  - 点击 dashboard 上的条目，bot 直接解释该条
-  - bot 不自己算数，所有数字来自后端 tools，保证和 dashboard 一致
-  - 不给医疗建议、不保证理赔，必要时引导用户找保险公司 / 学校核实
-- 手机端：bot 改为底部抽屉。
+# 前端形式：对话窗为主
+- **对话窗是主界面**（类似 Hark）。
+- **问卷**：在对话中以表单卡片的形式出现，支持单选、多选、填空，每题都有“不知道”选项。具体的交互参考另一个产品，用 REA 研究后确定；只借鉴交互思路，界面由我们自己设计。
+- **确认卡片**：计算之前，展示 agent 理解的服务、网络、金额，用户确认后才计算。
+- **结果展示**：
+  - 简单的问题，直接在对话里回答：数字 + 计算过程表格。
+  - Insurance Arena 在对话旁边的面板里展示 dashboard，从结论到细节逐层展开：
+    1. 推荐结论（一句话说明原因 + 被排除的计划）
+    2. 场景对比图（每个计划的花费区间，可调整假设）
+    3. 对比表（2–4 个计划并排，和用户病情相关的行高亮）
+    4. 细节和出处（每个数字对应保单页码或价格来源）
+- **深度搜索进度窗口**：agent 搜索新计划时，每个网站一张卡片，实时显示当前步骤；完成后显示总览。
+- 对话中的要求：
+  - 用户可以修改假设（如"我一年看 10 次专科"），结果随之更新。
+  - 点击 dashboard 上的条目，agent 直接解释该条。
+  - agent 不自己算数，所有数字来自后端 tools，保证和 dashboard 一致。
+  - 不给医疗建议、不保证理赔，必要时引导用户找保险公司 / 学校核实。
+- 手机端：dashboard 面板改为底部抽屉。
+
+参考资料：`docs/research/hark-interaction-patterns.md`
 
 ### 架构
 ```
-Next.js 前端（Dashboard + Bot）
-        │ 共享同一份 report JSON
+Next.js 前端（对话窗 + 问卷卡片 + dashboard 面板）
+        │ SSE 推送更新；问卷答案以结构化数据提交
         ▼
 Python 后端（FastAPI）
- ├─ POST /report         生成对比报告
- ├─ POST /report/update  修改假设后重新计算
- └─ POST /chat           LLM agent（tools：查规则 / 算钱 / 改假设 / 查原文）
+ ├─ POST /chat            LLM agent（tools：发问卷 / 查规则 / 查价格 / 算钱 / 改假设 / 查原文 / 深度搜索）
+ ├─ POST /questionnaire   提交问卷答案（按字段记录来源）
+ └─ GET  /stream          推送对话、问卷、dashboard 的更新
+        │
+        ├─ 保单规则数据库（policies/*.json，规则 JSON v2）
+        └─ allowed amount 数据库（SQLite）
 ```
-**report JSON 是唯一的数据来源**：dashboard 渲染它，bot 读取和修改它。下一步先定这个 schema。
+**report JSON 仍然是 dashboard 的唯一数据来源**：后端生成和更新它，前端渲染它，agent 读取它。
+
+技术细节见 `docs/technical-plan.md`。
 
 
 # Criteria to success
@@ -104,5 +179,6 @@ Python 后端（FastAPI）
     1. in-person verification
     2. 对几组计划请懂保险的人人工排序，看算法排序是否一致
 3. the scope of insurance being considered (how many companies and plans being considered)
+4. **matching 的质量**：问卷发得对不对（该发的时候发、不该发的时候不发），收集到的信息能不能用于两个数据库的查询
 
 **the quality of computer use agent**

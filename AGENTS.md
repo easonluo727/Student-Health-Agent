@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents (Codex, Claude Code, etc.) when 
 
 ## What this is
 
-A prototype that estimates out-of-pocket costs for international students under a student health insurance plan. It turns policy PDFs into structured rules, then answers cost questions against those rules. `PRODUCT.md` (mostly in Chinese) holds the product vision. It describes a cost estimator plus an "Insurance Arena" plan comparison, a Next.js dashboard with a bot, and a FastAPI backend. **None of the dashboard, bot, or backend exists yet.** All current code is Python CLI scripts in `workflow/`. `archive/` holds superseded scripts.
+A prototype that estimates out-of-pocket costs for international students under a student health insurance plan. It turns policy PDFs into structured rules, then answers cost questions against those rules. `PRODUCT.md` (mostly in Chinese) holds the product vision. The product is a chat-first matching agent. The main window is a chat. The LLM chooses whether to send one of several predesigned questionnaires, which are defined in a HINT injected into the prompt and rendered as form cards. The agent then matches three sources: the questionnaire answers, the policy-rules database, and the allowed-amount (MRF price) database. Python does all the math. The product covers cost estimates and an "Insurance Arena" plan comparison shown in a dashboard panel beside the chat, served by a FastAPI backend. **None of the frontend, questionnaires, price database, or backend exists yet.** All current code is Python CLI scripts in `workflow/`. `archive/` holds superseded scripts.
 
 ## Hard constraint: AMD-only LLMs
 
