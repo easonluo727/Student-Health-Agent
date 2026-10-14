@@ -4,15 +4,24 @@ This file provides guidance to AI coding agents (Codex, Claude Code, etc.) when 
 
 ## What this is
 
-A prototype that estimates out-of-pocket costs for international students under a student health insurance plan. It turns policy PDFs into structured rules, then answers cost questions against those rules. `PRODUCT.md` (mostly in Chinese) holds the product vision. The product is a chat-first matching agent. The main window is a chat. The LLM chooses whether to send one of several predesigned questionnaires, which are defined in a HINT injected into the prompt and rendered as form cards. The agent then matches three sources: the questionnaire answers, the policy-rules database, and the allowed-amount (MRF price) database. Python does all the math. The product covers cost estimates and an "Insurance Arena" plan comparison shown in a dashboard panel beside the chat, served by a FastAPI backend. **None of the frontend, questionnaires, price database, or backend exists yet.** All current code is Python CLI scripts in `workflow/`. `archive/` holds superseded scripts.
+A health-insurance agent for US college students who must buy their own commercial insurance (for example, PhD students over 26 who can no longer use a parent's plan). The product does not target international students and does not handle school waiver requirements. `PRODUCT.md` (mostly in Chinese) is the source of truth for the product, including the demo flow.
+
+The product is a chat-first matching agent. Each turn, the LLM picks questions from a question bank (a HINT injected into the prompt) and sends them as form cards in the chat. It then matches three sources:
+- the questionnaire answers, which include the user's weights for each factor;
+- the policy-information database: everything in plan PDFs except prices, covering UC SHIP plus a few major US commercial insurers;
+- the allowed-amount database: negotiated rates parsed from insurers' Transparency in Coverage MRFs, stored in SQLite.
+
+Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names an insurer that is not in the database, a Playwright search worker on Railway looks it up and streams text progress. Search results inform the judgment but are never used to compute costs. The deployment is Vercel (Next.js frontend, agent flow, Python functions, read-only data) plus Railway (search worker). There is no Supabase, and premium subsidies are not computed.
+
+**None of the frontend, question bank, price database, or search worker exists yet.** All current code is Python CLI scripts in `workflow/`. `archive/` holds superseded scripts.
 
 ## Hard constraint: AMD-only LLMs
 
 **Every LLM call in this project must go to the AMD API. No other provider is allowed, including OpenAI, and this applies during development and testing too.** The `openai` Python package may stay as the client library, pointed at the AMD endpoint via `base_url`. The current code still calls OpenAI models (`gpt-5-nano`, `gpt-6-luna`); migrating it is in progress. Do not add OpenAI defaults or fallbacks.
 
-In practice, "the AMD API" means the team's own vLLM server (an OpenAI-compatible endpoint) on an AMD Developer Cloud MI300X droplet. This project is an entry in the AMD Developer Hackathon: ACT III.
+This project is an entry in the AMD Developer Hackathon: ACT III (Health and Wellbeing track). "The AMD API" is an OpenAI-compatible endpoint serving an open model. Organizers say "Token Factory" counts as vLLM; if it turns out unsuitable, the endpoint is the team's own vLLM on an AMD Developer Cloud MI300X. Either way, the code only needs `base_url`, an API key, and a model name. The planned model is Qwen3.5-35B-A3B, which is multimodal, so one model handles both chat and PDF reading. Do not use DeepSeek.
 
-**`docs/technical-plan.md` is the agreed technical path.** It covers the architecture, the insurance catalog and its data sources, deep search, model deployment, and the schedule. Follow it, and update it before changing direction. Plan knowledge lives in a verifiable catalog (`policies/*.json`, rules JSON v2), never in model memory. Never fine-tune on extraction output that a human has not verified, and never let a coding assistant author catalog data: catalog data must come from the AMD model or from humans. `docs/research/hark-interaction-patterns.md` describes the reference UI interaction patterns. Borrow the patterns only; do not copy code or visuals.
+**`docs/technical-plan.md` is the agreed technical path.** It covers the architecture, the two databases, search, the models, deployment, and the schedule. Follow it, and update it before changing direction. Plan knowledge lives in a verifiable catalog (`policies/*.json`, rules JSON v2), never in model memory. Never fine-tune on extraction output that a human has not verified, and never let a coding assistant author catalog data: catalog data must come from the AMD model or from humans. `docs/research/hark-interaction-patterns.md` describes the reference UI interaction patterns. Borrow the patterns only; do not copy code or visuals.
 
 Because the runtime models are open-source and weaker than frontier models, put capability into code written at development time. Keep runtime LLM tasks narrow: choosing from fixed options, filling parameters, and writing short text. Constrain outputs with JSON schemas, and keep all numbers in Python.
 
@@ -34,7 +43,7 @@ To test the calculator on its own, without an LLM, call `calculate_cost(rule_dic
 
 ## Architecture
 
-Core design rule from `PRODUCT.md`: **the LLM turns unstructured input into structured data, and Python makes every decision and does all the math.** The agent must never compute costs itself.
+Core design rule from `PRODUCT.md`: **the LLM turns unstructured input into structured data and makes judgments (which questions to ask, which plan fits the user's weights, how to reply). Python computes every number and every ranking, and checks hard facts.** The agent must never compute costs itself.
 
 Pipeline:
 
@@ -54,3 +63,4 @@ Pipeline:
 
 - `.github/workflows/run-estimator.yml` runs `python estimate_multiple_2.0.py` from the repo root, but that script now lives in `archive/`, so the workflow is broken as written.
 - The code uses model names `gpt-5-nano` and `gpt-6-luna` (in `import_policy.py`).
+- `guards.py` `pre_tool` accepts only amounts the user typed. Once the allowed-amount database exists, amounts returned by the price-lookup tool and questionnaire answers must also count as valid provenance, or the guard will block them.
