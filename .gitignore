@@ -7,3 +7,9 @@ page*.png
 page*.txt
 test_plan.pdf
 testing.txt
+
+# MRF pipeline: raw and intermediate data stay local; only small CSVs/reports are committed
+data/mrf/raw/
+data/mrf/work/
+data/mrf/*.log
+data/mrf/*.sqlite-journal
