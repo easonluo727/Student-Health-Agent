@@ -165,7 +165,9 @@ def write_env(tmp: Path, rows=None, encounters=None, profiles=None, pmap=None, s
         build_sqlite(db)
     return overlay_config.OverlayPaths(repo_root=PATHS.repo_root, rates_csv=tmp / "allowed_amounts.csv",
                                        encounters_csv=tmp / "encounters.csv", plan_profiles=tmp / "plan_profiles.json",
-                                       rates_sqlite=db, overlay_data=data, schemas=PATHS.schemas)
+                                       rates_sqlite=db, overlay_data=data, schemas=PATHS.schemas,
+                                       billing_codes=tmp / "billing_codes.csv", npi_directory=tmp / "npis.csv",
+                                       zip_centroids=tmp / "zips.csv", log_dir=tmp / "logs")
 
 
 def build_sqlite(path: Path) -> None:
@@ -197,10 +199,112 @@ def build_stack(paths, plan="test_plan", as_of=AS_OF, confirm=None):
     return tools, guard
 
 
-def resolver(paths, as_of=AS_OF):
-    from rate_resolver import CsvRates, Mappings, RateResolver, SqliteRates, load_encounters, load_label_map
-    enc = load_encounters(paths.encounters_csv)
-    return RateResolver(Mappings.from_files(paths.overlay_data / "policy_mrf_map.v1.json",
-                                            paths.overlay_data / "service_rate_map.v1.json", paths.plan_profiles),
-                        enc, load_label_map(paths.overlay_data / "encounter_labels.v1.json", enc),
-                        CsvRates(paths.rates_csv), SqliteRates(paths.rates_sqlite), as_of=as_of)
+def resolver(paths, as_of=AS_OF, **kw):
+    from rate_resolver import build_resolver
+    return build_resolver(paths, as_of=as_of, log_path=paths.log_dir / "rate_lookup.jsonl", **kw)
+
+
+# --------------------------------------------------------------------------- provider-level fixture (nearby fallback)
+
+SELECTED = "1000000001"      # has 99213 and an expiring 99215 rate, no 99214 rate
+OUTSIDER = "1000000099"      # in NPPES, not a member of any group
+TAX = "207Q00000X"
+NEAR_ZIPS = ["90024", "90025", "90049", "90064", "90034", "90095"]
+FAR_ZIP, NO_CENTROID_ZIP = "92101", "99999"
+
+
+def _centroids(zips):
+    with open(OVERLAY / "data" / "zcta_centroids_ca.csv", newline="") as f:
+        rows = {r["zip"]: r for r in csv.DictReader(f)}
+    return [rows[z] for z in zips if z in rows]
+
+
+def provider_rows():
+    """(npi, group, code, cls, rate, type, expiration, pos, mods, zip, tin, plan)"""
+    rows = [(SELECTED, "gs", "99213", "professional", 95.0, "negotiated", "9999-12-31", "11", "", "90024", "ts", "p"),
+            (SELECTED, "gs", "99215", "professional", 180.0, "negotiated", "2026-11-01", "11", "", "90024", "ts", "p")]
+    for i in range(1, 13):
+        rows.append((f"20000000{i:02d}", f"g{i}", "99214", "professional", 100.0 + 10 * i, "fee schedule",
+                     "9999-12-31", "11", "", NEAR_ZIPS[i % 6], f"t{i}", "p"))
+    for i in range(13, 18):  # one TIN, five NPIs: the cap keeps three
+        rows.append((f"20000000{i:02d}", f"g{i}", "99214", "professional", 500.0, "negotiated", "9999-12-31", "11", "",
+                     "90024", "t_shared", "p"))
+    rows += [("2000000018", "g18a", "99214", "professional", 300.0, "negotiated", "9999-12-31", "11", "", "90025", "t18", "p"),
+             ("2000000018", "g18b", "99214", "professional", 320.0, "negotiated", "9999-12-31", "11", "", "90025", "t18b", "p")]
+    excluded = [  # each fails exactly one hard rule; all are close and cheap so a score could not save them
+        ("3000000001", "x1", "99214", "professional", 50.0, "negotiated", "9999-12-31", "11", "", FAR_ZIP, "x1", "p"),
+        ("3000000002", "x2", "99214", "institutional", 60.0, "negotiated", "9999-12-31", "", "", "90024", "x2", "p"),
+        ("3000000003", "x3", "99214", "professional", 70.0, "percentage", "9999-12-31", "11", "", "90024", "x3", "p"),
+        ("3000000004", "x4", "99214", "professional", 80.0, "negotiated", "2026-01-01", "11", "", "90024", "x4", "p"),
+        ("3000000005", "x5", "99214", "professional", 90.0, "negotiated", "9999-12-31", "23", "", "90024", "x5", "p"),
+        ("3000000006", "x6", "99214", "professional", 95.0, "negotiated", "9999-12-31", "11", "26", "90024", "x6", "p"),
+        ("3000000007", "x7", "99214", "professional", 99.0, "negotiated", "9999-12-31", "11", "", "90024", "x7", "o"),
+        ("3000000008", "x8", "99214", "professional", 0.0, "negotiated", "9999-12-31", "11", "", "90024", "x8", "p"),
+        ("3000000009", "x9", "99214", "professional", 40.0, "negotiated", "9999-12-31", "11", "", NO_CENTROID_ZIP, "x9", "p"),
+        ("3000000010", "x10", "99214", "professional", 99999999999999.0, "fee schedule", "9999-12-31", "11", "", "90024",
+         "x10", "p"),  # MRF placeholder value
+    ]
+    return rows, excluded
+
+
+EXPECTED_TOP = [110.0 + 10 * i for i in range(12)] + [500.0] * 3 + [310.0]
+
+
+def build_provider_sqlite(path: Path, empty=False) -> None:
+    import hashlib
+    import mrf_rate_store as store
+    con = store.connect(str(path))
+    sids = {}
+    for plan, net in (("p", NET), ("o", "OTHER NET")):
+        sid = store.begin_source(con, f"https://example.test/{plan}.json", insurer=INSURER,
+                                 plan_key="test_ppo" if plan == "p" else "test_other", network=net, region="CA",
+                                 file_date=SNAP, toc_url=None)
+        con.execute("UPDATE mrf_sources SET status='complete' WHERE source_id=?", (sid,))
+        sids[plan] = sid
+    if not empty:
+        rows, excluded = provider_rows()
+        seen = set()
+        for npi, gid, code, cls, rate, typ, exp, pos, mods, z, tin, plan in rows + excluded:
+            sid = sids[plan]
+            con.execute("INSERT INTO negotiated_rates (source_id, billing_code, billing_code_type, negotiation_arrangement,"
+                        " provider_group_id, negotiated_rate, negotiated_type, expiration_date, billing_class, setting,"
+                        " service_codes, modifiers) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (sid, code, "CPT", "ffs", gid, rate, typ, exp, cls, "outpatient", pos, mods))
+            if (sid, gid, npi) not in seen:
+                seen.add((sid, gid, npi))
+                con.execute("INSERT INTO provider_members VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                            (sid, gid, npi, hashlib.sha256(tin.encode()).hexdigest(), "0000", "ein", None,
+                             json.dumps([NET]), z, TAX, "A", 0))
+    con.commit()
+    con.close()
+
+
+def write_provider_env(tmp: Path, empty=False):
+    paths = write_env(tmp)
+    build_provider_sqlite(paths.rates_sqlite, empty=empty)
+    with open(paths.zip_centroids, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["zip", "lat", "lon"])
+        w.writeheader()
+        w.writerows(_centroids(NEAR_ZIPS + [FAR_ZIP]))
+    rows, excluded = provider_rows()
+    with open(paths.npi_directory, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["npi", "entity_type", "name", "taxonomy", "zip", "city", "tier", "ucla_org"])
+        for npi in sorted({r[0] for r in rows + excluded} | {OUTSIDER}):
+            w.writerow([npi, "1", "TEST", TAX, "90024", "Los Angeles", "A", "0"])
+    with open(paths.billing_codes, "w", newline="") as f:
+        f.write("code,code_type,service,source,verified_by\n99213,CPT,x,test,\n99284,CPT,x,test,\n73610,CPT,x,test,\n")
+    return paths
+
+
+def lookup(paths, as_of=AS_OF, **kw):
+    from rate_lookup import RateLookup
+    return RateLookup.from_paths(paths, as_of=as_of, log_path=paths.log_dir / "rate_lookup.jsonl", **kw)
+
+
+def request(**kw):
+    base = {"insurer": INSURER, "plan_key": "test_ppo", "network": NET, "service_description": "doctor visit for Jane",
+            "encounter_key": None, "billing_code": None, "billing_code_type": None, "billing_class": None,
+            "place_of_service": None, "service_date": "2026-10-20", "selected_provider_npi": None}
+    base.update(kw)
+    return base

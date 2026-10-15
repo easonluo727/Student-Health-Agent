@@ -1,6 +1,7 @@
 """Smoke tests on the repository's real rate CSV, plus proof that the original files are untouched."""
 import copy
 import csv
+import dataclasses
 import hashlib
 import json
 import shutil
@@ -11,7 +12,8 @@ import unittest
 from pathlib import Path
 
 import fixtures as fx
-from rate_resolver import CsvRates, Mappings, RateResolver, SqliteRates, load_encounters, load_label_map
+from rate_lookup import RateLookup
+from rate_resolver import Mappings, RateResolver, load_encounters, load_label_map
 
 ROOT = fx.PATHS.repo_root
 BASELINE = fx.OVERLAY.parent / "baseline" / "manifest.json"
@@ -29,7 +31,6 @@ class RealData(unittest.TestCase):
         p = fx.PATHS
         self.enc = load_encounters(p.encounters_csv)
         self.labels = load_label_map(p.overlay_data / "encounter_labels.v1.json", self.enc)
-        self.csv = CsvRates(p.rates_csv)
         with open(p.overlay_data / "service_rate_map.v1.json") as f:
             self.smap = json.load(f)
         with open(p.plan_profiles) as f:
@@ -39,6 +40,11 @@ class RealData(unittest.TestCase):
             dates = [d.strip() for r in csv.DictReader(f) for d in r["mrf_file_date"].split(",") if d.strip()]
         import datetime as dt
         self.as_of = dt.date.fromisoformat(max(dates))
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        # aggregate tables only: the local SQLite database is exercised in test_real_database.py
+        self.paths = dataclasses.replace(p, rates_sqlite=Path("/nonexistent.sqlite"), log_dir=self.tmp)
+        self.lookup = RateLookup.from_paths(self.paths, as_of=self.as_of, log_path=self.tmp / "log.jsonl")
 
     def resolver(self, plan_key, network, network_scope=None, verified=True):
         smap = copy.deepcopy(self.smap)
@@ -48,14 +54,15 @@ class RealData(unittest.TestCase):
             {"policy_plan_id": "prime_100", "policy_network_category": "in-network", "mrf_plan_key": plan_key,
              "mrf_network": network, "network_scope": network_scope, "candidates": [], "question_for_human": None,
              "evidence": ["test only"], "review_status": "verified", "reviewed_by": "test"}]}
-        return RateResolver(Mappings(pmap, smap, self.profiles), self.enc, self.labels, self.csv,
-                            SqliteRates(Path("/nonexistent.sqlite")), as_of=self.as_of)
+        return RateResolver(Mappings(pmap, smap, self.profiles), self.labels, self.lookup)
 
     def rule(self, service):
         return {"policy_plan_id": "prime_100", "service": service, "setting": None, "network": "in-network"}
 
     def csv_a(self, insurer, network, label):
-        rows = self.csv.a[(insurer, network, label)]
+        with open(self.paths.rates_csv, newline="") as f:
+            rows = [r for r in csv.DictReader(f) if r["table"] == "A_encounter" and r["insurer"] == insurer
+                    and r["network"] == network and r["encounter"] == label]
         self.assertEqual(len(rows), 1)
         return float(rows[0]["allowed_amount"])
 

@@ -152,7 +152,8 @@ class BranchATools:
         result["rate_quote"] = {k: quote[k] for k in (
             "quote_id", "status", "rate_table", "allowed_amount", "policy_plan_id", "mrf_plan_key", "insurer",
             "mrf_network", "network_scope", "encounter_key", "provider_npi", "provider_specific", "aggregate",
-            "allowed_amount_basis", "mrf_snapshot_date", "service_date", "source", "mapping")}
+            "allowed_amount_basis", "mrf_snapshot_date", "service_date", "source", "mapping", "lookup_status",
+            "reason_code", "estimate_scope")}
         result["rate_quote"]["components"] = [
             {k: c.get(k) for k in ("component", "billing_code", "billing_class", "place_of_service", "modifier_rule",
                                    "allowed_amount", "status")} for c in quote["components"]]

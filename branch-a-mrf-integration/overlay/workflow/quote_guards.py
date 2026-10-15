@@ -101,7 +101,12 @@ class QuoteGuard(ConversationGuard):
         rule = rule or {}
         what = q["encounter_key"] or ", ".join(f"{c['billing_code']} {c['billing_class']} POS {c['place_of_service'] or 'any'}"
                                                for c in q["components"])
-        provider = f"NPI {q['provider_npi']} (provider-specific)" if q["provider_specific"] else "aggregate (no specific provider)"
+        if q["provider_specific"]:
+            provider = f"NPI {q['provider_npi']} (provider-specific)"
+        elif q.get("estimate_scope") in ("nearby_provider_cohort", "mixed_provider_and_nearby"):
+            provider = f"nearby in-network providers, NOT a quote for NPI {q['provider_npi']}"
+        else:
+            provider = "aggregate (no specific provider)"
         return "\n".join([
             "Before I show an estimate, please confirm what I understood:",
             f"  Service:              {rule.get('service', 'unknown')}",

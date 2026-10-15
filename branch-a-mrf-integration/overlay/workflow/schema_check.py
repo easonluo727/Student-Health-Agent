@@ -17,7 +17,7 @@ class SchemaError(ValueError):
 @functools.lru_cache(maxsize=None)
 def _validator(name: str) -> jsonschema.Draft202012Validator:
     with open(SCHEMAS / f"{name}.schema.json", encoding="utf-8") as f:
-        return jsonschema.Draft202012Validator(json.load(f))
+        return jsonschema.Draft202012Validator(json.load(f), format_checker=jsonschema.FormatChecker())
 
 
 def validate(doc, name: str) -> None:

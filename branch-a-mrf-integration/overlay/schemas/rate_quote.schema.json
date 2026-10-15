@@ -31,6 +31,12 @@
     "source": {"type": "object"},
     "mapping": {"type": "object"},
     "clarification": {"type": ["object", "null"]},
+    "lookup_status": {"enum": ["provider_rate", "nearby_provider_estimate", "network_estimate", "rate_unavailable"],
+                      "description": "rate_lookup_result.v1 status of the underlying lookup"},
+    "reason_code": {"type": ["string", "null"], "description": "Machine-readable reason when no rate was found"},
+    "estimate_scope": {"enum": ["provider_specific", "nearby_provider_cohort", "network_aggregate",
+                                "mixed_provider_and_nearby", null]},
+    "lookup": {"type": ["object", "null"], "description": "The lookup result summary (keys, spread, fallback trail)"},
     "message": {"type": "string"}
   }
 }

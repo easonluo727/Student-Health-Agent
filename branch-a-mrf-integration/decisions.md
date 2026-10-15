@@ -60,11 +60,12 @@ nothing is merged back automatically. The baseline is described in `baseline/man
    POS string of table B. The CSV does not store the modifier rule, so it is re-derived with the same rule
    that `report.py` uses. If the requested rule differs, the result is `no_match`. If any required
    component is unresolved, there is no total. Optional components can be skipped and are listed as such.
-8. **Provider-specific rates come only from SQLite.** NPI lookups go through `scripts/mrf/allowed.component`
-   with `npi` set, and are accepted only when the result's basis is `provider_rate`. If the database is
-   missing, the status is `no_data_source`. If the NPI has no rate, the status is
-   `provider_rate_unavailable`; there is never a silent aggregate fallback. CSV quotes are always
-   `aggregate=true, provider_specific=false`, and `n_providers` is reported as a count.
+8. **Provider-specific rates come only from SQLite.** NPI lookups read the canonical provider rates
+   (`canonical_adapter.ProviderRates`) and use `scripts/mrf/allowed.per_provider` to get one amount per NPI. If
+   the database is missing, the status is `no_data_source`. If the NPI has no exact rate, the lookup tries a
+   **labelled** nearby-provider estimate (decision 15, which replaces the earlier "never fall back" rule). It
+   never silently uses the network aggregate. CSV quotes are always `aggregate=true, provider_specific=false`,
+   and `n_providers` is reported as a count.
 9. **Fail closed.** A quote is usable only when its status is `success` or `estimated` and its amount is
    finite and greater than 0. Every other status has `allowed_amount=null`. There is no fallback across
    insurer, network, code, class or POS. Out-of-network rules are never priced with in-network MRF rates.
@@ -86,6 +87,42 @@ nothing is merged back automatically. The baseline is described in `baseline/man
     components. A missing or ambiguous rule for any component means no total.
 12. **Manual fallback.** `calculate_estimate` is unchanged apart from the label
     `allowed_amount_source: "user_provided"`. MRF results are labeled `"mrf_quote"`.
+
+## A/B/NPI matching over the canonical adapter (2026-10-15)
+
+13. **Canonical adapter, read-only.** `canonical_adapter.py` maps the existing SQLite columns and CSV columns to
+    canonical names through explicit alias lists (`FIELD_MAP`). Each field records its source and transform,
+    and the original values are kept under `raw`. The database is opened with `mode=ro` and is never altered;
+    no views or indexes are written into it.
+    - Fields with different meanings stay apart: `negotiated_rate` is `source_rate_amount`, never
+      `allowed_amount`; `modifiers` is not `modifier_rule`; `expiration_date` is not `mrf_file_date`.
+    - `inspect_database.py` must show working NPI→rate joins before anyone relies on NPI lookups. The run of
+      2026-10-15 is in `reports/db_inspection.json`.
+14. **Statuses.** `rate_lookup.RateLookup` returns `rate_lookup_result.v1`, whose status is one of
+    `provider_rate`, `nearby_provider_estimate`, `network_estimate` or `rate_unavailable`, with a
+    machine-readable `reason_code`. The earlier detailed statuses still drive the Branch A quote
+    (`success`/`estimated`/`no_match`/...), so the tools and the guard keep working. Each quote also carries
+    `lookup_status`, `reason_code` and `estimate_scope`. The human-review gate on `policy_mrf_map` and
+    `service_rate_map` stays in place.
+15. **Nearby Top-20 fallback.** This applies only when the user gives an NPI and that NPI has no exact rate.
+    - Every hard rule (network, code, class, snapshot freshness, dollar type, amount > 0, placeholder,
+      expiration on the service date, POS, modifiers, ZIP known and within 25 miles) excludes candidates; none
+      of them lowers a score.
+    - Scoring: distance 35%, POS 25%, taxonomy 15%, freshness 15%, source quality 10%.
+    - Selection: at most 3 NPIs per hashed TIN, up to 20 distinct NPIs.
+    - Result: the unweighted median of one representative amount per provider, with p10, p90 and n.
+    - Labels: the result is always marked "not a quote for the selected provider". Fewer than 5 providers adds
+      a low-sample warning; zero providers gives `no_eligible_fallback_provider` with a null amount.
+    - Distances use Census ZCTA internal points (`overlay/data/zcta_centroids_ca.csv`, built by
+      `build_zip_centroids.py` from the public Gazetteer file; the source sha256 is in the `.meta.json`).
+16. **Placeholder rates.** Amounts at or above $1e9 are rejected, because L.A. Care publishes
+    `99999999999999` as a "rate". On raw rows this is a hard rule. For an aggregate, a placeholder
+    `allowed_amount` gives `placeholder_rate`; a placeholder p10 or p90 is dropped with a warning. The upstream
+    fix belongs in `scripts/mrf/allowed.py` (PR #4); see `matching_report.md`.
+17. **Trace logs.** `trace_log.py` writes JSONL to `data/mrf/work/branch_a/logs/` (gitignored).
+    - Each record carries the run, request, stage, status, versions and DB snapshot.
+    - Records never contain the service description, policy text or TIN fields.
+    - A failed write is reported in the result. `prune()` enforces a 30-day retention.
 
 ## Open items: mappings that need a human
 

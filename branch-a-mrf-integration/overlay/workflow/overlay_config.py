@@ -10,6 +10,10 @@ from their real locations and reads data files by configurable path:
     BRANCH_A_PLAN_PROFILES   data/plan_profiles.v1.json
     BRANCH_A_RATES_SQLITE    data/mrf/rates.sqlite (optional; provider-specific lookups need it)
     BRANCH_A_OVERLAY_DATA    overlay/data (policy_mrf_map, service_rate_map, encounter labels)
+    BRANCH_A_BILLING_CODES   data/mrf/billing_codes.csv (code types)
+    BRANCH_A_NPI_DIRECTORY   data/mrf/la_npis.csv (NPPES locations; optional, needed for nearby estimates)
+    BRANCH_A_ZIP_CENTROIDS   overlay/data/zcta_centroids_ca.csv (Census ZCTA points)
+    BRANCH_A_LOG_DIR         data/mrf/work/branch_a/logs (JSONL trace logs; gitignored)
 """
 from __future__ import annotations
 
@@ -37,6 +41,10 @@ class OverlayPaths:
     rates_sqlite: Path
     overlay_data: Path
     schemas: Path
+    billing_codes: Path | None = None
+    npi_directory: Path | None = None
+    zip_centroids: Path | None = None
+    log_dir: Path | None = None
 
     @property
     def original_workflow(self) -> Path:
@@ -57,6 +65,10 @@ def load_paths() -> OverlayPaths:
         rates_sqlite=_path("BRANCH_A_RATES_SQLITE", root / "data" / "mrf" / "rates.sqlite"),
         overlay_data=_path("BRANCH_A_OVERLAY_DATA", OVERLAY_ROOT / "data"),
         schemas=OVERLAY_ROOT / "schemas",
+        billing_codes=_path("BRANCH_A_BILLING_CODES", root / "data" / "mrf" / "billing_codes.csv"),
+        npi_directory=_path("BRANCH_A_NPI_DIRECTORY", root / "data" / "mrf" / "la_npis.csv"),
+        zip_centroids=_path("BRANCH_A_ZIP_CENTROIDS", OVERLAY_ROOT / "data" / "zcta_centroids_ca.csv"),
+        log_dir=_path("BRANCH_A_LOG_DIR", root / "data" / "mrf" / "work" / "branch_a" / "logs"),
     )
 
 

@@ -25,8 +25,7 @@ from agent_tools import PolicyTools  # noqa: E402
 from branch_a_tools import BranchATools  # noqa: E402
 from guards import MAX_REPLY_RETRIES  # noqa: E402
 from quote_guards import QuoteGuard  # noqa: E402
-from rate_resolver import (CsvRates, Mappings, QuoteStore, RateResolver, SqliteRates,  # noqa: E402
-                           load_encounters, load_label_map)
+from rate_resolver import build_resolver  # noqa: E402
 
 INSTRUCTIONS = """
 You help estimate one medical service occurrence under the selected plan.
@@ -39,6 +38,7 @@ If the quote is not usable (rate unavailable, mapping pending review, no data so
 ambiguous match), say so plainly; then you may ask whether the user knows the allowed amount and, only
 with a number the user states, call calculate_estimate (that result is labelled user_provided).
 An aggregate rate is a typical negotiated rate across providers, not a specific provider's price.
+A nearby_provider_estimate is from other providers near the selected one, not that provider's price; say so.
 The MRF snapshot date is when the price list was published, not the date of service.
 Missing amounts must be null, never zero. Annual deductible is not remaining deductible.
 Do not calculate, add or change any amount yourself. Cite plan, PDF page and rate source when available.
@@ -125,12 +125,9 @@ def execute_tool(name: str, raw_arguments: str, tools: BranchATools, inspected_i
 def build_tools(plan: str, rules_path: Path, paths: overlay_config.OverlayPaths | None = None,
                 as_of: dt.date | None = None) -> tuple[BranchATools, QuoteGuard]:
     paths = paths or overlay_config.load_paths()
-    encounters = load_encounters(paths.encounters_csv)
-    labels = load_label_map(paths.overlay_data / "encounter_labels.v1.json", encounters)
-    mappings = Mappings.from_files(paths.overlay_data / "policy_mrf_map.v1.json",
-                                   paths.overlay_data / "service_rate_map.v1.json", paths.plan_profiles)
-    csv_rates = CsvRates(paths.rates_csv) if paths.rates_csv.exists() else None
-    resolver = RateResolver(mappings, encounters, labels, csv_rates, SqliteRates(paths.rates_sqlite), as_of=as_of)
+    log_path = paths.log_dir / "rate_lookup.jsonl" if paths.log_dir else None
+    resolver = build_resolver(paths, as_of=as_of, log_path=log_path)
+    mappings = resolver.m
     tools = BranchATools(PolicyTools(selected_plan=plan, rules_path=rules_path), resolver)
 
     def n_options(rule_id):

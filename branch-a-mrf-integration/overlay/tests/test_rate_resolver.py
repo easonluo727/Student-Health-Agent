@@ -196,12 +196,12 @@ class ProviderSpecific(Base):
 class NoDataSource(Base):
     def test_missing_csv_and_database(self):
         r = self.res()
-        r.csv = None
+        r.lookup.has_aggregates = False
         a = r.resolve_for_rule(RULE, option_id="established")
         b = r.resolve_for_rule(ER, option_id="er_parts")
         self.assertEqual((a["status"], a["allowed_amount"]), ("no_data_source", None))
         self.assertEqual((b["status"], b["allowed_amount"]), ("no_data_source", None))
-        r.db = None
+        r.lookup.db = None
         q = r.resolve_for_rule(ER, option_id="er_parts", provider_npi=fx.NPI)
         self.assertEqual((q["status"], q["provider_specific"]), ("no_data_source", False))
 
