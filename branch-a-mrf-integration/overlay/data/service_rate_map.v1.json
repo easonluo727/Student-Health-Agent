@@ -2,12 +2,12 @@
   "schema_version": "service_rate_map.v1",
   "entries": [
     {
-      "entry_id": "prime_100.consultant_physician_fees.in",
+      "entry_id": "prime_100.physicians_visits.outpatient.in",
       "policy_plan_id": "prime_100",
-      "service": "consultant physician fees",
-      "setting": "other",
+      "service": "physician's visits",
+      "setting": "outpatient",
       "policy_network_category": "in-network",
-      "clarification_question": "Is this a visit with a doctor you have seen before, a first visit with a new doctor, or a follow-up with a specialist?",
+      "clarification_question": "Is this a visit with a doctor you have seen before, or a first visit with a new doctor?",
       "options": [
         {
           "option_id": "office_established",
@@ -15,7 +15,7 @@
           "kind": "A_encounter",
           "encounter_key": "office_visit_established",
           "component_benefit_services": {
-            "visit": "consultant physician fees"
+            "visit": "physician's visits"
           }
         },
         {
@@ -24,9 +24,22 @@
           "kind": "A_encounter",
           "encounter_key": "office_visit_new",
           "component_benefit_services": {
-            "visit": "consultant physician fees"
+            "visit": "physician's visits"
           }
-        },
+        }
+      ],
+      "review_status": "verified",
+      "reviewed_by": "project owner, in chat 2026-10-16",
+      "source": "Project owner (2026-10-16): a regular office visit is paid under the outpatient \"Physician's Visits\" benefit (Policy_Certificate.pdf p.23). Encounters from data/mrf/encounters.csv."
+    },
+    {
+      "entry_id": "prime_100.consultant_physician_fees.in",
+      "policy_plan_id": "prime_100",
+      "service": "consultant physician fees",
+      "setting": "other",
+      "policy_network_category": "in-network",
+      "clarification_question": null,
+      "options": [
         {
           "option_id": "specialist_followup",
           "label": "Specialist follow-up visit (99214)",
@@ -39,7 +52,7 @@
       ],
       "review_status": "pending_review",
       "reviewed_by": null,
-      "source": "Draft from data/mrf/encounters.csv by the integration overlay; candidate only - a human must verify before use"
+      "source": "Draft from data/mrf/encounters.csv by the integration overlay; candidate only - a human must verify before use Regular office visits moved to Physician's Visits by the project owner (2026-10-16); whether a specialist follow-up is a consultant fee is still open."
     },
     {
       "entry_id": "prime_100.laboratory_procedures.in",
