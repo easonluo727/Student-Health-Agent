@@ -1,7 +1,7 @@
 """Calculate one service occurrence using an already matched policy rule.
 
 Percentages use 0–100 units. This module does not read files or call an LLM.
-Only simple copay-only and coinsurance-only benefits are supported.
+Supports copay-only, coinsurance-only, and copay-then-coinsurance (no deductible) benefits.
 """
 
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -67,8 +67,20 @@ It does not verify authorization or other policy eligibility requirements.
         return _result("needs_review", "Plan and patient percentages do not add up to 100.")
 
     # Never assume that a listed copay is the entire cost of a combined benefit.
-    if copay is not None:
-        if patient not in (None, Decimal(0)) or plan not in (None, Decimal(100)):
+    if copay is not None and patient not in (None, Decimal(0)):
+        # Copay first, then coinsurance on the rest: $200 visit, $25 + 20% -> 25 + 175 * 20%.
+        if deductible:
+            return _result("needs_review", "Copay plus coinsurance subject to a deductible is not supported yet.")
+        if allowed_amount is None:
+            return _result("needs_information", "More information is needed to calculate this benefit.",
+                           missing_fields=["allowed_amount"])
+        try:
+            amount = _number(allowed_amount, "allowed_amount")
+        except ValueError as error:
+            return _result("invalid_input", str(error))
+        cost = min(copay, amount) + max(amount - copay, Decimal(0)) * patient / 100
+    elif copay is not None:
+        if plan not in (None, Decimal(100)):
             return _result("needs_review", "This rule combines a copay and coinsurance.")
         if deductible:
             return _result("needs_review", "Copay benefits subject to a deductible are not supported yet.")
