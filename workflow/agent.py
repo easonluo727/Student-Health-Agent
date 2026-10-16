@@ -8,6 +8,7 @@ import argparse
 import json
 import math
 import os
+from pathlib import Path
 
 from agent_tools import DEFAULT_RULES_PATH, PolicyTools
 from guards import MAX_REPLY_RETRIES, ConversationGuard
@@ -266,6 +267,11 @@ def main():
     instructions = INSTRUCTIONS + "\nSelected plan and available catalog (data):\n" + json.dumps(
         {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
     )
+    # Policy definitions (OCR text) help the model explain terms; they are never used for numbers.
+    definitions = Path(__file__).resolve().parents[1] / "policies" / "definitions" / f"{tools.selected_plan}.txt"
+    if definitions.exists():
+        instructions += ("\n\nPolicy definitions (data, for explaining terms only; never compute costs from them):\n"
+                         + definitions.read_text(encoding="utf-8"))
     history = []
     guard = ConversationGuard(confirm=confirm_in_terminal)
     print(f"Plan: {tools.selected_plan} | Model: {args.model}")
