@@ -1,8 +1,9 @@
 """Deterministic rate selection and the single `allowed_amount` value (docs/prompts/mrf-compile.md).
 
 Per provider (NPI), for one billing code / billing class / place of service:
-  1. drop `percentage` and `per diem` rates, expired rates, and $0 rates (capitated/bundled
-     arrangements, not prices); all are counted in n_rates_excluded;
+  1. drop `percentage` and `per diem` rates, expired rates, $0 rates (capitated/bundled
+     arrangements, not prices) and placeholder rates >= $1e9 (L.A. Care publishes 99999999999999);
+     all are counted in n_rates_excluded;
   2. modifiers: use the global (unmodified) rate; for imaging with no global rate, sum TC + 26;
      `mod_26` uses only the professional component (26);
   3. place of service: rates listing the encounter's POS (first match in an ordered preference
@@ -26,6 +27,7 @@ from dataclasses import dataclass, field
 DOLLAR_TYPES = {"negotiated", "derived", "fee schedule"}
 EXCLUDED_TYPES = {"percentage", "per diem"}
 COMPONENT_MODIFIERS = {"TC", "26"}
+PLACEHOLDER_MIN = 1e9  # no single CPT/HCPCS rate reaches $1 billion; larger values are MRF placeholders
 UCLA_PATTERN = re.compile(r"\bUCLA\b|REGENTS OF THE UNIVERSITY OF CALIFORNIA|UNIVERSITY OF CALIFORNIA,? LOS ANGELES", re.I)
 BASIS_RANK = {"provider_rate": 0, "ucla_health_rate": 1, "westwood_area_median": 2, "la_county_median": 3}
 STATUS = {"provider_rate": "verified_rate", "ucla_health_rate": "verified_rate",
@@ -141,7 +143,7 @@ def per_provider(cands: list[Candidate], pos: str | None, modifier_rule: str, as
         mix[c.negotiated_type] = mix.get(c.negotiated_type, 0) + 1
         # A $0 "rate" is a capitated or bundled arrangement (common in L.A. Care IPA contracts), not a price.
         if (c.negotiated_type in EXCLUDED_TYPES or c.negotiated_type not in DOLLAR_TYPES or c.expiration_date < as_of
-                or c.rate is None or c.rate <= 0):
+                or c.rate is None or c.rate <= 0 or c.rate >= PLACEHOLDER_MIN):
             n_excluded += 1
             continue
         by_npi.setdefault(c.npi, []).append(c)
