@@ -1,0 +1,104 @@
+{
+  "schema_version": "encounter_labels.v1",
+  "generated_from": {
+    "encounters_csv": "data/mrf/encounters.csv",
+    "sha256": "2964caacbfbea70d18c75ee8a32bd982967794028b90a1a0632c0845b41a12de"
+  },
+  "entries": [
+    {
+      "encounter_key": "back_mri",
+      "csv_label": "Lumbar spine MRI without contrast",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "chest_xray",
+      "csv_label": "Chest X-ray (2 views)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "er_ankle_xray",
+      "csv_label": "ER visit for ankle sprain with X-ray",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "flu_shot",
+      "csv_label": "Flu shot (vaccine only; administration fee not included)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "knee_mri",
+      "csv_label": "Knee MRI without contrast",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "office_visit_established",
+      "csv_label": "Primary care visit (established patient)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "office_visit_new",
+      "csv_label": "Primary care visit (new patient)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "preventive_visit",
+      "csv_label": "Annual preventive visit (age 18-39)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "pt_evaluation",
+      "csv_label": "Physical therapy evaluation",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "routine_labs",
+      "csv_label": "Routine blood work (CMP + CBC + lipid panel)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "specialist_followup",
+      "csv_label": "Specialist (pulmonology) follow-up visit",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "spirometry",
+      "csv_label": "Spirometry test",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "sti_screening",
+      "csv_label": "STI screening (chlamydia + gonorrhea + HIV)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "telehealth_visit",
+      "csv_label": "Telehealth visit (video)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "therapy_intake",
+      "csv_label": "Therapy intake (psychiatric diagnostic evaluation)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "therapy_session_45",
+      "csv_label": "Therapy session (45 min)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "therapy_session_60",
+      "csv_label": "Therapy session (60 min)",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "urgent_care_flu",
+      "csv_label": "Urgent care visit for flu with rapid flu test",
+      "in_rates_csv": true
+    },
+    {
+      "encounter_key": "uti_visit",
+      "csv_label": "UTI visit (office visit + urinalysis + urine culture)",
+      "in_rates_csv": true
+    }
+  ]
+}
