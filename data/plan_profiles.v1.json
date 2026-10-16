@@ -68,6 +68,95 @@
       "file_regex": null,
       "region": "national",
       "notes": "blocked from the dev VM: see data/mrf/discovery/aetna.json"
+    },
+    {
+      "plan_key": "anthem_ca_pathway_epo",
+      "insurer": "Anthem Blue Cross (California)",
+      "parent": "Elevance Health",
+      "network_names": [
+        "CA EPO Pathway"
+      ],
+      "official_page": "https://www.anthem.com/machine-readable-file/search/",
+      "toc_url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/YYYY-MM-01_anthem_index.json.gz",
+      "file_selection": "TOC /CA_ files whose plans are mainly individual-market Pathway plans (CA PATHWAY HMO/EPO - INDIV)",
+      "discovery": "toc_stream",
+      "file_regex": "/CA_(HXCV|HYWC|HXCT|HXCU)MED\\d+\\.json\\.gz$",
+      "region": "CA",
+      "market": "individual (Covered California)",
+      "notes": "Anthem individual-market EPO network. Network string verified by probe_networks.py."
+    },
+    {
+      "plan_key": "anthem_ca_pathway_hmo",
+      "insurer": "Anthem Blue Cross (California)",
+      "parent": "Elevance Health",
+      "network_names": [
+        "CA HMO Pathway"
+      ],
+      "official_page": "https://www.anthem.com/machine-readable-file/search/",
+      "toc_url": "https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/YYYY-MM-01_anthem_index.json.gz",
+      "file_selection": "same files as anthem_ca_pathway_epo",
+      "discovery": "toc_stream",
+      "file_regex": "/CA_(HXCV|HYWC|HXCT|HXCU)MED\\d+\\.json\\.gz$",
+      "region": "CA",
+      "market": "individual (Covered California)",
+      "notes": "Anthem individual-market HMO network."
+    },
+    {
+      "plan_key": "healthnet_ambetter_ca",
+      "insurer": "Health Net (Ambetter from Health Net)",
+      "parent": "Centene",
+      "network_names": [
+        "Exchange CA"
+      ],
+      "official_page": "https://www.centene.com/price-transparency-files.html",
+      "toc_url": "https://www.centene.com/price-transparency-files.html",
+      "file_selection": "Centene page -> latest *_ambetter_index.json -> file *_ambetter-ca_in-network.json (plain JSON, ~240 MB)",
+      "discovery": "centene_page",
+      "file_regex": "_ambetter-ca_in-network\\.json$",
+      "index_regex": "_ambetter_index\\.json$",
+      "region": "CA",
+      "market": "individual (Covered California)",
+      "notes": "Health Net's healthnet.com transparency page points to Centene's page."
+    },
+    {
+      "plan_key": "lacare_covered",
+      "insurer": "L.A. Care Health Plan",
+      "network_names": null,
+      "official_page": "https://lacare.org/transparency-coverage-machine-readable-files",
+      "toc_url": "https://lac-transparency-prod.s3.amazonaws.com/",
+      "file_selection": "Official portal (transparency.lacare.org) lists bucket keys; *_LA_Care_index.json TOCs list plan 92815CA001000 (Covered California / L.A. Care Covered Direct). TOC locations on www.lacare.org return 404, so the same file names are fetched from https://transparency.lacare.org/download/<name>, the portal's own download URL.",
+      "discovery": "lacare_index",
+      "file_regex": "innetwork",
+      "plan_id": "92815CA001000",
+      "region": "LA County",
+      "market": "individual (Covered California)",
+      "notes": "One file per provider contract (IPA/medical group); provider_references.network_name is the IPA name, so no network filter is applied."
+    },
+    {
+      "plan_key": "molina_ca_marketplace",
+      "insurer": "Molina Healthcare (Covered California)",
+      "network_names": null,
+      "official_page": "https://www.molinahealthcare.com/marketplace/ca/en-us/About/compinfo/PricingTransparency",
+      "toc_url": null,
+      "file_selection": "Page lists a California table of contents but the link is not present in the served or rendered HTML; not found yet.",
+      "discovery": "manual",
+      "file_regex": null,
+      "region": "CA",
+      "market": "individual",
+      "notes": "not found yet"
+    },
+    {
+      "plan_key": "oscar_ca",
+      "insurer": "Oscar Health (California)",
+      "network_names": null,
+      "official_page": "https://www.hioscar.com/transparency-in-coverage",
+      "toc_url": null,
+      "file_selection": "hioscar.com/transparency-in-coverage returns a Not Found page; official file location not found yet.",
+      "discovery": "manual",
+      "file_regex": null,
+      "region": "CA",
+      "market": "individual",
+      "notes": "not found yet"
     }
   ]
 }

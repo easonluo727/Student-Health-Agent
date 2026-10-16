@@ -84,7 +84,9 @@ To import a single file: `python scripts/mrf/import_mrf_rates.py --input <url> -
 | UHC of California Choice Plus | `…_Choice-Plus_8_in-network-rates` | 9.4 | 188.3 | 18,011 / 33,258 | 89,904 | 22,076 | 13.5 | 11.7 | 302 |
 | **Total** | 6 files | **25.3** | **279.4** | | **284,044** | **2,351,250** | **46.8** | | |
 
-The final SQLite is 515 MB: 284k rate rows, 2.35M member rows, and 53,893 distinct LA NPIs. The Anthem table of contents (11.4 GB, 147k reporting structures, 43M file references, 167 unique `CA_*` files totalling 221 GB) streamed in 436 s with 46 MB RSS. Running all 167 Anthem California files means reading about 440 GB, which takes about 1–2 h with 8 workers on a server (see the runbook).
+**Expanded run (branch `mrf-expand`).** This run covers 7 networks: Anthem Prudent Buyer, Anthem Pathway EPO and HMO (Covered California), UHC California Choice Plus, Cigna National PPO, Ambetter from Health Net (`Exchange CA`), and L.A. Care Covered (299 contract files). It used 41 billing codes and 19 encounters, read 316 files (70 GB compressed, 444 GB of JSON), and kept 629,842 rate rows covering 68,333 LA NPIs. The import took 73.6 min summed over files, and the report took 63 min. 128 of 133 encounter × network cells have an `allowed_amount`. L.A. Care lists 37% of its rows at $0, which reflects capitated IPA contracts. These rows are excluded as non-prices.
+
+For the first six-file run, the final SQLite was 515 MB: 284k rate rows, 2.35M member rows, and 53,893 distinct LA NPIs. The Anthem table of contents (11.4 GB, 147k reporting structures, 43M file references, 167 unique `CA_*` files totalling 221 GB) streamed in 436 s with 46 MB RSS. Running all 167 Anthem California files means reading about 440 GB, which takes about 1–2 h with 8 workers on a server (see the runbook).
 
 **Limitations**
 

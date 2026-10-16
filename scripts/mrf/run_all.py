@@ -27,16 +27,16 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 
 
-def shard_name(url: str) -> str:
+def shard_name(plan_key: str, url: str) -> str:
     base = urlparse(url).path.rsplit("/", 1)[-1].split(".")[0][:80]
-    return f"{base}_{hashlib.sha1(url.split('?')[0].encode()).hexdigest()[:8]}"
+    return f"{plan_key}__{base}_{hashlib.sha1(url.split('?')[0].encode()).hexdigest()[:8]}"
 
 
 def _work(job: dict, shards: str, tier: str, profiles: str, codes_csv: str, npi_csv: str) -> dict:
     import contextlib
 
     import import_mrf_rates as imp
-    name = shard_name(job["url"])
+    name = shard_name(job["plan_key"], job["url"])
     log = open(os.path.join(shards, name + ".log"), "a")
     with contextlib.redirect_stderr(log):
         profile = imp.load_profile(profiles, job["plan_key"])
