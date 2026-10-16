@@ -69,8 +69,10 @@ class RealData(unittest.TestCase):
 
     def test_committed_draft_mappings_stay_pending(self):
         r = self.resolver("anthem_ca_prudent_buyer_ppo", "CA PPO PRUDENT BUYER", verified=False)
-        q = r.resolve_for_rule(self.rule("consultant physician fees"), option_id="office_established")
+        q = r.resolve_for_rule(self.rule("laboratory procedures"), option_id="routine_labs")
         self.assertEqual(q["status"], "mapping_pending_review")
+        q = r.resolve_for_rule(self.rule("physician's visits"), option_id="office_established")
+        self.assertEqual(q["status"], "success")  # verified by the project owner on 2026-10-16
         p = fx.PATHS
         real = Mappings.from_files(p.overlay_data / "policy_mrf_map.v1.json", p.overlay_data / "service_rate_map.v1.json",
                                    p.plan_profiles)
@@ -82,7 +84,7 @@ class RealData(unittest.TestCase):
 
     def test_anthem_a_and_b_match_the_csv(self):
         r = self.resolver("anthem_ca_prudent_buyer_ppo", "CA PPO PRUDENT BUYER")
-        q = r.resolve_for_rule(self.rule("consultant physician fees"), option_id="office_established")
+        q = r.resolve_for_rule(self.rule("physician's visits"), option_id="office_established")
         self.assertEqual(q["allowed_amount"], self.csv_a("Anthem Blue Cross (California)", "CA PPO PRUDENT BUYER",
                                                          "Primary care visit (established patient)"))
         self.assertTrue(q["aggregate"])
