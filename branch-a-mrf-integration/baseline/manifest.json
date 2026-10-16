@@ -1,9 +1,9 @@
 {
-  "created_utc": "2026-10-16T02:30:21Z",
+  "created_utc": "2026-10-16T17:57:13Z",
   "git": {
-    "branch_at_snapshot": "branch-a-mrf-integration",
+    "branch_at_snapshot": "claude/mrf-compile-05dr4a",
     "new_branch": "branch-a-mrf-integration",
-    "commit": "1ceb5152aa2805a2a354feab54335629c56ea184",
+    "commit": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
     "status_porcelain": "(clean before this work: `git status --porcelain --untracked-files=all` printed nothing and `git stash list` was empty at commit 3698b7d on branch mrf-expand; the only later entry is this new branch-a-mrf-integration/ directory)",
     "stash": "(empty)",
     "ignored_local_paths": [
@@ -15,13 +15,13 @@
       "tests/__pycache__/",
       "workflow/__pycache__/"
     ],
-    "rebaseline_reason": "main moved after the first baseline: teammate updated workflow/agent.py and the prime_100 rules; PR #4 (placeholder-rate fix in scripts/mrf/allowed.py, regenerated allowed_amounts.csv) merged. The overlay still edits no original file."
+    "rebaseline_reason": "calculate_cost: copay then coinsurance (user-confirmed formula)"
   },
   "snapshots": [
     {
       "source_path": "workflow/import_policy.py",
       "snapshot_path": "baseline/files/workflow/import_policy.py",
-      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
+      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
       "git_blob": "f6ae23172c0e4bbaffb81785fcdca42ae53bbd73",
       "sha256": "fe25efecf3bc73a832a34a9698f11a22808e20de45e0be17ec599900a0f3f50d",
       "bytes": 12078
@@ -29,7 +29,7 @@
     {
       "source_path": "workflow/agent_tools.py",
       "snapshot_path": "baseline/files/workflow/agent_tools.py",
-      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
+      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
       "git_blob": "ae1615951b94856d7548511af5386d9e52f05555",
       "sha256": "3cdd0e6cee3b2a709bd62191df2f706b9931b2060cf3c2535ef906e489fab5c1",
       "bytes": 6792
@@ -37,7 +37,7 @@
     {
       "source_path": "workflow/agent.py",
       "snapshot_path": "baseline/files/workflow/agent.py",
-      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
+      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
       "git_blob": "4ed64975a14ff933867a24eb08d5cdc0618e6553",
       "sha256": "dd65d6f7a69364e5c345fd8d6239f9b514b1594343dea3ed6c902985dc7b2658",
       "bytes": 13359
@@ -45,7 +45,7 @@
     {
       "source_path": "workflow/guards.py",
       "snapshot_path": "baseline/files/workflow/guards.py",
-      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
+      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
       "git_blob": "bdaa74949d7059b47788e83fdd398e365035108f",
       "sha256": "8b4fe91e8622577329d6e2e59da01295d7164d7224e89f04b367b036876b9dc8",
       "bytes": 6778
@@ -54,8 +54,8 @@
   "referenced_read_only_code": [
     {
       "path": "workflow/calculate_cost.py",
-      "git_blob": "480c1e0e53b0c8c4cd2f54f20ace46cda59f8eeb",
-      "sha256": "d9784074e52ecf76c6d1ac997c6fb6f26542e74a8c586356ad7d7973276a2841"
+      "git_blob": "7bd5cf105decf9b039142dbd633d19f269a992b4",
+      "sha256": "0d68a324ba22fac09c751ffecc9300249d2a1f706de4bdb006b9e19f0af5ff1d"
     },
     {
       "path": "scripts/mrf/allowed.py",
@@ -124,6 +124,11 @@
       "created_utc": "2026-10-15T06:19:28Z",
       "commit": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
       "branch": "mrf-expand"
+    },
+    {
+      "created_utc": "2026-10-16T02:30:21Z",
+      "commit": "1ceb5152aa2805a2a354feab54335629c56ea184",
+      "branch": "branch-a-mrf-integration"
     }
   ]
 }
