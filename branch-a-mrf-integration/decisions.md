@@ -117,8 +117,8 @@ nothing is merged back automatically. The baseline is described in `baseline/man
       `build_zip_centroids.py` from the public Gazetteer file; the source sha256 is in the `.meta.json`).
 16. **Placeholder rates.** Amounts at or above $1e9 are rejected, because L.A. Care publishes
     `99999999999999` as a "rate". On raw rows this is a hard rule. For an aggregate, a placeholder
-    `allowed_amount` gives `placeholder_rate`; a placeholder p10 or p90 is dropped with a warning. The upstream
-    fix belongs in `scripts/mrf/allowed.py` (PR #4); see `matching_report.md`.
+    `allowed_amount` gives `placeholder_rate`; a placeholder p10 or p90 is dropped with a warning. The same
+    exclusion is now in `scripts/mrf/allowed.py` (merged with PR #4); this guard stays as a second line of defence.
 17. **Trace logs.** `trace_log.py` writes JSONL to `data/mrf/work/branch_a/logs/` (gitignored).
     - Each record carries the run, request, stage, status, versions and DB snapshot.
     - Records never contain the service description, policy text or TIN fields.

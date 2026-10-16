@@ -1,9 +1,9 @@
 {
-  "created_utc": "2026-10-15T06:19:28Z",
+  "created_utc": "2026-10-16T02:30:21Z",
   "git": {
-    "branch_at_snapshot": "mrf-expand",
+    "branch_at_snapshot": "branch-a-mrf-integration",
     "new_branch": "branch-a-mrf-integration",
-    "commit": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
+    "commit": "1ceb5152aa2805a2a354feab54335629c56ea184",
     "status_porcelain": "(clean before this work: `git status --porcelain --untracked-files=all` printed nothing and `git stash list` was empty at commit 3698b7d on branch mrf-expand; the only later entry is this new branch-a-mrf-integration/ directory)",
     "stash": "(empty)",
     "ignored_local_paths": [
@@ -14,13 +14,14 @@
       "scripts/mrf/__pycache__/",
       "tests/__pycache__/",
       "workflow/__pycache__/"
-    ]
+    ],
+    "rebaseline_reason": "main moved after the first baseline: teammate updated workflow/agent.py and the prime_100 rules; PR #4 (placeholder-rate fix in scripts/mrf/allowed.py, regenerated allowed_amounts.csv) merged. The overlay still edits no original file."
   },
   "snapshots": [
     {
       "source_path": "workflow/import_policy.py",
       "snapshot_path": "baseline/files/workflow/import_policy.py",
-      "git_ref": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
+      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
       "git_blob": "f6ae23172c0e4bbaffb81785fcdca42ae53bbd73",
       "sha256": "fe25efecf3bc73a832a34a9698f11a22808e20de45e0be17ec599900a0f3f50d",
       "bytes": 12078
@@ -28,7 +29,7 @@
     {
       "source_path": "workflow/agent_tools.py",
       "snapshot_path": "baseline/files/workflow/agent_tools.py",
-      "git_ref": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
+      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
       "git_blob": "ae1615951b94856d7548511af5386d9e52f05555",
       "sha256": "3cdd0e6cee3b2a709bd62191df2f706b9931b2060cf3c2535ef906e489fab5c1",
       "bytes": 6792
@@ -36,15 +37,15 @@
     {
       "source_path": "workflow/agent.py",
       "snapshot_path": "baseline/files/workflow/agent.py",
-      "git_ref": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
-      "git_blob": "a1b532aaca4d6d0f766dfbf80a8dafe4b2e8a676",
-      "sha256": "0dc3b87e2cab1ae958060e8fe7e1531841812111193c36f0d3566af82ed7a966",
-      "bytes": 12129
+      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
+      "git_blob": "4ed64975a14ff933867a24eb08d5cdc0618e6553",
+      "sha256": "dd65d6f7a69364e5c345fd8d6239f9b514b1594343dea3ed6c902985dc7b2658",
+      "bytes": 13359
     },
     {
       "source_path": "workflow/guards.py",
       "snapshot_path": "baseline/files/workflow/guards.py",
-      "git_ref": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
+      "git_ref": "1ceb5152aa2805a2a354feab54335629c56ea184",
       "git_blob": "bdaa74949d7059b47788e83fdd398e365035108f",
       "sha256": "8b4fe91e8622577329d6e2e59da01295d7164d7224e89f04b367b036876b9dc8",
       "bytes": 6778
@@ -58,8 +59,8 @@
     },
     {
       "path": "scripts/mrf/allowed.py",
-      "git_blob": "33815ca16a88d76708675c74bd58634cfa5a29c1",
-      "sha256": "23df57ecc172623d05793eddc5a4f7a46e1d44667016f327a130f6759c3a91c6"
+      "git_blob": "c66541d21e5d0f5f2e7df55db84fdcb78a4171e8",
+      "sha256": "195797269b4234d5e8528a0ea365e49af6a30ad63cb84acb88addab6c76f4ef8"
     },
     {
       "path": "scripts/mrf/lookup.py",
@@ -75,9 +76,9 @@
   "referenced_data": [
     {
       "path": "data/mrf/allowed_amounts.csv",
-      "git_blob": "938651d4501f8963874ca61a91ab7e048295ed00",
-      "sha256": "c1f3eace402374e61ae1ad31c22aa3b1d7aae7264c26aa8f825a016c40fcea9f",
-      "bytes": 577772
+      "git_blob": "4f26468bd3a8a7fb0d8a795841d687d4ba312b12",
+      "sha256": "5117f6f482ba3f387dca7deb1779a4e579ffd28f7e928411b146b6e8b87fa3af",
+      "bytes": 577017
     },
     {
       "path": "data/mrf/encounters.csv",
@@ -116,6 +117,13 @@
       "bytes": 22918342,
       "mtime_utc": "2026-10-14T06:27:44Z",
       "note": "gitignored local artifact; referenced by configurable path, never copied (sha256 omitted for multi-GB files)"
+    }
+  ],
+  "history": [
+    {
+      "created_utc": "2026-10-15T06:19:28Z",
+      "commit": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
+      "branch": "mrf-expand"
     }
   ]
 }

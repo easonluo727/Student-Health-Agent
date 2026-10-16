@@ -147,13 +147,11 @@ records the stage where the count reached zero. The anchor location comes from t
 
 ## 6. Conditions not covered
 
-1. **Placeholder rates in the PR #4 data.** L.A. Care publishes `99999999999999` as a "rate": 992 rows over 39
-   codes, 351 of them labelled `fee schedule` or `derived`. `scripts/mrf/allowed.py` does not exclude it. As a
-   result, 8 rows of `allowed_amounts.csv` have a placeholder `allowed_amount`, and 64 rows have one in the
-   amount, p10, p90 or UCLA column. Medians in other L.A. Care cells may also be pulled up.
-   - This overlay refuses those values.
-   - The proper fix is a one-line exclusion in `allowed.py` (PR #4), followed by regenerating the report. It was
-     not made here, because the overlay may not edit `scripts/`.
+1. **Placeholder rates (fixed upstream).** L.A. Care publishes `99999999999999` as a "rate": 992 rows over 39
+   codes, 351 of them labelled `fee schedule` or `derived`. `scripts/mrf/allowed.py` now drops rates of $1e9 or
+   more (merged with PR #4), and the L.A. Care rows of `allowed_amounts.csv` were recomputed. The 8 placeholder
+   amounts (J7300, every POS) became $1,855.26, and no placeholder value is left. The overlay keeps its own guard
+   as a second line of defence.
 2. **No per-rate validity in aggregates.** The CSV has no expiration date, so `network_estimate` cannot be
    checked against a future service date. Only the raw SQLite path checks validity.
 3. **No effective (start) dates.** MRFs publish only `expiration_date`, so a rate that starts after the
