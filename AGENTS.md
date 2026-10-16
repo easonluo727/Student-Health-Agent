@@ -27,17 +27,20 @@ Because the runtime models are open-source and weaker than frontier models, put 
 
 ## Running
 
-There is no build or lint setup. Tests: `python -m unittest discover tests`. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). `interpret_request.py` also imports `pydantic`. Every LLM call requires `OPENAI_API_KEY`. Run scripts from inside `workflow/`.
+There is no build or lint setup. Tests: `python -m unittest discover tests`. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). `interpret_request.py` also imports `pydantic`. The current agent requires `AMD_API_KEY` (or the compatibility alias `RADEON_API_KEY`), and accepts `AMD_BASE_URL` and `AMD_MODEL`. Run scripts from inside `workflow/`.
 
 ```bash
 pip install -r requirements.txt pydantic
+export AMD_API_KEY="..."
+export AMD_BASE_URL="https://developer.amd.com.cn/radeon/api/v1"
+export AMD_MODEL="Qwen3.5-35B-A3B"
 cd workflow
 python import_policy.py      # interactive: PDF path, plan name, start/end page of the Schedule of Benefits
-python agent.py              # LLM tool-calling chat agent; flags: --plan prime_100 --rules <path> --model gpt-5-nano
+python agent.py              # AMD tool-calling chat agent; flags: --plan prime_100 --rules <path> --model <AMD model>
 python estimate_pro.py       # older fixed-pipeline alternative to agent.py
 ```
 
-`import_policy.py` uses `pdftoppm` from poppler, which must be on PATH. It writes `normalized_pdf_insurance_rules.json` to the current directory. `agent_tools.py` and `estimate_pro.py` expect that file in `workflow/`. The only checked-in copy is in `archive/`, so copy it over or run the import first.
+`import_policy.py` uses `pdftoppm` from poppler, which must be on PATH. It writes `normalized_pdf_insurance_rules.json` to the current directory. `agent_tools.py` and `estimate_pro.py` expect that file in `workflow/`; the current 66-rule `prime_100` catalog is checked in there.
 
 To test the calculator on its own, without an LLM, call `calculate_cost(rule_dict, allowed_amount=..., remaining_deductible=...)` directly.
 
@@ -62,5 +65,5 @@ Pipeline:
 ## Known inconsistencies
 
 - `.github/workflows/run-estimator.yml` runs `python estimate_multiple_2.0.py` from the repo root, but that script now lives in `archive/`, so the workflow is broken as written.
-- The code uses model names `gpt-5-nano` and `gpt-6-luna` (in `import_policy.py`).
+- The legacy `import_policy.py` and `interpret_request.py` paths still use OpenAI model names and must be migrated before they can be run under the AMD-only constraint. The primary `agent.py` path is AMD-configured.
 - `guards.py` `pre_tool` accepts only amounts the user typed. Once the allowed-amount database exists, amounts returned by the price-lookup tool and questionnaire answers must also count as valid provenance, or the guard will block them.
