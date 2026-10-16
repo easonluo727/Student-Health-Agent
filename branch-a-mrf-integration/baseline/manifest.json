@@ -1,9 +1,9 @@
 {
-  "created_utc": "2026-10-16T17:57:13Z",
+  "created_utc": "2026-10-16T18:48:16Z",
   "git": {
     "branch_at_snapshot": "claude/mrf-compile-05dr4a",
     "new_branch": "branch-a-mrf-integration",
-    "commit": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
+    "commit": "3f343246979d7bc926678059d248303747a8226b",
     "status_porcelain": "(clean before this work: `git status --porcelain --untracked-files=all` printed nothing and `git stash list` was empty at commit 3698b7d on branch mrf-expand; the only later entry is this new branch-a-mrf-integration/ directory)",
     "stash": "(empty)",
     "ignored_local_paths": [
@@ -15,13 +15,13 @@
       "tests/__pycache__/",
       "workflow/__pycache__/"
     ],
-    "rebaseline_reason": "calculate_cost: copay then coinsurance (user-confirmed formula)"
+    "rebaseline_reason": "agent.py: add policy definitions to context"
   },
   "snapshots": [
     {
       "source_path": "workflow/import_policy.py",
       "snapshot_path": "baseline/files/workflow/import_policy.py",
-      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
       "git_blob": "f6ae23172c0e4bbaffb81785fcdca42ae53bbd73",
       "sha256": "fe25efecf3bc73a832a34a9698f11a22808e20de45e0be17ec599900a0f3f50d",
       "bytes": 12078
@@ -29,7 +29,7 @@
     {
       "source_path": "workflow/agent_tools.py",
       "snapshot_path": "baseline/files/workflow/agent_tools.py",
-      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
       "git_blob": "ae1615951b94856d7548511af5386d9e52f05555",
       "sha256": "3cdd0e6cee3b2a709bd62191df2f706b9931b2060cf3c2535ef906e489fab5c1",
       "bytes": 6792
@@ -37,15 +37,15 @@
     {
       "source_path": "workflow/agent.py",
       "snapshot_path": "baseline/files/workflow/agent.py",
-      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
-      "git_blob": "4ed64975a14ff933867a24eb08d5cdc0618e6553",
-      "sha256": "dd65d6f7a69364e5c345fd8d6239f9b514b1594343dea3ed6c902985dc7b2658",
-      "bytes": 13359
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
+      "git_blob": "30c822e5cafcc297a400bd9cd29652f148995974",
+      "sha256": "f7df8c9cf77bc26fd70ee3b2c9a33bc267f1adb73995164f8432928481867e23",
+      "bytes": 13812
     },
     {
       "source_path": "workflow/guards.py",
       "snapshot_path": "baseline/files/workflow/guards.py",
-      "git_ref": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
       "git_blob": "bdaa74949d7059b47788e83fdd398e365035108f",
       "sha256": "8b4fe91e8622577329d6e2e59da01295d7164d7224e89f04b367b036876b9dc8",
       "bytes": 6778
@@ -129,6 +129,11 @@
       "created_utc": "2026-10-16T02:30:21Z",
       "commit": "1ceb5152aa2805a2a354feab54335629c56ea184",
       "branch": "branch-a-mrf-integration"
+    },
+    {
+      "created_utc": "2026-10-16T17:57:13Z",
+      "commit": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
+      "branch": "claude/mrf-compile-05dr4a"
     }
   ]
 }
