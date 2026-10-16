@@ -130,8 +130,7 @@ Run `python overlay/workflow/list_pending_mappings.py` for the live list. As of 
 
 | Mapping | Status | What a human must decide |
 |---|---|---|
-| `prime_100` in-network → MRF plan/network | pending, no candidate | Which insurer issues `prime_100`? The archived rules have no issuer, network name or page. |
-| `prime_100` out-of-network → MRF | pending | Same. Note that MRF in-network rates never price out-of-network rules. |
+| `prime_100` → MRF plan/network | **verified** 2026-10-16 by the project owner: `uhc_ca_choice_plus` / `Choice-Plus` | Done. The policy certificate confirms it (PDF p.5 Section 5 and p.22 Schedule of Benefits). Out-of-network rules are still never priced with in-network MRF rates. |
 | `consultant physician fees` → office visit options | pending | Is this benefit the right one for 99213, 99203 and 99214, and is 99214 the right code for a specialist follow-up? |
 | `laboratory procedures` → labs, STI and urine tests (B) | pending | Confirm the lab bundles and that every test is paid under this benefit. |
 | `diagnostic x-ray services` → chest X-ray, knee MRI, back MRI | pending | Does MRI fall under "diagnostic x-ray services" or under a separate imaging benefit? |
@@ -143,6 +142,22 @@ Run `python overlay/workflow/list_pending_mappings.py` for the live list. As of 
 The draft mappings were written from `encounters.csv` by the coding assistant. Under `AGENTS.md`, data
 written by a coding assistant must not be trusted as catalog data, so every draft stays `pending_review` and
 the resolver refuses it until a person sets `verified` and `reviewed_by`.
+
+### Notes from the Prime 100 certificate (Policy_Certificate.pdf, read 2026-10-16)
+
+- **Which benefit pays an office visit.** The Schedule of Benefits (PDF p.23) lists outpatient "Physician's Visits"
+  ($25 copay + 80%, no deductible) and, separately, "Consultant Physician Fees" under Other (PDF p.24, same terms).
+  The draft maps office visits to consultant physician fees. A person must decide which benefit a regular office
+  visit falls under.
+- **Some benefits cannot be calculated yet.** Physician's Visits, Physiotherapy, Medical Emergency Expenses and
+  Consultant Physician Fees combine a copay with coinsurance. The original calculator returns `needs_review` for
+  that by design, so these services get a rate quote but no patient cost. Laboratory procedures, diagnostic X-ray
+  and injections (80% after deductible) can be calculated.
+- **Product scope.** The plan is "designed exclusively for international students" (PDF p.1), and U.S. citizens
+  and residents are not eligible (PDF p.4). AGENTS.md says the product does not target international students, so
+  this plan is a demo plan, not a plan to recommend to the target users.
+- **The $200 ER copay is waived if the patient is admitted** (PDF p.24). The rule data does not model that
+  condition, so ER results stay `needs_review`.
 
 ## Known limits
 
