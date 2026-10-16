@@ -1,4 +1,6 @@
 # Student Health Insurance Cost Estimator
+
+> 当前进度（中文简版）见 [STATUS.md](STATUS.md)。
 A Python project that converts insurance policy PDFs into structured rules and uses them to estimate patient costs.
 
 ## Current progress
