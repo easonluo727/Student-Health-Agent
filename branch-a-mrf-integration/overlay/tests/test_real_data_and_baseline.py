@@ -57,7 +57,8 @@ class RealData(unittest.TestCase):
         return RateResolver(Mappings(pmap, smap, self.profiles), self.labels, self.lookup)
 
     def rule(self, service):
-        return {"policy_plan_id": "prime_100", "service": service, "setting": None, "network": "in-network"}
+        setting = next(e["setting"] for e in self.smap["entries"] if e["service"] == service)
+        return {"policy_plan_id": "prime_100", "service": service, "setting": setting, "network": "in-network"}
 
     def csv_a(self, insurer, network, label):
         with open(self.paths.rates_csv, newline="") as f:
@@ -73,7 +74,11 @@ class RealData(unittest.TestCase):
         p = fx.PATHS
         real = Mappings.from_files(p.overlay_data / "policy_mrf_map.v1.json", p.overlay_data / "service_rate_map.v1.json",
                                    p.plan_profiles)
-        self.assertEqual(real.plan_target("prime_100", "in-network")[1], "mapping_pending_review")
+        # the plan mapping was confirmed by the project owner; the service drafts still await review
+        target, status, _ = real.plan_target("prime_100", "in-network")
+        self.assertEqual((status, target.mrf_plan_key, target.mrf_network), ("ok", "uhc_ca_choice_plus", "Choice-Plus"))
+        entry, status, _ = real.service_entry("prime_100", "consultant physician fees", "other", "in-network")
+        self.assertEqual(status, "mapping_pending_review")
 
     def test_anthem_a_and_b_match_the_csv(self):
         r = self.resolver("anthem_ca_prudent_buyer_ppo", "CA PPO PRUDENT BUYER")

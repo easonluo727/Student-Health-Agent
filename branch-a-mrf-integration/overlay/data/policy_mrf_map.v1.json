@@ -4,30 +4,33 @@
     {
       "policy_plan_id": "prime_100",
       "policy_network_category": "in-network",
-      "mrf_plan_key": null,
-      "mrf_network": null,
+      "mrf_plan_key": "uhc_ca_choice_plus",
+      "mrf_network": "Choice-Plus",
       "network_scope": null,
       "candidates": [],
-      "question_for_human": "Which insurer issues plan 'prime_100' and which MRF plan_key / exact network_name does its in-network benefit column use? The archived rules file carries no issuer or network name, so no candidate can be justified.",
+      "question_for_human": null,
       "evidence": [
-        "archive/normalized_pdf_insurance_rules.json: plan='prime_100', no issuer, no network name, no source_page"
+        "Project owner (2026-10-16): prime_100 is a UnitedHealthcare plan on the Choice Plus PPO network.",
+        "data/plan_profiles.v1.json: uhc_ca_choice_plus, network_names ['Choice-Plus']"
       ],
-      "review_status": "pending_review",
-      "reviewed_by": null
+      "review_status": "verified",
+      "reviewed_by": "project owner, in chat 2026-10-16"
     },
     {
       "policy_plan_id": "prime_100",
       "policy_network_category": "out-of-network",
-      "mrf_plan_key": null,
-      "mrf_network": null,
+      "mrf_plan_key": "uhc_ca_choice_plus",
+      "mrf_network": "Choice-Plus",
       "network_scope": null,
       "candidates": [],
-      "question_for_human": "Which insurer issues plan 'prime_100' and which MRF plan_key / exact network_name does its out-of-network benefit column use? The archived rules file carries no issuer or network name, so no candidate can be justified.",
+      "question_for_human": null,
       "evidence": [
-        "archive/normalized_pdf_insurance_rules.json: plan='prime_100', no issuer, no network name, no source_page"
+        "Project owner (2026-10-16): prime_100 is a UnitedHealthcare plan on the Choice Plus PPO network.",
+        "data/plan_profiles.v1.json: uhc_ca_choice_plus, network_names ['Choice-Plus']",
+        "Out-of-network benefits are never priced with in-network MRF rates; the resolver returns mapping_invalid for them."
       ],
-      "review_status": "pending_review",
-      "reviewed_by": null
+      "review_status": "verified",
+      "reviewed_by": "project owner, in chat 2026-10-16"
     }
   ]
 }

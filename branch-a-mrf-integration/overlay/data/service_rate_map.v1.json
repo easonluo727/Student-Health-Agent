@@ -5,7 +5,7 @@
       "entry_id": "prime_100.consultant_physician_fees.in",
       "policy_plan_id": "prime_100",
       "service": "consultant physician fees",
-      "setting": null,
+      "setting": "other",
       "policy_network_category": "in-network",
       "clarification_question": "Is this a visit with a doctor you have seen before, a first visit with a new doctor, or a follow-up with a specialist?",
       "options": [
@@ -45,7 +45,7 @@
       "entry_id": "prime_100.laboratory_procedures.in",
       "policy_plan_id": "prime_100",
       "service": "laboratory procedures",
-      "setting": null,
+      "setting": "outpatient",
       "policy_network_category": "in-network",
       "clarification_question": "Which lab tests are these: routine blood work, STI screening, or a urine test?",
       "options": [
@@ -159,7 +159,7 @@
       "entry_id": "prime_100.diagnostic_xray_services.in",
       "policy_plan_id": "prime_100",
       "service": "diagnostic x-ray services",
-      "setting": null,
+      "setting": "outpatient",
       "policy_network_category": "in-network",
       "clarification_question": "Which imaging test: a chest X-ray, a knee MRI, or a lower-back MRI? (Whether MRI falls under this benefit must be verified.)",
       "options": [
@@ -199,7 +199,7 @@
       "entry_id": "prime_100.medical_emergency_expenses.in",
       "policy_plan_id": "prime_100",
       "service": "medical emergency expenses",
-      "setting": null,
+      "setting": "outpatient",
       "policy_network_category": "in-network",
       "clarification_question": null,
       "options": [
@@ -259,7 +259,7 @@
       "entry_id": "prime_100.injections.in",
       "policy_plan_id": "prime_100",
       "service": "injections",
-      "setting": null,
+      "setting": "outpatient",
       "policy_network_category": "in-network",
       "clarification_question": null,
       "options": [
