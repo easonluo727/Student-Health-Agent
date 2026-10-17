@@ -2,9 +2,10 @@ import base64
 import json
 import subprocess
 from pathlib import Path
-from openai import OpenAI
+from amd_client import amd_model, make_client
 
-client = OpenAI()
+client = make_client(timeout=300.0)
+MODEL = amd_model()
 
 # Get policy information
 pdf_path = Path(
@@ -89,7 +90,7 @@ for image_path in image_paths:
     ### First LLM call: extract the table rows
 
     response = client.responses.create(
-        model="gpt-6-luna",
+        model=MODEL,
         instructions="""
 Extract the visible benefit table into one JSON array. Return JSON only.
 
@@ -279,7 +280,7 @@ exactly matches the input entry_id sequence.
         )
 
         normalization_response = client.responses.create(
-            model="gpt-5-nano",
+            model=MODEL,
             instructions=normalization_instructions,
             input=json.dumps(
                 normalization_input,
