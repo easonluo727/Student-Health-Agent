@@ -2,7 +2,7 @@
 
     python branch_a_agent.py --plan prime_100 --rules <benefit_rules.json>
 
-LLM: the AMD OpenAI-compatible endpoint only (AMD_API_BASE_URL, AMD_API_KEY, AMD_MODEL); no OpenAI
+LLM: the AMD OpenAI-compatible endpoint only (AMD_BASE_URL, AMD_API_KEY, AMD_MODEL); no OpenAI
 default or fallback. The model chooses rules and options and writes replies; Python resolves rates,
 holds quotes, checks provenance and does every calculation.
 """
@@ -141,9 +141,9 @@ def build_tools(plan: str, rules_path: Path, paths: overlay_config.OverlayPaths 
 
 
 def amd_client():
-    base_url, key, model = (os.environ.get(k) for k in ("AMD_API_BASE_URL", "AMD_API_KEY", "AMD_MODEL"))
+    base_url, key, model = (os.environ.get(k) for k in ("AMD_BASE_URL", "AMD_API_KEY", "AMD_MODEL"))
     if not (base_url and key and model):
-        raise RuntimeError("Set AMD_API_BASE_URL, AMD_API_KEY and AMD_MODEL. No other provider is used.")
+        raise RuntimeError("Set AMD_BASE_URL, AMD_API_KEY and AMD_MODEL. No other provider is used.")
     if urlparse(base_url).hostname == "api.openai.com":
         raise RuntimeError("AMD-only: OpenAI endpoints are not allowed.")
     from openai import OpenAI  # client library pointed at the AMD endpoint

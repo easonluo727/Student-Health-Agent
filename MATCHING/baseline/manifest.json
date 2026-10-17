@@ -3,7 +3,7 @@
   "git": {
     "branch_at_snapshot": "claude/mrf-compile-05dr4a",
     "new_branch": "branch-a-mrf-integration",
-    "commit": "3f343246979d7bc926678059d248303747a8226b",
+    "commit": "ed780f9f433b6992d764aa586c27a99b21e24726",
     "status_porcelain": "(clean before this work: `git status --porcelain --untracked-files=all` printed nothing and `git stash list` was empty at commit 3698b7d on branch mrf-expand; the only later entry is this new branch-a-mrf-integration/ directory)",
     "stash": "(empty)",
     "ignored_local_paths": [
@@ -15,16 +15,16 @@
       "tests/__pycache__/",
       "workflow/__pycache__/"
     ],
-    "rebaseline_reason": "agent.py: add policy definitions to context"
+    "rebaseline_reason": "frontend merge: AMD client (amd_client.py) in agent.py, import_policy.py, interpret_request.py; build_instructions()"
   },
   "snapshots": [
     {
       "source_path": "workflow/import_policy.py",
       "snapshot_path": "baseline/files/workflow/import_policy.py",
-      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
-      "git_blob": "f6ae23172c0e4bbaffb81785fcdca42ae53bbd73",
-      "sha256": "fe25efecf3bc73a832a34a9698f11a22808e20de45e0be17ec599900a0f3f50d",
-      "bytes": 12078
+      "git_ref": "ed780f9f433b6992d764aa586c27a99b21e24726",
+      "git_blob": "ffa0a29fa14a4bfe2de0b63ffba0aa12ccf531bd",
+      "sha256": "48b7ae343a0078466c82620c2f4ae16f9df1ffd626a4fc5c7f64024e66ec2e7d",
+      "bytes": 12122
     },
     {
       "source_path": "workflow/agent_tools.py",
@@ -37,10 +37,10 @@
     {
       "source_path": "workflow/agent.py",
       "snapshot_path": "baseline/files/workflow/agent.py",
-      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
-      "git_blob": "30c822e5cafcc297a400bd9cd29652f148995974",
-      "sha256": "f7df8c9cf77bc26fd70ee3b2c9a33bc267f1adb73995164f8432928481867e23",
-      "bytes": 13812
+      "git_ref": "ed780f9f433b6992d764aa586c27a99b21e24726",
+      "git_blob": "4da44e3cb230bd1549a83f72308a987809993a62",
+      "sha256": "8dc0132c70c1bf2b651216bf23ddb701f10506c23bec12f7fc12794a3f18ff84",
+      "bytes": 12945
     },
     {
       "source_path": "workflow/guards.py",

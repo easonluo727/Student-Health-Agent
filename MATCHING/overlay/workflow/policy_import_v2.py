@@ -12,7 +12,7 @@ Outputs (all validated against overlay/schemas):
   policy_mrf_map.pending.json  one pending_review mapping per policy network category; the model never
                             fills mrf_plan_key / mrf_network (a human does, in overlay/data/policy_mrf_map.v1.json)
 
-LLM calls go only to the AMD OpenAI-compatible endpoint (AMD_API_BASE_URL, AMD_API_KEY, AMD_MODEL).
+LLM calls go only to the AMD OpenAI-compatible endpoint (AMD_BASE_URL, AMD_API_KEY, AMD_MODEL).
 There is no OpenAI default and no fallback. Validation, IDs, page checks and the mapping skeleton are
 deterministic Python. The extractor is injectable so tests run without any LLM.
 """
@@ -164,11 +164,11 @@ class AMDExtractor:
     """OpenAI-compatible client pointed only at the AMD endpoint (vLLM / Token Factory)."""
 
     def __init__(self, base_url: str | None = None, api_key: str | None = None, model: str | None = None):
-        base_url = base_url or os.environ.get("AMD_API_BASE_URL")
+        base_url = base_url or os.environ.get("AMD_BASE_URL")
         api_key = api_key or os.environ.get("AMD_API_KEY")
         model = model or os.environ.get("AMD_MODEL")
         if not (base_url and api_key and model):
-            raise RuntimeError("Set AMD_API_BASE_URL, AMD_API_KEY and AMD_MODEL. No other provider is used.")
+            raise RuntimeError("Set AMD_BASE_URL, AMD_API_KEY and AMD_MODEL. No other provider is used.")
         if urlparse(base_url).hostname in FORBIDDEN_HOSTS:
             raise RuntimeError("AMD-only: OpenAI endpoints are not allowed.")
         from openai import OpenAI  # client library only; the endpoint is AMD's

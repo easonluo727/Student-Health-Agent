@@ -59,7 +59,7 @@ python lookup_cli.py --no-providers '{"insurer": null, "plan_key": "anthem_ca_pr
   "selected_provider_npi": null}'
 
 # import a policy PDF (AMD endpoint only)
-export AMD_API_BASE_URL=... AMD_API_KEY=... AMD_MODEL=...
+export AMD_BASE_URL=... AMD_API_KEY=... AMD_MODEL=...
 python policy_import_v2.py --policy-plan-id uc_ship_2026 --metadata-pdf plan.pdf --metadata-pages 1-3 \
     --benefit-pages 12-15 --out-dir /tmp/uc_ship_2026
 

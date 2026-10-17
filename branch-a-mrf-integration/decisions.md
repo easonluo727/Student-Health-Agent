@@ -34,7 +34,7 @@ nothing is merged back automatically. The baseline is described in `baseline/man
    The two kinds of page can come from different PDFs. Python validates page numbers, dates and IDs, and drops
    any value whose page lies outside the requested range. The PDF's "in-network"/"out-of-network" labels are
    treated as benefit categories, never as MRF networks.
-3. **AMD-only LLM.** `AMDExtractor` and `amd_client()` require `AMD_API_BASE_URL`, `AMD_API_KEY` and
+3. **AMD-only LLM.** `AMDExtractor` and `amd_client()` require `AMD_BASE_URL`, `AMD_API_KEY` and
    `AMD_MODEL`, and refuse `api.openai.com`. There is no default and no fallback. The `openai` package is
    used only as the client library. Outputs are constrained with `response_format: json_schema`. The agent
    uses chat completions, because the original Responses-API features (`reasoning.encrypted_content`) are

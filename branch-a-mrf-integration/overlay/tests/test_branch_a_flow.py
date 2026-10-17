@@ -164,7 +164,7 @@ class AMDOnly(unittest.TestCase):
                 agent.amd_client()
             with self.assertRaises(RuntimeError):
                 policy_import_v2.AMDExtractor()
-        env = {"AMD_API_BASE_URL": "https://api.openai.com/v1", "AMD_API_KEY": "k", "AMD_MODEL": "m"}
+        env = {"AMD_BASE_URL": "https://api.openai.com/v1", "AMD_API_KEY": "k", "AMD_MODEL": "m"}
         with mock.patch.dict(os.environ, env, clear=True):
             with self.assertRaises(RuntimeError):
                 agent.amd_client()

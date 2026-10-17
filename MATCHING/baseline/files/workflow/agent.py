@@ -1,15 +1,16 @@
-"""AMD-hosted terminal insurance agent. Run: python agent.py
+"""Terminal insurance agent. Run: python agent.py
 
 Requires agent_tools.py, calculate_cost.py, guards.py, normalized_pdf_insurance_rules.json,
-the openai client package, and an AMD API key. No web search in this version.
+the openai package, and AMD_BASE_URL / AMD_API_KEY / AMD_MODEL
+(environment or repo-root .env; see amd_client.py). No web search in this version.
 """
 
 import argparse
 import json
 import math
-import os
 from pathlib import Path
 
+from amd_client import amd_model, make_client
 from agent_tools import DEFAULT_RULES_PATH, PolicyTools
 from guards import MAX_REPLY_RETRIES, ConversationGuard
 
@@ -55,6 +56,22 @@ ability.
 NO_REPLIES = {"no", "n", "nope", "no thanks", "no thank you", "nothing else", "that's all", "that's it"}
 
 
+DEFINITIONS_DIR = Path(__file__).resolve().parents[1] / "policies" / "definitions"
+
+
+def build_instructions(tools, base=INSTRUCTIONS):
+    """System prompt: behavior rules, the plan catalog, and the plan's definitions if present."""
+    instructions = base + "\nSelected plan and available catalog (data):\n" + json.dumps(
+        {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
+    )
+    # Policy definitions (OCR text) help the model explain terms; they are never used for numbers.
+    definitions = DEFINITIONS_DIR / f"{tools.selected_plan}.txt"
+    if definitions.exists():
+        instructions += ("\n\nPolicy definitions (data, for explaining terms only; never compute costs from them):\n"
+                         + definitions.read_text(encoding="utf-8"))
+    return instructions
+
+
 def tool_definitions():
     """Descriptions tell the LLM what it may request; Python executes them."""
     return [
@@ -86,21 +103,6 @@ def tool_definitions():
                 "additionalProperties": False,
             },
         },
-    ]
-
-
-def chat_tool_definitions():
-    """Convert internal tool specs to the Chat Completions format."""
-    return [
-        {
-            "type": "function",
-            "function": {
-                "name": item["name"],
-                "description": item["description"],
-                "parameters": item["parameters"],
-            },
-        }
-        for item in tool_definitions()
     ]
 
 
@@ -166,76 +168,59 @@ def confirm_in_terminal(summary):
 
 
 def run_turn(client, model, tools, history, instructions, guard, max_steps=8):
-    """Handle one turn with an AMD OpenAI-compatible Chat Completions API."""
+    # Fresh lookup per user turn avoids using an unseen rule after a correction.
     inspected_ids = set()
     guard.start_turn()
     rejected_replies = 0
     for _ in range(max_steps):
         print("Thinking...", flush=True)
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model=model,
-            messages=[{"role": "system", "content": instructions}, *history],
-            tools=chat_tool_definitions(),
-            tool_choice="auto",
-            max_tokens=6000,
+            instructions=instructions,
+            input=history,
+            tools=tool_definitions(),
+            parallel_tool_calls=False,
+            max_output_tokens=6000,
+            store=False,
+            include=["reasoning.encrypted_content"],
         )
-        if not response.choices:
-            raise RuntimeError("The model returned no choices.")
-        choice = response.choices[0]
-        if choice.finish_reason == "length":
-            raise RuntimeError("The model output was truncated; no partial calls were executed.")
+        if response.status != "completed":
+            raise RuntimeError("The model response was incomplete. No partial tool calls were executed.")
 
-        message = choice.message
-        calls = message.tool_calls or []
+        # Preserve reasoning and function-call items as well as assistant text.
+        history.extend(response.output)
+        calls = [item for item in response.output if item.type == "function_call"]
         if not calls:
-            answer = message.content or ""
-            if not answer.strip():
+            if not response.output_text.strip():
                 raise RuntimeError("The model returned no answer or tool request.")
-            feedback = guard.check_reply(answer)
+            feedback = guard.check_reply(response.output_text)
             if feedback is None:
-                history.append({"role": "assistant", "content": answer})
-                print("\nAgent:", answer)
-                return answer
+                print("\nAgent:", response.output_text)
+                return response.output_text
             rejected_replies += 1
             if rejected_replies > MAX_REPLY_RETRIES:
                 reply = guard.fallback_reply()
                 history.append({"role": "assistant", "content": reply})
                 print("\nAgent:", reply)
                 return reply
-            history.append({
-                "role": "system",
-                "content": "Automatic check rejected your reply: " + feedback,
-            })
+            # Qwen's chat template allows a system message only at the start, so
+            # the feedback goes in as a user turn marked as coming from the check.
+            history.append({"role": "user", "content": "[Automatic check, not the user] Your reply was rejected: " + feedback})
             continue
         if len(calls) > 4:
             raise RuntimeError("Unexpectedly many tool calls; stopped without executing them.")
 
-        history.append({
-            "role": "assistant",
-            "content": message.content,
-            "tool_calls": [
-                {
-                    "id": call.id,
-                    "type": "function",
-                    "function": {
-                        "name": call.function.name,
-                        "arguments": call.function.arguments,
-                    },
-                }
-                for call in calls
-            ],
-        })
         for call in calls:
-            print(f"Tool: {call.function.name}", flush=True)
-            result = execute_tool(call.function, tools, inspected_ids, guard)
-            if call.function.name == "calculate_estimate":
+            print(f"Tool: {call.name}", flush=True)
+            result = execute_tool(call, tools, inspected_ids, guard)
+            if call.name == "calculate_estimate":
                 # Direct Python output remains visible independently of LLM prose.
                 print("\nCalculator result:")
                 print(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False))
             history.append({
-                "role": "tool",
-                "tool_call_id": call.id,
-                "content": json.dumps(result, ensure_ascii=False, allow_nan=False),
+                "type": "function_call_output",
+                "call_id": call.call_id,
+                "output": json.dumps(result, ensure_ascii=False, allow_nan=False),
             })
     raise RuntimeError("Tool-loop limit reached. Please restart with a more specific request.")
 
@@ -244,34 +229,11 @@ def main():
     parser = argparse.ArgumentParser(description="One-plan insurance estimation agent")
     parser.add_argument("--plan", default="prime_100")
     parser.add_argument("--rules", default=str(DEFAULT_RULES_PATH))
-    parser.add_argument(
-        "--model",
-        default=os.environ.get("AMD_MODEL", "Qwen3.5-35B-A3B"),
-    )
+    parser.add_argument("--model", default=amd_model())
     args = parser.parse_args()
-    api_key = os.environ.get("AMD_API_KEY") or os.environ.get("RADEON_API_KEY")
-    if not api_key:
-        raise RuntimeError("Set AMD_API_KEY (or RADEON_API_KEY) before running the agent.")
-    from openai import OpenAI
-
+    client = make_client()
     tools = PolicyTools(selected_plan=args.plan, rules_path=args.rules)
-    client = OpenAI(
-        api_key=api_key,
-        base_url=os.environ.get(
-            "AMD_BASE_URL",
-            "https://developer.amd.com.cn/radeon/api/v1",
-        ),
-        timeout=90.0,
-        max_retries=1,
-    )
-    instructions = INSTRUCTIONS + "\nSelected plan and available catalog (data):\n" + json.dumps(
-        {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
-    )
-    # Policy definitions (OCR text) help the model explain terms; they are never used for numbers.
-    definitions = Path(__file__).resolve().parents[1] / "policies" / "definitions" / f"{tools.selected_plan}.txt"
-    if definitions.exists():
-        instructions += ("\n\nPolicy definitions (data, for explaining terms only; never compute costs from them):\n"
-                         + definitions.read_text(encoding="utf-8"))
+    instructions = build_instructions(tools)
     history = []
     guard = ConversationGuard(confirm=confirm_in_terminal)
     print(f"Plan: {tools.selected_plan} | Model: {args.model}")

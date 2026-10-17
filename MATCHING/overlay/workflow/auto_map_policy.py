@@ -11,7 +11,7 @@ Example (run from repository root):
     --rules local_data/policy-import/benefit_rules.json \
     --out-dir local_data/policy-import/auto-mapping
 
-Requires AMD_API_BASE_URL, AMD_API_KEY, AMD_MODEL. No other model provider is allowed.
+Requires AMD_BASE_URL, AMD_API_KEY, AMD_MODEL. No other model provider is allowed.
 """
 from __future__ import annotations
 
@@ -170,9 +170,9 @@ def build_service_candidates(rules: list[dict], encounter_groups: dict[str, list
 
 
 def amd_client():
-    base, key, model = (os.environ.get(k) for k in ("AMD_API_BASE_URL", "AMD_API_KEY", "AMD_MODEL"))
+    base, key, model = (os.environ.get(k) for k in ("AMD_BASE_URL", "AMD_API_KEY", "AMD_MODEL"))
     if not (base and key and model):
-        raise RuntimeError("Set AMD_API_BASE_URL, AMD_API_KEY and AMD_MODEL before automatic mapping.")
+        raise RuntimeError("Set AMD_BASE_URL, AMD_API_KEY and AMD_MODEL before automatic mapping.")
     if urlparse(base).hostname in {"api.openai.com", "chatgpt.com"}:
         raise RuntimeError("AMD-only project: refusing a non-AMD endpoint.")
     from openai import OpenAI
