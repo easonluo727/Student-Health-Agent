@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "policy_mrf_map.v1",
+  "title": "Explicit mapping from a local policy plan + policy network category to one MRF plan_key and exact MRF network",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "entries"],
+  "properties": {
+    "schema_version": {"const": "policy_mrf_map.v1"},
+    "entries": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policy_plan_id", "policy_network_category", "mrf_plan_key", "mrf_network",
+                   "evidence", "review_status"],
+      "properties": {
+        "policy_plan_id": {"type": "string"},
+        "policy_network_category": {"enum": ["in-network", "out-of-network"]},
+        "mrf_plan_key": {"type": ["string", "null"], "description": "data/plan_profiles.v1.json plan_key; null while unknown"},
+        "mrf_network": {"type": ["string", "null"],
+                        "description": "Exact provider_references[].network_name, or null with network_scope for plans imported without a network filter"},
+        "network_scope": {"type": ["string", "null"]},
+        "candidates": {"type": "array", "items": {"type": "object"},
+                       "description": "Possible MRF plans for a human to choose from; never used at runtime"},
+        "question_for_human": {"type": ["string", "null"]},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "review_status": {"enum": ["pending_review", "verified", "rejected"]},
+        "reviewed_by": {"type": ["string", "null"]}
+      }}}
+  }
+}
