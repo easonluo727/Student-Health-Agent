@@ -1,3 +1,6 @@
 openai
 ijson>=3.2
 requests
+fastapi
+uvicorn[standard]
+httpx2

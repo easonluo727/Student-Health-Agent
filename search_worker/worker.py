@@ -54,6 +54,30 @@ def sse(event, data):
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+# Insurers whose casual names are ambiguous ("United Health" finds United Airlines) or
+# whose site domain doesn't contain the name (UnitedHealthcare is uhc.com).
+# Lowercased alias -> (search name, words that appear in the official site's address).
+KNOWN_INSURERS = {
+    "united health": ("UnitedHealthcare", ["uhc", "unitedhealthcare"]),
+    "united healthcare": ("UnitedHealthcare", ["uhc", "unitedhealthcare"]),
+    "unitedhealthcare": ("UnitedHealthcare", ["uhc", "unitedhealthcare"]),
+    "unitedhealth": ("UnitedHealthcare", ["uhc", "unitedhealthcare"]),
+    "uhc": ("UnitedHealthcare", ["uhc", "unitedhealthcare"]),
+    "health net": ("Health Net", ["healthnet"]),
+    "la care": ("L.A. Care Health Plan", ["lacare"]),
+    "l.a. care": ("L.A. Care Health Plan", ["lacare"]),
+    "sharp": ("Sharp Health Plan", ["sharphealthplan"]),
+}
+
+
+def resolve_insurer(insurer):
+    """Return (name to search for, distinctive words used to recognize the official site)."""
+    key = re.sub(r"\s+", " ", insurer.lower()).strip(" .")
+    if key in KNOWN_INSURERS:
+        return KNOWN_INSURERS[key]
+    return insurer, name_tokens(insurer)
+
+
 def name_tokens(insurer):
     """'Oscar Health' -> ['oscar']: the distinctive words used to recognize the official site."""
     generic = {"health", "insurance", "healthcare", "inc", "the", "of", "company", "plan", "plans"}
@@ -61,6 +85,24 @@ def name_tokens(insurer):
 
 
 COOKIE_REJECT = re.compile(r"^(reject( all| optional)?( cookies)?|decline( all)?|necessary (cookies )?only|only necessary)", re.I)
+
+
+async def wait_until_rendered(page):
+    """Wait for the load event and for visible links. Some sites (uhc.com) keep the
+    whole page hidden while an A/B-testing script runs, so links read too early are
+    all invisible and the screenshot is blank."""
+    try:
+        await page.wait_for_load_state("load", timeout=8000)
+    except PlaywrightError:
+        pass
+    try:
+        await page.wait_for_function(
+            "() => [...document.querySelectorAll('a[href]')].filter(a => a.offsetWidth || a.offsetHeight).length >= 5",
+            timeout=6000,
+        )
+    except PlaywrightError:
+        pass
+    await page.wait_for_timeout(500)
 
 
 async def dismiss_cookie_banner(page):
@@ -186,7 +228,7 @@ async def bing_results(page, query):
 
 
 async def run_search(insurer):
-    tokens = name_tokens(insurer)
+    insurer, tokens = resolve_insurer(insurer)
     pages = []
 
     async def step(step_id, status, text, page=None, url=None):
@@ -239,7 +281,7 @@ async def run_search(insurer):
             yield await step("open", "running", f"Opening {official['title']}…")
             try:
                 response = await page.goto(official["href"], wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS)
-                await page.wait_for_timeout(1500)
+                await wait_until_rendered(page)
                 await dismiss_cookie_banner(page)
             except PlaywrightError:
                 yield await step("open", "failed", "The site didn't load in time", url=official["href"])
@@ -287,7 +329,7 @@ async def run_search(insurer):
             yield await step("extract", "running", f"Opening “{best['text']}” and reading prices…")
             try:
                 response = await page.goto(best["href"], wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS)
-                await page.wait_for_timeout(2500)
+                await wait_until_rendered(page)
                 await dismiss_cookie_banner(page)
             except PlaywrightError:
                 yield await step("extract", "failed", "That page didn't load in time", url=best["href"])

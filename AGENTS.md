@@ -17,7 +17,7 @@ Python computes all numbers and rankings. The LLM compares plans, decides, and w
 
 ## Hard constraint: AMD-only LLMs
 
-**Every LLM call in this project must go to the AMD API. No other provider is allowed, including OpenAI, and this applies during development and testing too.** The `openai` Python package may stay as the client library, pointed at the AMD endpoint via `base_url`. The current code still calls OpenAI models (`gpt-5-nano`, `gpt-6-luna`); migrating it is in progress. Do not add OpenAI defaults or fallbacks.
+**Every LLM call in this project must go to the AMD API. No other provider is allowed, including OpenAI, and this applies during development and testing too.** The `openai` Python package may stay as the client library, pointed at the AMD endpoint via `base_url`. All clients are created by `workflow/amd_client.py` (AMD endpoint, model `Qwen3.8-27B`). Do not add OpenAI defaults or fallbacks.
 
 This project is an entry in the AMD Developer Hackathon: ACT III (Health and Wellbeing track). "The AMD API" is an OpenAI-compatible endpoint serving an open model. Organizers say "Token Factory" counts as vLLM; if it turns out unsuitable, the endpoint is the team's own vLLM on an AMD Developer Cloud MI300X. Either way, the code only needs `base_url`, an API key, and a model name. The planned model is Qwen3.5-35B-A3B, which is multimodal, so one model handles both chat and PDF reading. Do not use DeepSeek.
 
@@ -27,7 +27,7 @@ Because the runtime models are open-source and weaker than frontier models, put 
 
 ## Running
 
-There is no build or lint setup. Tests: `python -m unittest discover tests`. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). `interpret_request.py` also imports `pydantic`. Every LLM call requires `OPENAI_API_KEY`. Run scripts from inside `workflow/`.
+There is no build or lint setup. Tests: `python -m unittest discover tests`. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). `interpret_request.py` also imports `pydantic`. Every LLM call needs `AMD_BASE_URL`, `AMD_API_KEY` and `AMD_MODEL`, read from the environment or the gitignored repo-root `.env`. Qwen's chat template rejects a system/developer message anywhere but first, so mid-conversation feedback must use the `user` role. Run scripts from inside `workflow/`.
 
 Frontend (Node + pnpm). With `NEXT_PUBLIC_API_BASE` unset it uses the built-in mock backend:
 
@@ -39,7 +39,7 @@ cd web && pnpm install && pnpm dev   # http://localhost:3000; also: pnpm lint, p
 pip install -r requirements.txt pydantic
 cd workflow
 python import_policy.py      # interactive: PDF path, plan name, start/end page of the Schedule of Benefits
-python agent.py              # LLM tool-calling chat agent; flags: --plan prime_100 --rules <path> --model gpt-5-nano
+python agent.py              # LLM tool-calling chat agent; flags: --plan prime_100 --rules <path> --model <AMD model>
 python estimate_pro.py       # older fixed-pipeline alternative to agent.py
 ```
 
@@ -68,6 +68,5 @@ Pipeline:
 ## Known inconsistencies
 
 - `.github/workflows/run-estimator.yml` runs `python estimate_multiple_2.0.py` from the repo root, but that script now lives in `archive/`, so the workflow is broken as written.
-- The code uses model names `gpt-5-nano` and `gpt-6-luna` (in `import_policy.py`).
 - `guards.py` `post_tool` asks for confirmation on every `estimated` result. The agreed rule (`docs/frontend-protocol.md`) is to confirm only when a value was inferred from chat; values from the questionnaire skip confirmation.
 - `guards.py` `pre_tool` accepts only amounts the user typed. Once the allowed-amount database exists, amounts returned by the price-lookup tool and questionnaire answers must also count as valid provenance, or the guard will block them.

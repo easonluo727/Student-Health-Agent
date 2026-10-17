@@ -1,14 +1,15 @@
 """Terminal insurance agent. Run: python agent.py
 
 Requires agent_tools.py, calculate_cost.py, guards.py, normalized_pdf_insurance_rules.json,
-the openai package, and OPENAI_API_KEY. No web search in this version.
+the openai package, and AMD_BASE_URL / AMD_API_KEY / AMD_MODEL
+(environment or repo-root .env; see amd_client.py). No web search in this version.
 """
 
 import argparse
 import json
 import math
-import os
 
+from amd_client import amd_model, make_client
 from agent_tools import DEFAULT_RULES_PATH, PolicyTools
 from guards import MAX_REPLY_RETRIES, ConversationGuard
 
@@ -185,7 +186,9 @@ def run_turn(client, model, tools, history, instructions, guard, max_steps=8):
                 history.append({"role": "assistant", "content": reply})
                 print("\nAgent:", reply)
                 return reply
-            history.append({"role": "developer", "content": "Automatic check rejected your reply: " + feedback})
+            # Qwen's chat template allows a system message only at the start, so
+            # the feedback goes in as a user turn marked as coming from the check.
+            history.append({"role": "user", "content": "[Automatic check, not the user] Your reply was rejected: " + feedback})
             continue
         if len(calls) > 4:
             raise RuntimeError("Unexpectedly many tool calls; stopped without executing them.")
@@ -209,14 +212,10 @@ def main():
     parser = argparse.ArgumentParser(description="One-plan insurance estimation agent")
     parser.add_argument("--plan", default="prime_100")
     parser.add_argument("--rules", default=str(DEFAULT_RULES_PATH))
-    parser.add_argument("--model", default="gpt-5-nano")
+    parser.add_argument("--model", default=amd_model())
     args = parser.parse_args()
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise RuntimeError("Set OPENAI_API_KEY before running the agent.")
-    from openai import OpenAI
-
+    client = make_client()
     tools = PolicyTools(selected_plan=args.plan, rules_path=args.rules)
-    client = OpenAI(timeout=90.0, max_retries=1)
     instructions = INSTRUCTIONS + "\nSelected plan and available catalog (data):\n" + json.dumps(
         {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
     )

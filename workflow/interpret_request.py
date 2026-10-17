@@ -2,7 +2,7 @@ import json
 import math
 from typing import Literal
 
-from openai import OpenAI
+from amd_client import amd_model, make_client
 from pydantic import BaseModel
 
 
@@ -151,10 +151,10 @@ def interpret_request(request_text, candidate_catalog, *, client=None):
     ]
 
     if client is None:
-        client = OpenAI()
+        client = make_client()
 
     response = client.responses.parse(
-        model="gpt-5-nano",
+        model=amd_model(),
         instructions=INTERPRETATION_INSTRUCTIONS,
         input=json.dumps(
             {
