@@ -1,4 +1,5 @@
 import type { ServerEvent, TurnRequest } from "./protocol"
+import { readSSE } from "./sse"
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api/mock"
 export const IS_MOCK = !process.env.NEXT_PUBLIC_API_BASE
@@ -18,30 +19,7 @@ export async function* streamTurn(
   if (!response.ok || !response.body) {
     throw new Error(`Server returned ${response.status}`)
   }
-
-  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
-  let buffer = ""
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buffer += value.replace(/\r\n/g, "\n")
-    let boundary: number
-    while ((boundary = buffer.indexOf("\n\n")) !== -1) {
-      const block = buffer.slice(0, boundary)
-      buffer = buffer.slice(boundary + 2)
-      const parsed = parseBlock(block)
-      if (parsed) yield parsed
-    }
+  for await (const event of readSSE(response.body)) {
+    yield event as ServerEvent
   }
-}
-
-function parseBlock(block: string): ServerEvent | null {
-  let event = "message"
-  const dataLines: string[] = []
-  for (const line of block.split("\n")) {
-    if (line.startsWith("event:")) event = line.slice(6).trim()
-    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart())
-  }
-  if (dataLines.length === 0) return null
-  return { event, data: JSON.parse(dataLines.join("\n")) } as ServerEvent
 }

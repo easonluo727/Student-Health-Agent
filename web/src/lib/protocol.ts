@@ -117,6 +117,19 @@ export interface SearchStep {
   status: StepStatus
   text: string
   url?: string | null
+  title?: string | null
+  // JPEG data URL of the page at this step (live search worker only).
+  screenshot?: string | null
+}
+
+// Final result of the live search worker (search_worker/worker.py). The agent
+// service turns it into the assistant's reply; it is not sent to the browser.
+export interface SearchSummary {
+  insurer: string
+  status: "found" | "partial" | "blocked" | "not_found" | "error"
+  message: string
+  facts: { label: string; value: string }[]
+  pages: { title: string; url: string }[]
 }
 
 export interface ReportPlan {

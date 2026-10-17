@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { ArrowUp, Cpu, HeartPulse, X } from "lucide-react"
+import { ArrowUp, BarChart3, HeartPulse, Monitor, PanelRightClose, PanelRightOpen, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ComputerPanel } from "@/components/computer/computer-panel"
 import { ArenaPanel } from "@/components/dashboard/arena-panel"
 import { initialState, reducer, type Action, type TimelineItem } from "@/lib/chat-state"
 import { IS_MOCK, streamTurn } from "@/lib/client"
@@ -28,6 +29,8 @@ export function ChatApp() {
   const sessionRef = useRef<string | null>(null)
   const [draft, setDraft] = useState("")
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null)
+  const [panelTab, setPanelTab] = useState<"arena" | "computer">("arena")
+  const [panelOpen, setPanelOpen] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -38,6 +41,14 @@ export function ChatApp() {
       try {
         for await (const event of streamTurn({ session_id: sessionRef.current, input, reply_target: target })) {
           dispatch({ type: "server", event })
+          // Bring the panel that just got new content to the front.
+          if (event.event === "search_step" && event.data.screenshot) {
+            setPanelTab("computer")
+            setPanelOpen(true)
+          } else if (event.event === "report") {
+            setPanelTab("arena")
+            setPanelOpen(true)
+          }
         }
         dispatch({ type: "turn_finished" })
       } catch (error) {
@@ -77,6 +88,18 @@ export function ChatApp() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [lastItemKey])
 
+  // The latest search that has screenshots feeds the computer panel.
+  const search = state.items.findLast(
+    (i): i is Extract<TimelineItem, { kind: "search" }> =>
+      i.kind === "search" && i.steps.some((s) => s.screenshot),
+  )
+  const hasPanel = Boolean(state.report || search)
+  const tab = panelTab === "computer" && search ? "computer" : state.report ? "arena" : "computer"
+  const openComputer = () => {
+    setPanelTab("computer")
+    setPanelOpen(true)
+  }
+
   const waiting = state.busy && !state.items.some((i) => i.kind === "assistant" && i.streaming)
 
   return (
@@ -84,9 +107,6 @@ export function ChatApp() {
       <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
         <HeartPulse className="size-5 text-primary" />
         <span className="truncate font-semibold">Student Health Agent</span>
-        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-          <Cpu className="size-3" /> AI runs on AMD Instinct
-        </span>
         {IS_MOCK && (
           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
             Mock backend
@@ -95,7 +115,7 @@ export function ChatApp() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <main className={cn("flex min-w-0 flex-1 flex-col", state.report && "max-w-[52%]")}>
+        <main className={cn("flex min-w-0 flex-1 flex-col", hasPanel && panelOpen && "max-w-[52%]")}>
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
               {state.items.length === 0 && <EmptyState onPick={send} />}
@@ -105,6 +125,7 @@ export function ChatApp() {
                   item={item}
                   busy={state.busy}
                   run={run}
+                  onOpenComputer={openComputer}
                 />
               ))}
               {waiting && <TypingDots />}
@@ -160,10 +181,41 @@ export function ChatApp() {
           </div>
         </main>
 
-        {state.report && (
-          <aside className="min-w-0 flex-1 overflow-y-auto border-l bg-muted/20">
-            <ArenaPanel report={state.report} onAsk={ask} />
+        {hasPanel && panelOpen && (
+          <aside className="flex min-w-0 flex-1 flex-col border-l bg-muted/20">
+            <div className="flex shrink-0 items-center gap-1 border-b px-3 py-2">
+              {state.report && (
+                <PanelTab active={tab === "arena"} onClick={() => setPanelTab("arena")}>
+                  <BarChart3 className="size-4" /> Arena
+                </PanelTab>
+              )}
+              {search && (
+                <PanelTab active={tab === "computer"} onClick={() => setPanelTab("computer")}>
+                  <Monitor className="size-4" /> Computer
+                </PanelTab>
+              )}
+              <button
+                onClick={() => setPanelOpen(false)}
+                className="ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                aria-label="Hide panel"
+              >
+                <PanelRightClose className="size-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {tab === "arena" && state.report && <ArenaPanel report={state.report} onAsk={ask} />}
+              {tab === "computer" && search && <ComputerPanel key={search.id} steps={search.steps} />}
+            </div>
           </aside>
+        )}
+        {hasPanel && !panelOpen && (
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="flex w-10 shrink-0 flex-col items-center gap-2 border-l bg-muted/20 pt-3 text-muted-foreground hover:text-foreground"
+            aria-label="Show panel"
+          >
+            <PanelRightOpen className="size-4" />
+          </button>
         )}
       </div>
 
@@ -175,10 +227,12 @@ function TimelineRow({
   item,
   busy,
   run,
+  onOpenComputer,
 }: {
   item: TimelineItem
   busy: boolean
   run: (input: TurnInput, before: Action) => void
+  onOpenComputer: () => void
 }) {
   switch (item.kind) {
     case "user":
@@ -230,7 +284,7 @@ function TimelineRow({
     case "estimate":
       return <EstimateCard estimate={item.estimate} />
     case "search":
-      return <SearchCard steps={item.steps} />
+      return <SearchCard steps={item.steps} onOpenComputer={onOpenComputer} />
     case "error":
       return (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -238,6 +292,28 @@ function TimelineRow({
         </div>
       )
   }
+}
+
+function PanelTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm",
+        active ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  )
 }
 
 function EmptyState({ onPick }: { onPick: (text: string) => void }) {

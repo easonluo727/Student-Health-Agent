@@ -2,7 +2,7 @@
 // Every number here is a PLACEHOLDER for UI development, not plan data.
 // Real numbers come from the FastAPI service (Python calculator + catalogs).
 
-import type { Answer, Report, ServerEvent, Source, TurnRequest } from "./protocol"
+import type { Answer, Report, SearchSummary, ServerEvent, Source, TurnRequest } from "./protocol"
 
 export type MockStep = ServerEvent | { pause: number }
 
@@ -355,7 +355,7 @@ function search(insurer: string): MockStep[] {
     data: { search_id: searchId, step_id, status, text, url: url ?? null },
   })
   return [
-    ...say(`${insurer} isn't in my database yet, so I'll look it up live.\n\n`),
+    ...searchIntro(insurer),
     step("find", "running", `Searching for ${insurer} individual plans in California…`),
     { pause: 900 },
     step("find", "done", `Found ${insurer}'s plan finder page`, "https://example.com/plans"),
@@ -377,9 +377,37 @@ function search(insurer: string): MockStep[] {
   ]
 }
 
+// Reply for a live search, written from the worker's facts by template (no LLM).
+export function searchReply(summary: SearchSummary): MockStep[] {
+  const lines = [`**${summary.message}**`]
+  if (summary.facts.length) {
+    lines.push("", ...summary.facts.map((f) => `- ${f.label}: ${f.value}`))
+  }
+  const source = summary.pages.at(-1)
+  if (source) lines.push("", `Source: [${source.title || source.url}](${source.url})`)
+  if (summary.status === "found" || summary.facts.length) {
+    lines.push("", "These facts come from the insurer's website, so I use them to judge fit but not to compute costs.")
+  } else {
+    lines.push("", "You can check the insurer's site yourself, or ask about a plan that's in my database.")
+  }
+  return say(lines.join("\n"))
+}
+
+export function searchIntro(insurer: string): MockStep[] {
+  return say(`${insurer} isn't in my database yet, so I'll look it up live.\n\n`)
+}
+
 const KNOWN = /uc ?ship|anthem|blue shield|kaiser/i
 const RECOMMEND = /recommend|other|alternative|compare|better/i
-const INSURER = /\b(oscar|cigna|aetna|united|uhc|molina|health net|ambetter|[A-Z][a-z]+ (?:health|insurance))\b/i
+const INSURER = /\b((?:oscar|cigna|aetna|unitedhealthcare|united healthcare|uhc|molina|health net|ambetter|centene|humana|wellcare|sharp|la care|l\.a\. care)(?: health(?:care)?| insurance)?)\b/i
+
+// The insurer to search for, when the message names one that isn't in the database.
+export function searchTarget(request: TurnRequest): string | null {
+  if (request.input.type !== "message" || request.reply_target) return null
+  const match = request.input.text.match(INSURER)
+  if (!match || KNOWN.test(request.input.text)) return null
+  return match[1].replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 export function scriptFor(request: TurnRequest): MockStep[] {
   const { input } = request
@@ -426,8 +454,8 @@ export function scriptFor(request: TurnRequest): MockStep[] {
         "with the page number on each cell. *(Mock explanation — the real agent explains the specific values.)*",
     )
   }
-  const insurer = text.match(INSURER)
-  if (insurer && !KNOWN.test(text)) return search(insurer[1].replace(/^\w/, (c) => c.toUpperCase()))
+  const insurer = searchTarget(request)
+  if (insurer) return search(insurer)
   if (/how much|cost|price/i.test(text) && /\b(er|emergency|ankle|x-?ray)\b/i.test(text)) {
     return [
       ...say("I need to make a few assumptions from what you said. Please check them before I calculate."),

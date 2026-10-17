@@ -48,7 +48,7 @@
 | `form` | `Form` | 问卷卡片，等待用户填写 |
 | `confirm` | `Confirm` | 确认卡片：计算之前展示 agent 理解的服务、网络、金额 |
 | `estimate` | `Estimate` | 对话里的费用结果：一个数字 + 计算过程表格 |
-| `search_step` | `{ search_id, step_id, status, text, url? }` | 搜索进度，一行实时文字；同一个 `step_id` 再次出现时更新这一行 |
+| `search_step` | `{ search_id, step_id, status, text, url?, title?, screenshot? }` | 搜索进度：对话里显示一行文字（同一个 `step_id` 再次出现时更新这一行）；带 `screenshot` 时，右侧 “Computer” 面板显示这一步的网页截图 |
 | `report` | `{ report: Report }` | 打开或更新 dashboard 面板（整份替换） |
 | `error` | `{ message }` | 显示错误，用户可以重试 |
 | `done` | `{}` | 这一轮结束，输入框恢复可用 |
@@ -176,9 +176,20 @@
 - `comparison` 中 `highlight: true` 的行和用户的病情相关，前端会高亮。
 - 不使用综合评分。
 
+## 搜索 worker
+
+`search_worker/worker.py`（FastAPI + Playwright，不调用 LLM）。agent 服务调用它，把它的事件转发给前端。
+
+- `POST /search`，请求体 `{ "insurer": "Oscar Health" }`，响应是 `text/event-stream`。
+- `search_step`：`{ step_id, status, text, url, title, screenshot }`。`screenshot` 是 JPEG 的 data URL。agent 服务转发时补上 `search_id`。
+- `search_summary`：`{ insurer, status, message, facts, pages }`，`status` 是 `found`、`partial`、`blocked`、`not_found`、`error` 之一。这个事件不发给前端，由 agent 服务据此写回复。
+- 固定四步：Bing 搜索并找出官网 → 打开官网 → 给页面上的链接按关键词打分并选一个 → 打开它，用正则读出保费、自付额、自付上限。
+- 网站拦截自动化访问时立即停止并如实说明，不伪装浏览器、不绕过。只会拒绝可选 cookie，不登录、不填表单。
+- 前端 mock 在设置了环境变量 `SEARCH_WORKER_URL` 时调用真实 worker；没设置时回放写死的搜索剧本。
+
 ## 前端的固定行为
 
 - 问卷卡片：提交时卡片进入“提交中”状态，按钮全部禁用；提交失败时错误显示在卡片上，可以重试；提交后卡片折叠成一行摘要。
 - 确认卡片：“Looks right” 或 “Something's off”（附一句说明）。只在 agent 有猜测时出现，见上文。
 - dashboard：在对话右侧（只做桌面 web 端）。点击对比表的某一行，输入框上方会出现“Asking about: …”，下一条消息带上 `reply_target`。
-- 搜索进度：在对话里显示为步骤列表，正在进行的步骤有加载动画。
+- 搜索进度：在对话里显示为步骤列表，正在进行的步骤有加载动画。有截图时，右侧面板自动切到 “Computer”：搜索进行中跟随最新一步；结束后显示所有截图的总览；点击某一张可停下来查看，点 “Back to live” / “Overview” 回到跟随。
