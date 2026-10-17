@@ -136,7 +136,7 @@ Agent 作为调度员，把能力做成 tools：发问卷、查保单信息、�
 # 前端形式：对话窗为主
 - **对话窗是主界面**（类似 Hark）。
 - **问卷**：在对话中以表单卡片的形式出现，支持单选、多选、填空，每题都有“不知道”选项。具体的交互参考另一个产品，用 REA 研究后确定；只借鉴交互思路，界面由我们自己设计。
-- **确认卡片**：计算之前，展示 agent 理解的服务、网络、金额，用户确认后才计算。
+- **确认卡片**：只在 agent 有猜测时出现。计算要用到的服务、网络、金额里，只要有一项是 agent 从聊天里推断的，就先展示出来，用户确认后才计算；全部来自问卷的，直接计算。
 - **结果展示**：
   - 简单的问题，直接在对话里回答：数字 + 计算过程表格。
   - Insurance Arena 在对话旁边的面板里展示 dashboard，从结论到细节逐层展开：
@@ -150,19 +150,21 @@ Agent 作为调度员，把能力做成 tools：发问卷、查保单信息、�
   - 点击 dashboard 上的条目，agent 直接解释该条。
   - agent 不自己算数，所有数字来自后端 tools，保证和 dashboard 一致。
   - 不给医疗建议、不保证理赔，必要时引导用户找保险公司核实。
-- 手机端：dashboard 面板改为底部抽屉。
+- 只做桌面 web 端，不考虑手机端。
 
 参考资料：`docs/research/hark-interaction-patterns.md`
 
 ### 架构与部署
 ```
 Vercel
- ├─ Next.js 前端（对话窗 + 问卷卡片 + dashboard 面板）
- ├─ agent 流程（调用 AMD 上的模型）
- ├─ Python 函数：计算器、guards.py
- └─ 只读数据：保单信息数据库（policies/*.json，规则 JSON v2）+ allowed amount 数据库（SQLite）
-        │ 需要搜索时调用 ↓
+ └─ Next.js 前端（对话窗 + 问卷卡片 + dashboard 面板）
+        │ SSE（协议见 docs/frontend-protocol.md）↓
 Railway
+ ├─ FastAPI agent 服务
+ │   ├─ agent 流程（调用 AMD 上的模型）
+ │   ├─ 计算器、guards.py
+ │   └─ 只读数据：保单信息数据库（policies/*.json，规则 JSON v2）+ allowed amount 数据库（SQLite）
+ │          │ 需要搜索时调用 ↓
  └─ 搜索 worker（Playwright + Chromium），实时推送文字进度
 ```
 - 所有 AI 调用都使用 AMD 上的开源模型。

@@ -90,8 +90,10 @@
 - **模型**：**Qwen3.5-35B-A3B**。Qwen3.5 全系列都能看图，所以一个模型同时做对话和读保单。可以再拿 Qwen3.5-122B-A10B 在读保单的准确率上对比一次。**不使用 DeepSeek**：完整版单卡放不下，单卡放得下的版本又不能看图。
 
 ## 8. 部署
-- **Vercel**：Next.js 前端、agent 流程、Python 函数（复用现有的计算器和 `guards.py`）、只读数据（JSON + SQLite）。自动生成 HTTPS 网址，作为提交的演示网址。
-- **Railway**：搜索 worker（Playwright + Chromium）。
+- ✅ 2026-10-16 改定：agent 流程不再放进 Vercel Python 函数，改为一个独立的 **Python FastAPI 服务**。原因：SSE 长连接会受 Vercel 函数执行时长的限制，SQLite 文件也有体积上限；FastAPI 可以直接复用 `guards.py`、`calculate_cost.py` 和 `scripts/mrf/lookup.py`。
+- **Vercel**：Next.js 前端（`web/`），只负责界面。自动生成 HTTPS 网址，作为提交的演示网址。
+- **Railway**：FastAPI agent 服务（agent 循环、guards、计算器、只读数据 JSON + SQLite），以及搜索 worker（Playwright + Chromium）。
+- 前后端协议见 `docs/frontend-protocol.md`。前端在没有后端时使用自带的 mock（按 Demo 流程回放事件）。
 - 不使用 Supabase：数据都是只读的，规模很小。
 - 另外写好 `Dockerfile` 和 `docker-compose.yml`，满足比赛的容器化要求，让评委能在本机运行。
 

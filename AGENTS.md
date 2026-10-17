@@ -11,9 +11,9 @@ The product is a chat-first matching agent. Each turn, the LLM picks questions f
 - the policy-information database: everything in plan PDFs except prices, covering UC SHIP plus a few major US commercial insurers;
 - the allowed-amount database: negotiated rates parsed from insurers' Transparency in Coverage MRFs, stored in SQLite.
 
-Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names an insurer that is not in the database, a Playwright search worker on Railway looks it up and streams text progress. Search results inform the judgment but are never used to compute costs. The deployment is Vercel (Next.js frontend, agent flow, Python functions, read-only data) plus Railway (search worker). There is no Supabase, and premium subsidies are not computed.
+Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names an insurer that is not in the database, a Playwright search worker on Railway looks it up and streams text progress. Search results inform the judgment but are never used to compute costs. The deployment is Vercel (Next.js frontend only) plus Railway (Python FastAPI agent service with the calculator, guards and read-only data, and the search worker). There is no Supabase, and premium subsidies are not computed.
 
-**None of the frontend, question bank, or search worker exists yet.** The agent code is Python CLI scripts in `workflow/`. The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see the README section "MRF compile pipeline" and `scripts/mrf/server/README.md`); its outputs are in `data/mrf/` and `scripts/mrf/lookup.py` is the integration hook. `archive/` holds superseded scripts.
+**The question bank and search worker do not exist yet.** The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the backend over the SSE protocol in `docs/frontend-protocol.md`; until the FastAPI agent service exists it runs against a built-in mock (`web/src/lib/mock-script.ts`, placeholder numbers only). The agent code is Python CLI scripts in `workflow/`. The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see the README section "MRF compile pipeline" and `scripts/mrf/server/README.md`); its outputs are in `data/mrf/` and `scripts/mrf/lookup.py` is the integration hook. `archive/` holds superseded scripts.
 
 ## Hard constraint: AMD-only LLMs
 
@@ -28,6 +28,12 @@ Because the runtime models are open-source and weaker than frontier models, put 
 ## Running
 
 There is no build or lint setup. Tests: `python -m unittest discover tests`. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). `interpret_request.py` also imports `pydantic`. Every LLM call requires `OPENAI_API_KEY`. Run scripts from inside `workflow/`.
+
+Frontend (Node + pnpm). With `NEXT_PUBLIC_API_BASE` unset it uses the built-in mock backend:
+
+```bash
+cd web && pnpm install && pnpm dev   # http://localhost:3000; also: pnpm lint, pnpm build
+```
 
 ```bash
 pip install -r requirements.txt pydantic
@@ -63,4 +69,5 @@ Pipeline:
 
 - `.github/workflows/run-estimator.yml` runs `python estimate_multiple_2.0.py` from the repo root, but that script now lives in `archive/`, so the workflow is broken as written.
 - The code uses model names `gpt-5-nano` and `gpt-6-luna` (in `import_policy.py`).
+- `guards.py` `post_tool` asks for confirmation on every `estimated` result. The agreed rule (`docs/frontend-protocol.md`) is to confirm only when a value was inferred from chat; values from the questionnaire skip confirmation.
 - `guards.py` `pre_tool` accepts only amounts the user typed. Once the allowed-amount database exists, amounts returned by the price-lookup tool and questionnaire answers must also count as valid provenance, or the guard will block them.
