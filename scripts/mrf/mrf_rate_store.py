@@ -22,7 +22,7 @@ from dataclasses import asdict
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS mrf_sources (
     source_id          INTEGER PRIMARY KEY,
-    source_url         TEXT NOT NULL UNIQUE,
+    source_url         TEXT NOT NULL,
     insurer            TEXT NOT NULL,
     plan_key           TEXT NOT NULL,
     network            TEXT,
@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS mrf_sources (
     finished_at        TEXT,
     wall_seconds       REAL,
     peak_rss_mb        REAL,
-    parser_stats       TEXT
+    parser_stats       TEXT,
+    UNIQUE (source_url, plan_key)  -- one file can serve several networks (e.g. Anthem Pathway EPO and HMO)
 );
 CREATE TABLE IF NOT EXISTS negotiated_rates (
     rate_id                 INTEGER PRIMARY KEY,
@@ -88,14 +89,15 @@ def connect(path: str) -> sqlite3.Connection:
     return con
 
 
-def source_status(con: sqlite3.Connection, url: str) -> str | None:
-    row = con.execute("SELECT status FROM mrf_sources WHERE source_url=?", (url,)).fetchone()
+def source_status(con: sqlite3.Connection, url: str, plan_key: str) -> str | None:
+    row = con.execute("SELECT status FROM mrf_sources WHERE source_url=? AND plan_key=?", (url, plan_key)).fetchone()
     return row[0] if row else None
 
 
 def begin_source(con: sqlite3.Connection, url: str, **meta) -> int:
     """Create (or reset a partial) source row and return its id."""
-    row = con.execute("SELECT source_id FROM mrf_sources WHERE source_url=?", (url,)).fetchone()
+    row = con.execute("SELECT source_id FROM mrf_sources WHERE source_url=? AND plan_key=?",
+                      (url, meta["plan_key"])).fetchone()
     if row:
         sid = row[0]
         con.execute("DELETE FROM negotiated_rates WHERE source_id=?", (sid,))

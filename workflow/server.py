@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from agent import INSTRUCTIONS, execute_tool, tool_definitions
+from agent import INSTRUCTIONS, build_instructions, execute_tool, tool_definitions
 from agent_tools import DEFAULT_RULES_PATH, PolicyTools
 from amd_client import amd_model, load_env, make_client
 from guards import MAX_REPLY_RETRIES, ConversationGuard
@@ -72,13 +72,10 @@ class Session:
         self.guard = ConversationGuard(confirm=self._confirm)
         self.inspected_ids = set()
         self.pending = None  # (request_id, summary, call) while a confirm card is open
-        self.instructions = (
-            INSTRUCTIONS.replace("You cannot browse, import PDFs", "You cannot import PDFs")
-            + ("\nUse search_insurer when the user asks about an insurer other than the selected plan."
-               if SEARCH_WORKER_URL else "")
-            + "\nSelected plan and available catalog (data):\n"
-            + json.dumps({"plan": self.tools.selected_plan, "catalog": self.tools.get_catalog()}, ensure_ascii=False)
-        )
+        base = INSTRUCTIONS.replace("You cannot browse, import PDFs", "You cannot import PDFs")
+        if SEARCH_WORKER_URL:
+            base += "\nUse search_insurer when the user asks about an insurer other than the selected plan."
+        self.instructions = build_instructions(self.tools, base)
 
     def _confirm(self, summary):
         # guards.post_tool calls this synchronously; the web answer arrives in a later request.

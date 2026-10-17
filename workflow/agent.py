@@ -8,6 +8,7 @@ the openai package, and AMD_BASE_URL / AMD_API_KEY / AMD_MODEL
 import argparse
 import json
 import math
+from pathlib import Path
 
 from amd_client import amd_model, make_client
 from agent_tools import DEFAULT_RULES_PATH, PolicyTools
@@ -53,6 +54,22 @@ ability.
 """
 
 NO_REPLIES = {"no", "n", "nope", "no thanks", "no thank you", "nothing else", "that's all", "that's it"}
+
+
+DEFINITIONS_DIR = Path(__file__).resolve().parents[1] / "policies" / "definitions"
+
+
+def build_instructions(tools, base=INSTRUCTIONS):
+    """System prompt: behavior rules, the plan catalog, and the plan's definitions if present."""
+    instructions = base + "\nSelected plan and available catalog (data):\n" + json.dumps(
+        {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
+    )
+    # Policy definitions (OCR text) help the model explain terms; they are never used for numbers.
+    definitions = DEFINITIONS_DIR / f"{tools.selected_plan}.txt"
+    if definitions.exists():
+        instructions += ("\n\nPolicy definitions (data, for explaining terms only; never compute costs from them):\n"
+                         + definitions.read_text(encoding="utf-8"))
+    return instructions
 
 
 def tool_definitions():
@@ -216,9 +233,7 @@ def main():
     args = parser.parse_args()
     client = make_client()
     tools = PolicyTools(selected_plan=args.plan, rules_path=args.rules)
-    instructions = INSTRUCTIONS + "\nSelected plan and available catalog (data):\n" + json.dumps(
-        {"plan": tools.selected_plan, "catalog": tools.get_catalog()}, ensure_ascii=False
-    )
+    instructions = build_instructions(tools)
     history = []
     guard = ConversationGuard(confirm=confirm_in_terminal)
     print(f"Plan: {tools.selected_plan} | Model: {args.model}")

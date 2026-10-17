@@ -27,11 +27,13 @@ def merge(shard_paths: list[str], out: str) -> dict:
     merged = skipped = 0
     for path in shard_paths:
         con.execute("ATTACH DATABASE ? AS s", (path,))
-        for (sid, url) in con.execute("SELECT source_id, source_url FROM s.mrf_sources WHERE status='complete'").fetchall():
-            if con.execute("SELECT 1 FROM main.mrf_sources WHERE source_url=? AND status='complete'", (url,)).fetchone():
+        for (sid, url, pk) in con.execute(
+                "SELECT source_id, source_url, plan_key FROM s.mrf_sources WHERE status='complete'").fetchall():
+            if con.execute("SELECT 1 FROM main.mrf_sources WHERE source_url=? AND plan_key=? AND status='complete'",
+                           (url, pk)).fetchone():
                 skipped += 1
                 continue
-            con.execute("DELETE FROM main.mrf_sources WHERE source_url=?", (url,))
+            con.execute("DELETE FROM main.mrf_sources WHERE source_url=? AND plan_key=?", (url, pk))
             new = con.execute(f"INSERT INTO main.mrf_sources ({','.join(SRC_COLS)}) SELECT {','.join(SRC_COLS)} "
                               "FROM s.mrf_sources WHERE source_id=?", (sid,)).lastrowid
             con.execute(f"INSERT INTO main.negotiated_rates (source_id,{','.join(RATE_COLS)}) "

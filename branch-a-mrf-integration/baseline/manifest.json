@@ -1,0 +1,139 @@
+{
+  "created_utc": "2026-10-16T18:48:16Z",
+  "git": {
+    "branch_at_snapshot": "claude/mrf-compile-05dr4a",
+    "new_branch": "branch-a-mrf-integration",
+    "commit": "3f343246979d7bc926678059d248303747a8226b",
+    "status_porcelain": "(clean before this work: `git status --porcelain --untracked-files=all` printed nothing and `git stash list` was empty at commit 3698b7d on branch mrf-expand; the only later entry is this new branch-a-mrf-integration/ directory)",
+    "stash": "(empty)",
+    "ignored_local_paths": [
+      "data/mrf/la_npis.csv",
+      "data/mrf/rates.sqlite",
+      "data/mrf/raw/",
+      "data/mrf/work/",
+      "scripts/mrf/__pycache__/",
+      "tests/__pycache__/",
+      "workflow/__pycache__/"
+    ],
+    "rebaseline_reason": "agent.py: add policy definitions to context"
+  },
+  "snapshots": [
+    {
+      "source_path": "workflow/import_policy.py",
+      "snapshot_path": "baseline/files/workflow/import_policy.py",
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
+      "git_blob": "f6ae23172c0e4bbaffb81785fcdca42ae53bbd73",
+      "sha256": "fe25efecf3bc73a832a34a9698f11a22808e20de45e0be17ec599900a0f3f50d",
+      "bytes": 12078
+    },
+    {
+      "source_path": "workflow/agent_tools.py",
+      "snapshot_path": "baseline/files/workflow/agent_tools.py",
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
+      "git_blob": "ae1615951b94856d7548511af5386d9e52f05555",
+      "sha256": "3cdd0e6cee3b2a709bd62191df2f706b9931b2060cf3c2535ef906e489fab5c1",
+      "bytes": 6792
+    },
+    {
+      "source_path": "workflow/agent.py",
+      "snapshot_path": "baseline/files/workflow/agent.py",
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
+      "git_blob": "30c822e5cafcc297a400bd9cd29652f148995974",
+      "sha256": "f7df8c9cf77bc26fd70ee3b2c9a33bc267f1adb73995164f8432928481867e23",
+      "bytes": 13812
+    },
+    {
+      "source_path": "workflow/guards.py",
+      "snapshot_path": "baseline/files/workflow/guards.py",
+      "git_ref": "3f343246979d7bc926678059d248303747a8226b",
+      "git_blob": "bdaa74949d7059b47788e83fdd398e365035108f",
+      "sha256": "8b4fe91e8622577329d6e2e59da01295d7164d7224e89f04b367b036876b9dc8",
+      "bytes": 6778
+    }
+  ],
+  "referenced_read_only_code": [
+    {
+      "path": "workflow/calculate_cost.py",
+      "git_blob": "7bd5cf105decf9b039142dbd633d19f269a992b4",
+      "sha256": "0d68a324ba22fac09c751ffecc9300249d2a1f706de4bdb006b9e19f0af5ff1d"
+    },
+    {
+      "path": "scripts/mrf/allowed.py",
+      "git_blob": "c66541d21e5d0f5f2e7df55db84fdcb78a4171e8",
+      "sha256": "195797269b4234d5e8528a0ea365e49af6a30ad63cb84acb88addab6c76f4ef8"
+    },
+    {
+      "path": "scripts/mrf/lookup.py",
+      "git_blob": "69b6cb60278d4de49a77ea6ebee5fd9b4926ac3e",
+      "sha256": "3b68c1e8de1c54ff8e714483a64a70e9f3a78085c51be9dea7dc7111602077ea"
+    },
+    {
+      "path": "tests/test_guards.py",
+      "git_blob": "654fca7de7b66ebf9ac2fbbfb585e5289f7ba034",
+      "sha256": "e7d03c943626a35005939730d2a235304cbc44747e08ded30cb7cebb0cd7a385"
+    }
+  ],
+  "referenced_data": [
+    {
+      "path": "data/mrf/allowed_amounts.csv",
+      "git_blob": "4f26468bd3a8a7fb0d8a795841d687d4ba312b12",
+      "sha256": "5117f6f482ba3f387dca7deb1779a4e579ffd28f7e928411b146b6e8b87fa3af",
+      "bytes": 577017
+    },
+    {
+      "path": "data/mrf/encounters.csv",
+      "git_blob": "f8fbaa1f8fa9260a54c17062720d918499cc5b28",
+      "sha256": "2964caacbfbea70d18c75ee8a32bd982967794028b90a1a0632c0845b41a12de",
+      "bytes": 2823
+    },
+    {
+      "path": "data/mrf/billing_codes.csv",
+      "git_blob": "d2fdb3dc9b556f732c921b12f38f50710a5763fe",
+      "sha256": "364b0cb68791e4fc92d616545b08061d080f02aeaa802a48a9c3372257d1645f",
+      "bytes": 4511
+    },
+    {
+      "path": "data/plan_profiles.v1.json",
+      "git_blob": "47fc7c1577aa211935403f4f40c5b0dad54efb25",
+      "sha256": "24b4ad474e6bf4fa8bb61ed637e896cc25435584630dcdc6947c6933e9a6077a",
+      "bytes": 7995
+    },
+    {
+      "path": "archive/normalized_pdf_insurance_rules.json",
+      "git_blob": "3b0526737a3add10d5c60e5c4d3acf3f8aca9ef9",
+      "sha256": "508238aa45133d1eb26861fd29754abd5adf00bf72d8d12701d0231a8c29faae",
+      "bytes": 18195
+    }
+  ],
+  "referenced_local_untracked_data": [
+    {
+      "path": "data/mrf/rates.sqlite",
+      "bytes": 3145469952,
+      "mtime_utc": "2026-10-14T21:16:33Z",
+      "note": "gitignored local artifact; referenced by configurable path, never copied (sha256 omitted for multi-GB files)"
+    },
+    {
+      "path": "data/mrf/la_npis.csv",
+      "bytes": 22918342,
+      "mtime_utc": "2026-10-14T06:27:44Z",
+      "note": "gitignored local artifact; referenced by configurable path, never copied (sha256 omitted for multi-GB files)"
+    }
+  ],
+  "history": [
+    {
+      "created_utc": "2026-10-15T06:19:28Z",
+      "commit": "3698b7d433b95a538fb7d5aa4f919d915514cf01",
+      "branch": "mrf-expand"
+    },
+    {
+      "created_utc": "2026-10-16T02:30:21Z",
+      "commit": "1ceb5152aa2805a2a354feab54335629c56ea184",
+      "branch": "branch-a-mrf-integration"
+    },
+    {
+      "created_utc": "2026-10-16T17:57:13Z",
+      "commit": "8fe5f1c0ab98153d037e8990beae2a45338b5880",
+      "branch": "claude/mrf-compile-05dr4a"
+    }
+  ]
+}

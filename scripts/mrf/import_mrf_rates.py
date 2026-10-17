@@ -78,7 +78,7 @@ def import_file(db: str, src: str, profile: dict, codes: list[str], npi_info: di
                 force: bool = False, spill_dir: str | None = None, progress_every: float = 0) -> dict:
     con = store.connect(db)
     url = source_url or src
-    if not force and store.source_status(con, url) == "complete":
+    if not force and store.source_status(con, url, profile["plan_key"]) == "complete":
         return {"source_url": url, "status": "skipped_complete"}
     sid = store.begin_source(con, url, insurer=profile["insurer"], plan_key=profile["plan_key"],
                              network="|".join(network or []) or None, region=profile.get("region"),

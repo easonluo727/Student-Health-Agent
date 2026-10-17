@@ -114,7 +114,9 @@ def iter_segments(stream, section: str, other_section: str,
             pos = 1
             while True:
                 nh = head_rx.search(b, pos)
-                ne = end_rx.search(b, pos)
+                # Only look for the section end before the next item head: searching the whole buffer
+                # for every item made files with many small items (Cigna, L.A. Care) quadratic.
+                ne = end_rx.search(b, pos, nh.start() + 1 if nh else len(b))
                 cut = min([x.start() for x in (nh, ne) if x] or [None]) if (nh or ne) else None
                 if cut is not None:
                     piece, rest = b[:cut], b[cut:]

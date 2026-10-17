@@ -1,0 +1,825 @@
+{
+  "path": "/home/user/amd-health-agent/data/mrf/rates.sqlite",
+  "exists": true,
+  "adapter_version": "canonical_adapter.v1",
+  "inspected_at": "2026-10-15T18:09:17+00:00",
+  "size_bytes": 3145469952,
+  "modified": "2026-10-14T21:16:33+00:00",
+  "sqlite_version": "3.45.1",
+  "user_version": 0,
+  "tables": {
+    "mrf_sources": {
+      "columns": [
+        "source_id",
+        "source_url",
+        "insurer",
+        "plan_key",
+        "network",
+        "region",
+        "file_date",
+        "toc_url",
+        "reporting_entity",
+        "schema_version",
+        "compressed_bytes",
+        "decompressed_bytes",
+        "rows_scanned",
+        "rows_kept",
+        "groups_kept",
+        "status",
+        "error",
+        "started_at",
+        "finished_at",
+        "wall_seconds",
+        "peak_rss_mb",
+        "parser_stats"
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_mrf_sources_1",
+          "columns": [
+            "source_url",
+            "plan_key"
+          ]
+        }
+      ],
+      "rows": 316
+    },
+    "negotiated_rates": {
+      "columns": [
+        "rate_id",
+        "source_id",
+        "billing_code",
+        "billing_code_type",
+        "negotiation_arrangement",
+        "provider_group_id",
+        "negotiated_rate",
+        "negotiated_type",
+        "expiration_date",
+        "billing_class",
+        "setting",
+        "service_codes",
+        "modifiers"
+      ],
+      "indexes": [
+        {
+          "name": "ix_rates_group",
+          "columns": [
+            "source_id",
+            "provider_group_id"
+          ]
+        },
+        {
+          "name": "ix_rates_code",
+          "columns": [
+            "source_id",
+            "billing_code",
+            "billing_class"
+          ]
+        }
+      ],
+      "rows": 629842
+    },
+    "provider_members": {
+      "columns": [
+        "source_id",
+        "provider_group_id",
+        "npi",
+        "tin_sha256",
+        "tin_last4",
+        "tin_type",
+        "tin_business_name",
+        "network_names",
+        "zip",
+        "taxonomy",
+        "tier",
+        "ucla_health"
+      ],
+      "indexes": [
+        {
+          "name": "ix_members_npi",
+          "columns": [
+            "npi"
+          ]
+        },
+        {
+          "name": "ix_members_group",
+          "columns": [
+            "source_id",
+            "provider_group_id"
+          ]
+        }
+      ],
+      "rows": 14446074
+    },
+    "ucla_health_tins": {
+      "columns": [
+        "tin_sha256",
+        "npi"
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_ucla_health_tins_1",
+          "columns": [
+            "tin_sha256"
+          ]
+        }
+      ],
+      "rows": 147
+    },
+    "rate_summary": {
+      "columns": [
+        "plan_key",
+        "network",
+        "billing_code",
+        "billing_class",
+        "place_of_service",
+        "tier",
+        "n",
+        "p10",
+        "median",
+        "p90"
+      ],
+      "indexes": [],
+      "rows": 9870
+    }
+  },
+  "binding_errors": [],
+  "canonical_mapping": [
+    {
+      "canonical": "source_id",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:mrf_sources",
+      "aliases": [
+        "source_id"
+      ],
+      "resolved_column": "source_id",
+      "transform": "identity",
+      "required": true
+    },
+    {
+      "canonical": "source_url",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:mrf_sources",
+      "aliases": [
+        "source_url"
+      ],
+      "resolved_column": "source_url",
+      "transform": "identity",
+      "required": true
+    },
+    {
+      "canonical": "insurer",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:mrf_sources",
+      "aliases": [
+        "insurer",
+        "issuer_name"
+      ],
+      "resolved_column": "insurer",
+      "transform": "identity",
+      "required": true
+    },
+    {
+      "canonical": "plan_key",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:mrf_sources",
+      "aliases": [
+        "plan_key"
+      ],
+      "resolved_column": "plan_key",
+      "transform": "identity (system plan key; never derived from the insurer string)",
+      "required": true
+    },
+    {
+      "canonical": "network",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:mrf_sources",
+      "aliases": [
+        "network",
+        "network_name"
+      ],
+      "resolved_column": "network",
+      "transform": "kept raw as network_raw; canonical network = the plan profile's exact network name",
+      "required": true
+    },
+    {
+      "canonical": "mrf_file_date",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:mrf_sources",
+      "aliases": [
+        "file_date",
+        "mrf_file_date"
+      ],
+      "resolved_column": "file_date",
+      "transform": "ISO date of the MRF file (snapshot), not a rate validity date",
+      "required": true
+    },
+    {
+      "canonical": "source_status",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:mrf_sources",
+      "aliases": [
+        "status"
+      ],
+      "resolved_column": "status",
+      "transform": "only 'complete' sources are read",
+      "required": true
+    },
+    {
+      "canonical": "rate_id",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "rate_id"
+      ],
+      "resolved_column": "rate_id",
+      "transform": "identity",
+      "required": true
+    },
+    {
+      "canonical": "billing_code",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "billing_code",
+        "code"
+      ],
+      "resolved_column": "billing_code",
+      "transform": "identity",
+      "required": true
+    },
+    {
+      "canonical": "billing_code_type",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "billing_code_type",
+        "code_type"
+      ],
+      "resolved_column": "billing_code_type",
+      "transform": "identity; never inferred from the code's digits",
+      "required": true
+    },
+    {
+      "canonical": "billing_class",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "billing_class"
+      ],
+      "resolved_column": "billing_class",
+      "transform": "enum via BILLING_CLASS (prof->professional, inst/facility->institutional, both)",
+      "required": true
+    },
+    {
+      "canonical": "place_of_service",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "service_codes",
+        "place_of_service",
+        "pos"
+      ],
+      "resolved_column": "service_codes",
+      "transform": "comma list -> set of POS codes; empty = none listed; CSTM-00 = all POS",
+      "required": true
+    },
+    {
+      "canonical": "modifiers",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "modifiers"
+      ],
+      "resolved_column": "modifiers",
+      "transform": "comma list -> sorted tuple; empty = global (unmodified) rate",
+      "required": true
+    },
+    {
+      "canonical": "source_rate_amount",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "negotiated_rate"
+      ],
+      "resolved_column": "negotiated_rate",
+      "transform": "float; a raw contract rate, NOT an allowed_amount",
+      "required": true
+    },
+    {
+      "canonical": "source_rate_type",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "negotiated_type"
+      ],
+      "resolved_column": "negotiated_type",
+      "transform": "lower-case",
+      "required": true
+    },
+    {
+      "canonical": "expiration_date",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "expiration_date"
+      ],
+      "resolved_column": "expiration_date",
+      "transform": "ISO date; missing or 9999-12-31 = open-ended",
+      "required": true
+    },
+    {
+      "canonical": "provider_group_id",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:negotiated_rates",
+      "aliases": [
+        "provider_group_id"
+      ],
+      "resolved_column": "provider_group_id",
+      "transform": "join key to provider_members (with source_id)",
+      "required": true
+    },
+    {
+      "canonical": "provider_npi",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:provider_members",
+      "aliases": [
+        "npi",
+        "NPI",
+        "provider_npi"
+      ],
+      "resolved_column": "npi",
+      "transform": "10-digit provider NPI (a provider identifier, never a plan id)",
+      "required": true
+    },
+    {
+      "canonical": "tin_sha256",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:provider_members",
+      "aliases": [
+        "tin_sha256"
+      ],
+      "resolved_column": "tin_sha256",
+      "transform": "hashed TIN; raw TINs are never read",
+      "required": true
+    },
+    {
+      "canonical": "provider_zip",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:provider_members",
+      "aliases": [
+        "zip",
+        "provider_zip"
+      ],
+      "resolved_column": "zip",
+      "transform": "5-digit ZIP of the NPPES practice location",
+      "required": true
+    },
+    {
+      "canonical": "taxonomy",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:provider_members",
+      "aliases": [
+        "taxonomy"
+      ],
+      "resolved_column": "taxonomy",
+      "transform": "NPPES primary taxonomy",
+      "required": true
+    },
+    {
+      "canonical": "tier",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:provider_members",
+      "aliases": [
+        "tier"
+      ],
+      "resolved_column": "tier",
+      "transform": "A = Westwood ZIPs, B = LA County",
+      "required": false
+    },
+    {
+      "canonical": "ucla_health",
+      "view": "canonical_provider_rates",
+      "source": "sqlite:provider_members",
+      "aliases": [
+        "ucla_health"
+      ],
+      "resolved_column": "ucla_health",
+      "transform": "UCLA organization NPI flag",
+      "required": false
+    }
+  ],
+  "summary_tables": {
+    "rate_summary": true,
+    "csv_A_B": "allowed_amounts.csv holds tables A and B (see canonical_csv_views)"
+  },
+  "plans": [
+    {
+      "plan_key": "anthem_ca_pathway_epo",
+      "complete_sources": 5,
+      "file_dates": [
+        "2026-10-01"
+      ],
+      "rate_rows": 27966,
+      "rate_count_seconds": 0.001,
+      "join_checks": [
+        {
+          "code": "99213",
+          "sample_group_members": 50,
+          "sample_npi": "160*****87",
+          "npi_rate_rows_for_code": 20,
+          "npi_lookup_seconds": 0.069,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99203",
+          "sample_group_members": 50,
+          "sample_npi": "160*****87",
+          "npi_rate_rows_for_code": 20,
+          "npi_lookup_seconds": 0.002,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "80053",
+          "sample_group_members": 50,
+          "sample_npi": "113*****91",
+          "npi_rate_rows_for_code": 5,
+          "npi_lookup_seconds": 0.012,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "73610",
+          "sample_group_members": 50,
+          "sample_npi": "184*****05",
+          "npi_rate_rows_for_code": 15,
+          "npi_lookup_seconds": 0.02,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99284",
+          "sample_group_members": 50,
+          "sample_npi": "160*****87",
+          "npi_rate_rows_for_code": 10,
+          "npi_lookup_seconds": 0.002,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        }
+      ],
+      "distinct_npis": 47119,
+      "distinct_seconds": 12.777
+    },
+    {
+      "plan_key": "anthem_ca_pathway_hmo",
+      "complete_sources": 5,
+      "file_dates": [
+        "2026-10-01"
+      ],
+      "rate_rows": 28863,
+      "rate_count_seconds": 0.001,
+      "join_checks": [
+        {
+          "code": "99213",
+          "sample_group_members": 50,
+          "sample_npi": "149*****41",
+          "npi_rate_rows_for_code": 130,
+          "npi_lookup_seconds": 0.02,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99203",
+          "sample_group_members": 50,
+          "sample_npi": "149*****41",
+          "npi_rate_rows_for_code": 125,
+          "npi_lookup_seconds": 0.01,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "80053",
+          "sample_group_members": 50,
+          "sample_npi": "113*****91",
+          "npi_rate_rows_for_code": 5,
+          "npi_lookup_seconds": 0.001,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "73610",
+          "sample_group_members": 50,
+          "sample_npi": "184*****05",
+          "npi_rate_rows_for_code": 15,
+          "npi_lookup_seconds": 0.003,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99284",
+          "sample_group_members": 50,
+          "sample_npi": "149*****41",
+          "npi_rate_rows_for_code": 85,
+          "npi_lookup_seconds": 0.01,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        }
+      ],
+      "distinct_npis": 47190,
+      "distinct_seconds": 3.557
+    },
+    {
+      "plan_key": "anthem_ca_prudent_buyer_ppo",
+      "complete_sources": 4,
+      "file_dates": [
+        "2026-10-01"
+      ],
+      "rate_rows": 66329,
+      "rate_count_seconds": 0.002,
+      "join_checks": [
+        {
+          "code": "99213",
+          "sample_group_members": 50,
+          "sample_npi": "118*****56",
+          "npi_rate_rows_for_code": 6,
+          "npi_lookup_seconds": 0.001,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99203",
+          "sample_group_members": 50,
+          "sample_npi": "118*****56",
+          "npi_rate_rows_for_code": 6,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "80053",
+          "sample_group_members": 50,
+          "sample_npi": "118*****56",
+          "npi_rate_rows_for_code": 6,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "73610",
+          "sample_group_members": 50,
+          "sample_npi": "118*****56",
+          "npi_rate_rows_for_code": 18,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99284",
+          "sample_group_members": 50,
+          "sample_npi": "118*****56",
+          "npi_rate_rows_for_code": 6,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        }
+      ],
+      "distinct_npis": 53280,
+      "distinct_seconds": 3.39
+    },
+    {
+      "plan_key": "cigna_national_ppo",
+      "complete_sources": 1,
+      "file_dates": [
+        "2026-10-01"
+      ],
+      "rate_rows": 302891,
+      "rate_count_seconds": 0.007,
+      "join_checks": [
+        {
+          "code": "99213",
+          "sample_group_members": 2,
+          "sample_npi": "171*****82",
+          "npi_rate_rows_for_code": 4,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99203",
+          "sample_group_members": 2,
+          "sample_npi": "171*****82",
+          "npi_rate_rows_for_code": 4,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "80053",
+          "sample_group_members": 2,
+          "sample_npi": "171*****82",
+          "npi_rate_rows_for_code": 3,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "73610",
+          "sample_group_members": 2,
+          "sample_npi": "171*****82",
+          "npi_rate_rows_for_code": 9,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99284",
+          "sample_group_members": 2,
+          "sample_npi": "171*****82",
+          "npi_rate_rows_for_code": 3,
+          "npi_lookup_seconds": 0.0,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        }
+      ],
+      "distinct_npis": 36722,
+      "distinct_seconds": 1.488
+    },
+    {
+      "plan_key": "healthnet_ambetter_ca",
+      "complete_sources": 1,
+      "file_dates": [
+        "2026-09-28"
+      ],
+      "rate_rows": 7435,
+      "rate_count_seconds": 0.0,
+      "join_checks": [
+        {
+          "code": "99213",
+          "sample_group_members": 50,
+          "sample_npi": "101*****68",
+          "npi_rate_rows_for_code": 70,
+          "npi_lookup_seconds": 0.006,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99203",
+          "sample_group_members": 50,
+          "sample_npi": "101*****68",
+          "npi_rate_rows_for_code": 37,
+          "npi_lookup_seconds": 0.004,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "80053",
+          "sample_group_members": 50,
+          "sample_npi": "125*****73",
+          "npi_rate_rows_for_code": 2,
+          "npi_lookup_seconds": 0.002,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "73610",
+          "sample_group_members": 50,
+          "sample_npi": "175*****98",
+          "npi_rate_rows_for_code": 1,
+          "npi_lookup_seconds": 0.002,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99284",
+          "sample_group_members": 16,
+          "sample_npi": "118*****12",
+          "npi_rate_rows_for_code": 4,
+          "npi_lookup_seconds": 0.001,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        }
+      ],
+      "distinct_npis": 25498,
+      "distinct_seconds": 1.973
+    },
+    {
+      "plan_key": "lacare_covered",
+      "complete_sources": 299,
+      "file_dates": [
+        "2026-09-15"
+      ],
+      "rate_rows": 5886,
+      "rate_count_seconds": 0.001,
+      "join_checks": [
+        {
+          "code": "99213",
+          "sample_group_members": 50,
+          "sample_npi": "120*****59",
+          "npi_rate_rows_for_code": 12,
+          "npi_lookup_seconds": 0.004,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99203",
+          "sample_group_members": 50,
+          "sample_npi": "120*****59",
+          "npi_rate_rows_for_code": 12,
+          "npi_lookup_seconds": 0.003,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "80053",
+          "sample_group_members": 50,
+          "sample_npi": "120*****59",
+          "npi_rate_rows_for_code": 10,
+          "npi_lookup_seconds": 0.003,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "73610",
+          "sample_group_members": 50,
+          "sample_npi": "120*****59",
+          "npi_rate_rows_for_code": 15,
+          "npi_lookup_seconds": 0.003,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99284",
+          "sample_group_members": 50,
+          "sample_npi": "120*****59",
+          "npi_rate_rows_for_code": 11,
+          "npi_lookup_seconds": 0.003,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        }
+      ],
+      "distinct_npis": 13368,
+      "distinct_seconds": 1.574
+    },
+    {
+      "plan_key": "uhc_ca_choice_plus",
+      "complete_sources": 1,
+      "file_dates": [
+        "2026-10-01"
+      ],
+      "rate_rows": 190472,
+      "rate_count_seconds": 0.006,
+      "join_checks": [
+        {
+          "code": "99213",
+          "sample_group_members": 1,
+          "sample_npi": "168*****65",
+          "npi_rate_rows_for_code": 6,
+          "npi_lookup_seconds": 0.002,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99203",
+          "sample_group_members": 1,
+          "sample_npi": "168*****65",
+          "npi_rate_rows_for_code": 6,
+          "npi_lookup_seconds": 0.001,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "80053",
+          "sample_group_members": 1,
+          "sample_npi": "168*****65",
+          "npi_rate_rows_for_code": 2,
+          "npi_lookup_seconds": 0.001,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "73610",
+          "sample_group_members": 1,
+          "sample_npi": "168*****65",
+          "npi_rate_rows_for_code": 18,
+          "npi_lookup_seconds": 0.001,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        },
+        {
+          "code": "99284",
+          "sample_group_members": 1,
+          "sample_npi": "168*****65",
+          "npi_rate_rows_for_code": 2,
+          "npi_lookup_seconds": 0.001,
+          "sample_member_has_zip": true,
+          "sample_member_has_taxonomy": true
+        }
+      ],
+      "distinct_npis": 17826,
+      "distinct_seconds": 1.398
+    }
+  ],
+  "ok": true
+}

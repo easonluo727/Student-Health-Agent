@@ -1,4 +1,6 @@
 # Student Health Insurance Cost Estimator
+
+> 当前进度（中文简版）见 [STATUS.md](STATUS.md)。
 A Python project that converts insurance policy PDFs into structured rules and uses them to estimate patient costs.
 
 ## Current progress
@@ -10,13 +12,31 @@ A Python project that converts insurance policy PDFs into structured rules and u
 
 | File | Purpose |
 | --- | --- |
-| `import_policy.py` | Reads policy PDF pages, extracts benefit tables, normalizes them, and saves the insurance rules as JSON. |
-| `interpret_request.py` | Understands the user’s request, matches candidate rules from the catalog, and returns structured information—including a clarification question if needed.  |
-| `calculate_cost.py` | Returns calculated cost, missing fields, or a review status. |
-| `estimate_pro.py` | Loads rules, calls `interpret_request.py`, print follow-up questions, calls `calculate_cost.py`, and prints the result. |
-| `agent_tools.py` | Alternative to `estimate_pro.py`. Calls `calculate_cost.py`. |
-| `agent.py`| Calls LLM to do what `interpret_request.py` used to do.|
+| `workflow/import_policy.py` | Reads policy PDF pages, extracts benefit tables, normalizes them, and saves the insurance rules as JSON. |
+| `workflow/interpret_request.py` | Understands the user’s request, matches candidate rules from the catalog, and returns structured information—including a clarification question if needed. |
+| `workflow/calculate_cost.py` | Returns calculated cost, missing fields, or a review status. |
+| `workflow/estimate_pro.py` | Loads rules, calls `interpret_request.py`, asks follow-up questions, calls `calculate_cost.py`, and prints the result. |
+| `workflow/agent_tools.py` | Loads the policy catalog and exposes deterministic policy lookup and calculation tools. |
+| `workflow/agent.py` | Runs the Branch A chat agent through an AMD OpenAI-compatible endpoint while retaining code-enforced safety guards. |
+| `workflow/normalized_pdf_insurance_rules.json` | Current 66-rule `prime_100` policy catalog used by Branch A. |
 | `.github/workflows/run-estimator.yml` | Runs the estimator manually through GitHub Actions. |
+
+## Branch A policy agent
+
+The synchronized Branch A workflow lives in `workflow/`. Configure the AMD
+endpoint and run the guarded agent from that directory:
+
+```bash
+export AMD_API_KEY="..."
+export AMD_BASE_URL="https://developer.amd.com.cn/radeon/api/v1"
+export AMD_MODEL="Qwen3.5-35B-A3B"
+cd workflow
+python agent.py
+```
+
+`RADEON_API_KEY` is accepted as a compatibility alias for `AMD_API_KEY`.
+The policy catalog is versioned in Git; API keys, generated images, caches,
+and local databases are not.
 
 ## MRF compile pipeline
 
@@ -66,7 +86,9 @@ To import a single file: `python scripts/mrf/import_mrf_rates.py --input <url> -
 | UHC of California Choice Plus | `…_Choice-Plus_8_in-network-rates` | 9.4 | 188.3 | 18,011 / 33,258 | 89,904 | 22,076 | 13.5 | 11.7 | 302 |
 | **Total** | 6 files | **25.3** | **279.4** | | **284,044** | **2,351,250** | **46.8** | | |
 
-The final SQLite is 515 MB: 284k rate rows, 2.35M member rows, and 53,893 distinct LA NPIs. The Anthem table of contents (11.4 GB, 147k reporting structures, 43M file references, 167 unique `CA_*` files totalling 221 GB) streamed in 436 s with 46 MB RSS. Running all 167 Anthem California files means reading about 440 GB, which takes about 1–2 h with 8 workers on a server (see the runbook).
+**Expanded run (branch `mrf-expand`).** This run covers 7 networks: Anthem Prudent Buyer, Anthem Pathway EPO and HMO (Covered California), UHC California Choice Plus, Cigna National PPO, Ambetter from Health Net (`Exchange CA`), and L.A. Care Covered (299 contract files). It used 41 billing codes and 19 encounters, read 316 files (70 GB compressed, 444 GB of JSON), and kept 629,842 rate rows covering 68,333 LA NPIs. The import took 73.6 min summed over files, and the report took 63 min. 128 of 133 encounter × network cells have an `allowed_amount`. L.A. Care lists 37% of its rows at $0, which reflects capitated IPA contracts. These rows are excluded as non-prices.
+
+For the first six-file run, the final SQLite was 515 MB: 284k rate rows, 2.35M member rows, and 53,893 distinct LA NPIs. The Anthem table of contents (11.4 GB, 147k reporting structures, 43M file references, 167 unique `CA_*` files totalling 221 GB) streamed in 436 s with 46 MB RSS. Running all 167 Anthem California files means reading about 440 GB, which takes about 1–2 h with 8 workers on a server (see the runbook).
 
 **Limitations**
 

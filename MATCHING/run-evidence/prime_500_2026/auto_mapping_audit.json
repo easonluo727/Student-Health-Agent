@@ -1,0 +1,2299 @@
+{
+  "policy_plan_id": "prime_500_2026",
+  "model": "Gemma-4-31B-IT",
+  "pipeline_events": [
+    {
+      "stage": "plan_network_candidate_generation",
+      "status": "complete",
+      "candidate_count": 1
+    },
+    {
+      "stage": "plan_network_adversarial_review",
+      "status": "approved",
+      "reason": "The proposed plan_key 'uhc_ca_choice_plus' and network 'Choice-Plus' correspond exactly to the 'UnitedHealthcare Choice Plus' network specified in the policy metadata."
+    },
+    {
+      "stage": "service_candidate_generation",
+      "status": "complete",
+      "service_count": 43
+    },
+    {
+      "stage": "service_candidate_batching",
+      "status": "complete",
+      "batch_count": 9,
+      "returned_count": 43
+    },
+    {
+      "stage": "service_adversarial_review",
+      "status": "skipped",
+      "reason": "Service semantic selection is performed by the primary AMD model; Python catalog/rate validation remains enforced."
+    },
+    {
+      "stage": "python_catalog_validation",
+      "status": "complete",
+      "validated_count": 11
+    },
+    {
+      "stage": "allowed_amount_lookup_tests",
+      "status": "complete",
+      "lookup_count": 20
+    }
+  ],
+  "plan_candidate": {
+    "mrf_plan_key": "uhc_ca_choice_plus",
+    "mrf_network": "Choice-Plus",
+    "confidence": "high",
+    "evidence": [
+      "UnitedHealthcare Choice Plus"
+    ]
+  },
+  "plan_adversarial_review": {
+    "approve": true,
+    "reason": "The proposed plan_key 'uhc_ca_choice_plus' and network 'Choice-Plus' correspond exactly to the 'UnitedHealthcare Choice Plus' network specified in the policy metadata."
+  },
+  "service_proposal": {
+    "service_mappings": [
+      {
+        "service": "room and board expense",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No inpatient room and board or facility stay rates available in the provided catalog."
+        ]
+      },
+      {
+        "service": "intensive care",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No inpatient intensive care unit (ICU) or critical care rates available in the provided catalog."
+        ]
+      },
+      {
+        "service": "hospital miscellaneous expenses",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No general hospital miscellaneous or facility-based ancillary rates available in the provided catalog."
+        ]
+      },
+      {
+        "service": "routine newborn care",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No newborn care or neonatal inpatient services available in the provided catalog."
+        ]
+      },
+      {
+        "service": "surgery",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No inpatient surgical procedure rates available in the provided catalog."
+        ]
+      },
+      {
+        "service": "assistant surgeon fees",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": "Could you please specify the type of surgical procedure for which the assistant surgeon fees are being requested?",
+        "confidence": "low",
+        "evidence": [
+          "No surgical assistant or operative professional services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "anesthetist services",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": "Could you please specify the type of procedure requiring anesthetist services?",
+        "confidence": "low",
+        "evidence": [
+          "No anesthesia or anesthetist services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "registered nurse's services",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": "Could you please specify the nature of the nursing services required?",
+        "confidence": "low",
+        "evidence": [
+          "No registered nurse or nursing-specific professional services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "physician's visits",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": "Could you please specify the type of physician visit (e.g., primary care, specialist, or emergency) and confirm if it occurred in an inpatient setting?",
+        "confidence": "low",
+        "evidence": [
+          "While the catalog contains various physician visits (e.g., office_visit_established, specialist_followup), all are mapped to outpatient/office settings (POS 11, 10, 02) or ER (POS 23), and none are specifically for inpatient hospital visits."
+        ]
+      },
+      {
+        "service": "pre-admission testing",
+        "setting": "inpatient",
+        "options": [],
+        "clarification_question": "Could you please specify which tests (e.g., blood work, X-rays) are being performed as part of the pre-admission testing?",
+        "confidence": "low",
+        "evidence": [
+          "The catalog contains individual tests (e.g., routine_labs, chest_xray), but no aggregate 'pre-admission testing' service or specific inpatient pre-admission bundle."
+        ]
+      },
+      {
+        "service": "surgery",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No surgical procedure codes or outpatient surgery encounters are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "day surgery miscellaneous",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No miscellaneous day surgery codes or encounters are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "assistant surgeon fees",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No assistant surgeon professional fee codes are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "anesthetist services",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No anesthesia or anesthetist service codes are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "physician's visits",
+        "setting": "outpatient",
+        "options": [
+          {
+            "option_id": "office_visit_established",
+            "label": "Primary care visit (established patient)",
+            "kind": "A_encounter",
+            "encounter_key": "office_visit_established",
+            "components": []
+          },
+          {
+            "option_id": "office_visit_new",
+            "label": "Primary care visit (new patient)",
+            "kind": "A_encounter",
+            "encounter_key": "office_visit_new",
+            "components": []
+          },
+          {
+            "option_id": "specialist_followup",
+            "label": "Specialist (pulmonology) follow-up visit",
+            "kind": "A_encounter",
+            "encounter_key": "specialist_followup",
+            "components": []
+          },
+          {
+            "option_id": "telehealth_visit",
+            "label": "Telehealth visit (video)",
+            "kind": "A_encounter",
+            "encounter_key": "telehealth_visit",
+            "components": []
+          }
+        ],
+        "clarification_question": "Would you like to see rates for a new patient visit, an established patient visit, a specialist follow-up, or a telehealth visit?",
+        "confidence": "medium",
+        "evidence": [
+          "The policy's 'physician's visits' in an outpatient setting maps to several professional visit encounters in the catalog (office visits, specialist follow-ups, and telehealth)."
+        ]
+      },
+      {
+        "service": "physiotherapy",
+        "setting": "outpatient",
+        "options": [
+          {
+            "option_id": "pt_evaluation",
+            "label": "Physical therapy evaluation",
+            "kind": "A_encounter",
+            "encounter_key": "pt_evaluation",
+            "components": []
+          }
+        ],
+        "clarification_question": "Would you like to see the rate for a physical therapy evaluation, or are you looking for a different physiotherapy service?",
+        "confidence": "medium",
+        "evidence": [
+          "The policy benefit 'physiotherapy' semantically maps to 'Physical therapy evaluation' as a representative service for this benefit category."
+        ]
+      },
+      {
+        "service": "medical emergency expenses",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No suitable emergency room or urgent care encounter was found in the catalog that matches the general 'medical emergency expenses' benefit without including specific unrelated conditions (e.g., flu)."
+        ]
+      },
+      {
+        "service": "diagnostic x-ray services",
+        "setting": "outpatient",
+        "options": [
+          {
+            "option_id": "chest_xray",
+            "label": "Chest X-ray (2 views)",
+            "kind": "A_encounter",
+            "encounter_key": "chest_xray",
+            "components": []
+          }
+        ],
+        "clarification_question": "Would you like to see the rate for a Chest X-ray, or a different diagnostic X-ray service?",
+        "confidence": "medium",
+        "evidence": [
+          "'Chest X-ray' is a concrete example of the broad 'diagnostic x-ray services' benefit."
+        ]
+      },
+      {
+        "service": "radiation therapy",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No radiation therapy services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "laboratory procedures",
+        "setting": "outpatient",
+        "options": [
+          {
+            "option_id": "routine_labs",
+            "label": "Routine blood work (CMP + CBC + lipid panel)",
+            "kind": "A_encounter",
+            "encounter_key": "routine_labs",
+            "components": []
+          },
+          {
+            "option_id": "sti_screening",
+            "label": "STI screening (chlamydia + gonorrhea + HIV)",
+            "kind": "A_encounter",
+            "encounter_key": "sti_screening",
+            "components": []
+          }
+        ],
+        "clarification_question": "Would you like to see rates for routine blood work or STI screening?",
+        "confidence": "medium",
+        "evidence": [
+          "Both 'Routine blood work' and 'STI screening' are concrete examples of 'laboratory procedures'."
+        ]
+      },
+      {
+        "service": "tests and procedures",
+        "setting": "outpatient",
+        "options": [
+          {
+            "option_id": "back_mri",
+            "label": "Lumbar spine MRI without contrast",
+            "kind": "A_encounter",
+            "encounter_key": "back_mri",
+            "components": []
+          }
+        ],
+        "clarification_question": "Which test or procedure are you looking for? Examples include MRI (lumbar or knee), X-rays, routine blood work, or spirometry.",
+        "confidence": "medium",
+        "evidence": [
+          "The policy benefit 'tests and procedures' is a broad category that maps to several concrete diagnostic options in the catalog, such as MRI, X-ray, and lab work."
+        ]
+      },
+      {
+        "service": "injections",
+        "setting": "outpatient",
+        "options": [
+          {
+            "option_id": "flu_shot",
+            "label": "Flu shot (vaccine only; administration fee not included)",
+            "kind": "A_encounter",
+            "encounter_key": "flu_shot",
+            "components": []
+          }
+        ],
+        "clarification_question": "Are you looking for a flu shot or a different type of injection?",
+        "confidence": "medium",
+        "evidence": [
+          "A flu shot is a specific type of injection/vaccine service available in the catalog."
+        ]
+      },
+      {
+        "service": "chemotherapy",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No chemotherapy-specific services or oncology infusions are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "prescription drugs",
+        "setting": "outpatient",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "The MRF catalog contains medical procedure and visit codes, but no pharmacy/prescription drug benefit rates."
+        ]
+      },
+      {
+        "service": "ambulance services",
+        "setting": "other",
+        "options": [],
+        "clarification_question": null,
+        "confidence": "low",
+        "evidence": [
+          "No ambulance or emergency transport services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "durable medical equipment",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you specify the type of durable medical equipment needed?",
+        "confidence": "low",
+        "evidence": [
+          "No durable medical equipment (DME) or medical supply codes are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "consultant physician fees",
+        "setting": "other",
+        "options": [
+          {
+            "option_id": "specialist_followup",
+            "label": "Specialist (pulmonology) follow-up visit",
+            "kind": "A_encounter",
+            "encounter_key": "specialist_followup",
+            "components": []
+          }
+        ],
+        "clarification_question": "Are you seeking a follow-up visit with a specialist, or a different type of physician consultation?",
+        "confidence": "medium",
+        "evidence": [
+          "'Consultant physician fees' semantically maps to specialist visits; 'specialist_followup' is a representative example of a consultant fee."
+        ]
+      },
+      {
+        "service": "dental treatment",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "What specific dental treatment is required?",
+        "confidence": "low",
+        "evidence": [
+          "No dental-related codes or services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "mental illness treatment",
+        "setting": "other",
+        "options": [
+          {
+            "option_id": "therapy_intake",
+            "label": "Therapy intake (psychiatric diagnostic evaluation)",
+            "kind": "A_encounter",
+            "encounter_key": "therapy_intake",
+            "components": []
+          },
+          {
+            "option_id": "therapy_session_45",
+            "label": "Therapy session (45 min)",
+            "kind": "A_encounter",
+            "encounter_key": "therapy_session_45",
+            "components": []
+          },
+          {
+            "option_id": "therapy_session_60",
+            "label": "Therapy session (60 min)",
+            "kind": "A_encounter",
+            "encounter_key": "therapy_session_60",
+            "components": []
+          }
+        ],
+        "clarification_question": "Would you like to schedule an initial psychiatric intake or a therapy session (45 or 60 minutes)?",
+        "confidence": "high",
+        "evidence": [
+          "'Mental illness treatment' semantically maps to psychiatric evaluations and therapy sessions."
+        ]
+      },
+      {
+        "service": "substance use disorder treatment",
+        "setting": "other",
+        "options": [
+          {
+            "option_id": "therapy_intake",
+            "label": "Therapy intake (psychiatric diagnostic evaluation)",
+            "kind": "A_encounter",
+            "encounter_key": "therapy_intake",
+            "components": []
+          },
+          {
+            "option_id": "therapy_session_45",
+            "label": "Therapy session (45 min)",
+            "kind": "A_encounter",
+            "encounter_key": "therapy_session_45",
+            "components": []
+          },
+          {
+            "option_id": "therapy_session_60",
+            "label": "Therapy session (60 min)",
+            "kind": "A_encounter",
+            "encounter_key": "therapy_session_60",
+            "components": []
+          }
+        ],
+        "clarification_question": "Would you like to schedule an initial psychiatric intake or a therapy session (45 or 60 minutes) for substance use disorder treatment?",
+        "confidence": "high",
+        "evidence": [
+          "'Substance use disorder treatment' is clinically treated via psychiatric evaluations and therapy sessions."
+        ]
+      },
+      {
+        "service": "maternity",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify the type of maternity service (e.g., prenatal visit, delivery, or ultrasound) you are looking for?",
+        "confidence": "low",
+        "evidence": [
+          "No maternity-specific services or general obstetric codes are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "complications of pregnancy",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify the type of care needed for pregnancy complications (e.g., specialist visit or specific diagnostic test)?",
+        "confidence": "low",
+        "evidence": [
+          "No services related to pregnancy complications are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "elective abortion",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify the type of abortion service or procedure you are inquiring about?",
+        "confidence": "low",
+        "evidence": [
+          "No elective abortion or related surgical/medical procedures are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "preventive care services",
+        "setting": "other",
+        "options": [
+          {
+            "option_id": "preventive_visit",
+            "label": "Annual preventive visit (age 18-39)",
+            "kind": "A_encounter",
+            "encounter_key": "preventive_visit",
+            "components": []
+          },
+          {
+            "option_id": "sti_screening",
+            "label": "STI screening (chlamydia + gonorrhea + HIV)",
+            "kind": "A_encounter",
+            "encounter_key": "sti_screening",
+            "components": []
+          }
+        ],
+        "clarification_question": "Preventive care is a broad category; are you looking for an annual physical exam or a specific screening like an STI panel?",
+        "confidence": "medium",
+        "evidence": [
+          "'Preventive care services' is a broad benefit that maps to multiple concrete preventive options such as annual visits and screenings."
+        ]
+      },
+      {
+        "service": "reconstructive breast surgery",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify the type of reconstructive surgery or the specific procedure code you are looking for?",
+        "confidence": "low",
+        "evidence": [
+          "No surgical or reconstructive breast services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "diabetes services",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify the type of diabetes service needed (e.g., office visit, lab work, or supplies)?",
+        "confidence": "low",
+        "evidence": [
+          "No specific diabetes-related encounter or component exists in the catalog. While 'routine_labs' or 'office_visit' might be used, they are not semantically equivalent to the broad 'diabetes services' benefit without further detail."
+        ]
+      },
+      {
+        "service": "high cost procedure",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify which high-cost procedure is being performed?",
+        "confidence": "low",
+        "evidence": [
+          "'High cost procedure' is a broad financial category. The catalog contains specific procedures (like MRIs), but none are labeled as 'high cost procedures' generally; a specific procedure must be identified to map to a rate."
+        ]
+      },
+      {
+        "service": "urgent care center",
+        "setting": "other",
+        "options": [
+          {
+            "option_id": "urgent_care_flu",
+            "label": "Urgent care visit for flu with rapid flu test",
+            "kind": "A_encounter",
+            "encounter_key": "urgent_care_flu",
+            "components": []
+          }
+        ],
+        "clarification_question": "Does the urgent care visit involve a flu test, or is it for a different reason?",
+        "confidence": "medium",
+        "evidence": [
+          "The 'urgent_care_flu' encounter is a concrete example of a service provided at an urgent care center, matching the clinical intent of the 'urgent care center' benefit."
+        ]
+      },
+      {
+        "service": "transplantation services",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify the type of transplantation service required?",
+        "confidence": "low",
+        "evidence": [
+          "No transplantation-related services or components are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "pediatric dental and vision services",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Are you looking for a specific dental or vision procedure for a pediatric patient?",
+        "confidence": "low",
+        "evidence": [
+          "The catalog contains no dental or vision-related services."
+        ]
+      },
+      {
+        "service": "bariatric surgery",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Could you please specify the type of bariatric surgery or the specific procedure code you are looking for?",
+        "confidence": "low",
+        "evidence": [
+          "No surgical procedures or bariatric-related services are available in the provided MRF catalog."
+        ]
+      },
+      {
+        "service": "titers",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Which specific immunization titer (e.g., Hepatitis B, MMR, Varicella) are you seeking a rate for?",
+        "confidence": "low",
+        "evidence": [
+          "The catalog contains routine labs and STI screenings, but no specific antibody titer tests for the immunizations listed in the policy."
+        ]
+      },
+      {
+        "service": "tuberculosis screening and testing",
+        "setting": "other",
+        "options": [],
+        "clarification_question": "Are you looking for a TB skin test (PPD) or a TB blood test (IGRA)?",
+        "confidence": "low",
+        "evidence": [
+          "The provided catalog does not contain any tuberculosis-specific screening or testing codes."
+        ]
+      }
+    ],
+    "batch_events": [
+      {
+        "batch": 1,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 2,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 3,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 4,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 5,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 6,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 7,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 8,
+        "requested": 5,
+        "returned": 5,
+        "missing_before_retry": []
+      },
+      {
+        "batch": 9,
+        "requested": 3,
+        "returned": 3,
+        "missing_before_retry": []
+      }
+    ]
+  },
+  "service_adversarial_review": {
+    "status": "not_run",
+    "reason": "Service semantic selection is performed by the primary AMD model; Python catalog/rate validation remains enforced.",
+    "component_reference_repairs": []
+  },
+  "accepted_service_mappings": 11,
+  "blocked_service_mappings": 32,
+  "python_blocked_candidates": [
+    {
+      "service": "room and board expense",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No inpatient room and board or facility stay rates available in the provided catalog."
+    },
+    {
+      "service": "intensive care",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No inpatient intensive care unit (ICU) or critical care rates available in the provided catalog."
+    },
+    {
+      "service": "hospital miscellaneous expenses",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No general hospital miscellaneous or facility-based ancillary rates available in the provided catalog."
+    },
+    {
+      "service": "routine newborn care",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No newborn care or neonatal inpatient services available in the provided catalog."
+    },
+    {
+      "service": "surgery",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No inpatient surgical procedure rates available in the provided catalog."
+    },
+    {
+      "service": "assistant surgeon fees",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No surgical assistant or operative professional services are available in the provided MRF catalog."
+    },
+    {
+      "service": "anesthetist services",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No anesthesia or anesthetist services are available in the provided MRF catalog."
+    },
+    {
+      "service": "registered nurse's services",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No registered nurse or nursing-specific professional services are available in the provided MRF catalog."
+    },
+    {
+      "service": "physician's visits",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: While the catalog contains various physician visits (e.g., office_visit_established, specialist_followup), all are mapped to outpatient/office settings (POS 11, 10, 02) or ER (POS 23), and none are specifically for inpatient hospital visits."
+    },
+    {
+      "service": "pre-admission testing",
+      "setting": "inpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: The catalog contains individual tests (e.g., routine_labs, chest_xray), but no aggregate 'pre-admission testing' service or specific inpatient pre-admission bundle."
+    },
+    {
+      "service": "surgery",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No surgical procedure codes or outpatient surgery encounters are available in the provided MRF catalog."
+    },
+    {
+      "service": "day surgery miscellaneous",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No miscellaneous day surgery codes or encounters are available in the provided MRF catalog."
+    },
+    {
+      "service": "assistant surgeon fees",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No assistant surgeon professional fee codes are available in the provided MRF catalog."
+    },
+    {
+      "service": "anesthetist services",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No anesthesia or anesthetist service codes are available in the provided MRF catalog."
+    },
+    {
+      "service": "medical emergency expenses",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No suitable emergency room or urgent care encounter was found in the catalog that matches the general 'medical emergency expenses' benefit without including specific unrelated conditions (e.g., flu)."
+    },
+    {
+      "service": "radiation therapy",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No radiation therapy services are available in the provided MRF catalog."
+    },
+    {
+      "service": "chemotherapy",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No chemotherapy-specific services or oncology infusions are available in the provided MRF catalog."
+    },
+    {
+      "service": "prescription drugs",
+      "setting": "outpatient",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: The MRF catalog contains medical procedure and visit codes, but no pharmacy/prescription drug benefit rates."
+    },
+    {
+      "service": "ambulance services",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No ambulance or emergency transport services are available in the provided MRF catalog."
+    },
+    {
+      "service": "durable medical equipment",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No durable medical equipment (DME) or medical supply codes are available in the provided MRF catalog."
+    },
+    {
+      "service": "dental treatment",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No dental-related codes or services are available in the provided MRF catalog."
+    },
+    {
+      "service": "maternity",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No maternity-specific services or general obstetric codes are available in the provided MRF catalog."
+    },
+    {
+      "service": "complications of pregnancy",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No services related to pregnancy complications are available in the provided MRF catalog."
+    },
+    {
+      "service": "elective abortion",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No elective abortion or related surgical/medical procedures are available in the provided MRF catalog."
+    },
+    {
+      "service": "reconstructive breast surgery",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No surgical or reconstructive breast services are available in the provided MRF catalog."
+    },
+    {
+      "service": "diabetes services",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No specific diabetes-related encounter or component exists in the catalog. While 'routine_labs' or 'office_visit' might be used, they are not semantically equivalent to the broad 'diabetes services' benefit without further detail."
+    },
+    {
+      "service": "high cost procedure",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: 'High cost procedure' is a broad financial category. The catalog contains specific procedures (like MRIs), but none are labeled as 'high cost procedures' generally; a specific procedure must be identified to map to a rate."
+    },
+    {
+      "service": "transplantation services",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No transplantation-related services or components are available in the provided MRF catalog."
+    },
+    {
+      "service": "pediatric dental and vision services",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: The catalog contains no dental or vision-related services."
+    },
+    {
+      "service": "bariatric surgery",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: No surgical procedures or bariatric-related services are available in the provided MRF catalog."
+    },
+    {
+      "service": "titers",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: The catalog contains routine labs and STI screenings, but no specific antibody titer tests for the immunizations listed in the policy."
+    },
+    {
+      "service": "tuberculosis screening and testing",
+      "setting": "other",
+      "reason": "LLM returned confidence='low'; below the usable threshold. Evidence: The provided catalog does not contain any tuberculosis-specific screening or testing codes."
+    }
+  ],
+  "lookup_tests": [
+    {
+      "service": "physician's visits",
+      "option_id": "office_visit_established",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "office_visit_established",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 432.76,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "office_visit_established"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 190.77,
+        "p90": 432.76,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "99213"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_18ac5281d2ec",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "physician's visits",
+      "option_id": "office_visit_new",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "office_visit_new",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 619.55,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "office_visit_new"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 263.81,
+        "p90": 619.55,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "99203"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_ba7399d7cbb0",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "physician's visits",
+      "option_id": "specialist_followup",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "specialist_followup",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 625.91,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "specialist_followup"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 276.66,
+        "p90": 625.91,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "99214"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_c7265554e1e2",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "physician's visits",
+      "option_id": "telehealth_visit",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "telehealth_visit",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 419.11,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "telehealth_visit"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 598,
+        "p10": 178.46,
+        "p90": 419.11,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "98005"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "10",
+              "02",
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_9565bb08c79b",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "physiotherapy",
+      "option_id": "pt_evaluation",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "pt_evaluation",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 499.95,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "pt_evaluation"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 327.64,
+        "p90": 499.95,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "eval",
+            "billing_codes": [
+              "97161"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_4254c4316bb0",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "diagnostic x-ray services",
+      "option_id": "chest_xray",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "chest_xray",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 194.86,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "chest_xray"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 138.74,
+        "p90": 194.86,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "xray",
+            "billing_codes": [
+              "71046"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "22"
+            ],
+            "modifier_rule": "global_or_tc_plus_26",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_6a87f1ef998b",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "laboratory procedures",
+      "option_id": "routine_labs",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "routine_labs",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 163.95,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "routine_labs"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 107.69,
+        "p90": 163.95,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "cmp",
+            "billing_codes": [
+              "80053"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          },
+          {
+            "component": "cbc",
+            "billing_codes": [
+              "85025"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          },
+          {
+            "component": "lipid",
+            "billing_codes": [
+              "80061"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_e678b5c4877c",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "laboratory procedures",
+      "option_id": "sti_screening",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "sti_screening",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 408.67,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "sti_screening"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 268.42,
+        "p90": 408.67,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "chlamydia",
+            "billing_codes": [
+              "87491"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          },
+          {
+            "component": "gonorrhea",
+            "billing_codes": [
+              "87591"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          },
+          {
+            "component": "hiv",
+            "billing_codes": [
+              "86701"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_ecb888f3089d",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "tests and procedures",
+      "option_id": "back_mri",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "back_mri",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 1299.31,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "back_mri"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 925.84,
+        "p90": 1299.31,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "mri",
+            "billing_codes": [
+              "72148"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "22"
+            ],
+            "modifier_rule": "global_or_tc_plus_26",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_23a7798ffdeb",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "injections",
+      "option_id": "flu_shot",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "flu_shot",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 115.52,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "flu_shot"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 598,
+        "p10": 77.05,
+        "p90": 115.52,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "vaccine",
+            "billing_codes": [
+              "90686"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_75e181c31fb8",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "consultant physician fees",
+      "option_id": "specialist_followup",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "specialist_followup",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 625.91,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "specialist_followup"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 276.66,
+        "p90": 625.91,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "99214"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_a1d1c6614860",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "mental illness treatment",
+      "option_id": "therapy_intake",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "therapy_intake",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 802.56,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "therapy_intake"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 381.89,
+        "p90": 802.56,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "90791"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "02",
+              "10"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_d68fbc2f604b",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "mental illness treatment",
+      "option_id": "therapy_session_45",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "therapy_session_45",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 519.85,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "therapy_session_45"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 245.42,
+        "p90": 519.85,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "90834"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "02",
+              "10"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_da7307026c93",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "mental illness treatment",
+      "option_id": "therapy_session_60",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "therapy_session_60",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 778.43,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "therapy_session_60"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 362.66,
+        "p90": 778.43,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "90837"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "02",
+              "10"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_e811f0206d63",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "substance use disorder treatment",
+      "option_id": "therapy_intake",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "therapy_intake",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 802.56,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "therapy_intake"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 381.89,
+        "p90": 802.56,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "90791"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "02",
+              "10"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_5b5ddb9b4394",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "substance use disorder treatment",
+      "option_id": "therapy_session_45",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "therapy_session_45",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 519.85,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "therapy_session_45"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 245.42,
+        "p90": 519.85,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "90834"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "02",
+              "10"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_6dd00a5a64a9",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "substance use disorder treatment",
+      "option_id": "therapy_session_60",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "therapy_session_60",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 778.43,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "therapy_session_60"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 362.66,
+        "p90": 778.43,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "90837"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "02",
+              "10"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_0d0ffd82d2c9",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "preventive care services",
+      "option_id": "preventive_visit",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "preventive_visit",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 688.39,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "preventive_visit"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 293.12,
+        "p90": 688.39,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "99395"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_7e7c97f3fa2b",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "preventive care services",
+      "option_id": "sti_screening",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "sti_screening",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 408.67,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "sti_screening"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 268.42,
+        "p90": 408.67,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "chlamydia",
+            "billing_codes": [
+              "87491"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          },
+          {
+            "component": "gonorrhea",
+            "billing_codes": [
+              "87591"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          },
+          {
+            "component": "hiv",
+            "billing_codes": [
+              "86701"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_672390c525f3",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    },
+    {
+      "service": "urgent care center",
+      "option_id": "urgent_care_flu",
+      "request": {
+        "insurer": "UnitedHealthcare",
+        "plan_key": "uhc_ca_choice_plus",
+        "network": "Choice-Plus",
+        "service_date": null,
+        "selected_provider_npi": null,
+        "encounter_key": "urgent_care_flu",
+        "billing_code": null
+      },
+      "result": {
+        "allowed_amount": 518.3,
+        "status": "network_estimate",
+        "reason_code": null,
+        "exact_reason_code": null,
+        "allowed_amount_basis": "ucla_health_rate",
+        "source_status": "verified_rate",
+        "match_path": "A_encounter",
+        "match_keys": {
+          "plan_key": "uhc_ca_choice_plus",
+          "network": "Choice-Plus",
+          "encounter_key": "urgent_care_flu"
+        },
+        "estimate_scope": "network_aggregate",
+        "selected_provider_npi": null,
+        "exact_provider_rate_found": false,
+        "fallback_provider_count": 0,
+        "n_providers": 599,
+        "p10": 246.4,
+        "p90": 518.3,
+        "mrf_file_dates": [
+          "2026-10-01"
+        ],
+        "source_ids": [],
+        "source_urls": [],
+        "components": [
+          {
+            "component": "visit",
+            "billing_codes": [
+              "99213"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "20",
+              "11"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          },
+          {
+            "component": "flu_test",
+            "billing_codes": [
+              "87804"
+            ],
+            "billing_class": "professional",
+            "place_of_service": [
+              "20",
+              "11",
+              "81"
+            ],
+            "modifier_rule": "global",
+            "included_in_total": true
+          }
+        ],
+        "fallback": null,
+        "code_choice": null,
+        "service_date": "2026-10-17",
+        "service_date_validated": false,
+        "warnings": [
+          "Aggregate rows carry no per-rate expiration dates: the service date was not checked against rate validity; this is the snapshot's aggregate."
+        ],
+        "message": "Aggregate estimate across this network's providers, not a specific provider's quote.",
+        "request_id": "req_6c25d8310990",
+        "run_id": "run_13e56ce37242",
+        "adapter_version": "canonical_adapter.v1",
+        "lookup_version": "rate_lookup.v1",
+        "log_status": "disabled"
+      }
+    }
+  ],
+  "summary": "generated mappings from primary-model semantic matching after Python catalog/rate validation; unsupported services remain unmapped"
+}

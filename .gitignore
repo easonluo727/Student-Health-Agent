@@ -16,3 +16,5 @@ data/mrf/*.sqlite-journal
 data/mrf/la_npis.csv
 data/mrf/rates.sqlite
 .gstack/
+data/mrf/*.sqlite-shm
+data/mrf/*.sqlite-wal

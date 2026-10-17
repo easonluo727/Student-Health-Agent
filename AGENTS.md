@@ -13,7 +13,7 @@ The product is a chat-first matching agent. Each turn, the LLM picks questions f
 
 Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names an insurer that is not in the database, a Playwright search worker on Railway looks it up and streams text progress. Search results inform the judgment but are never used to compute costs. The deployment is Vercel (Next.js frontend only) plus Railway (Python FastAPI agent service with the calculator, guards and read-only data, and the search worker). There is no Supabase, and premium subsidies are not computed.
 
-**The question bank and search worker do not exist yet.** The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the backend over the SSE protocol in `docs/frontend-protocol.md`; until the FastAPI agent service exists it runs against a built-in mock (`web/src/lib/mock-script.ts`, placeholder numbers only). The agent code is Python CLI scripts in `workflow/`. The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see the README section "MRF compile pipeline" and `scripts/mrf/server/README.md`); its outputs are in `data/mrf/` and `scripts/mrf/lookup.py` is the integration hook. `archive/` holds superseded scripts.
+**The question bank does not exist yet.** The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the backend over the SSE protocol in `docs/frontend-protocol.md`. The agent service is `workflow/server.py` (`uvicorn server:app --port 8000` from `workflow/`; set `NEXT_PUBLIC_API_BASE=http://localhost:8000` in `web/.env.local`); it serves chat, estimate and confirm cards, and calls the search worker (`search_worker/worker.py`, port 8100) when `SEARCH_WORKER_URL` is set. Forms and the dashboard report are not wired yet; with `NEXT_PUBLIC_API_BASE` unset the frontend uses a built-in mock (`web/src/lib/mock-script.ts`, placeholder numbers only). The agent code is Python CLI scripts in `workflow/`. The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see the README section "MRF compile pipeline" and `scripts/mrf/server/README.md`); its outputs are in `data/mrf/` and `scripts/mrf/lookup.py` is the integration hook. `archive/` holds superseded scripts.
 
 ## Hard constraint: AMD-only LLMs
 
@@ -21,7 +21,7 @@ Python computes all numbers and rankings. The LLM compares plans, decides, and w
 
 This project is an entry in the AMD Developer Hackathon: ACT III (Health and Wellbeing track). "The AMD API" is an OpenAI-compatible endpoint serving an open model. Organizers say "Token Factory" counts as vLLM; if it turns out unsuitable, the endpoint is the team's own vLLM on an AMD Developer Cloud MI300X. Either way, the code only needs `base_url`, an API key, and a model name. The planned model is Qwen3.5-35B-A3B, which is multimodal, so one model handles both chat and PDF reading. Do not use DeepSeek.
 
-**`docs/technical-plan.md` is the agreed technical path.** It covers the architecture, the two databases, search, the models, deployment, and the schedule. Follow it, and update it before changing direction. Plan knowledge lives in a verifiable catalog (`policies/*.json`, rules JSON v2), never in model memory. Never fine-tune on extraction output that a human has not verified, and never let a coding assistant author catalog data: catalog data must come from the AMD model or from humans. `docs/research/hark-interaction-patterns.md` describes the reference UI interaction patterns. Borrow the patterns only; do not copy code or visuals.
+**`docs/technical-plan.md` is the agreed technical path.** It covers the architecture, the two databases, search, the models, deployment, and the schedule. Follow it, and update it before changing direction. Plan knowledge lives in a verifiable catalog (`policies/*.json`, rules JSON v2), never in model memory. Never fine-tune on extraction output that a human has not verified, and never let a coding assistant author catalog data: catalog data must come from humans (for example, Perplexity search results that a person checked against the official source, imported with `scripts/policy/import_plan_csv.py`) or from the AMD model. `docs/research/hark-interaction-patterns.md` describes the reference UI interaction patterns. Borrow the patterns only; do not copy code or visuals.
 
 Because the runtime models are open-source and weaker than frontier models, put capability into code written at development time. Keep runtime LLM tasks narrow: choosing from fixed options, filling parameters, and writing short text. Constrain outputs with JSON schemas, and keep all numbers in Python.
 
@@ -37,13 +37,14 @@ cd web && pnpm install && pnpm dev   # http://localhost:3000; also: pnpm lint, p
 
 ```bash
 pip install -r requirements.txt pydantic
+# repo-root .env (gitignored): AMD_BASE_URL=https://developer.amd.com.cn/radeon/api/v1, AMD_API_KEY=..., AMD_MODEL=Qwen3.8-27B
 cd workflow
 python import_policy.py      # interactive: PDF path, plan name, start/end page of the Schedule of Benefits
 python agent.py              # LLM tool-calling chat agent; flags: --plan prime_100 --rules <path> --model <AMD model>
 python estimate_pro.py       # older fixed-pipeline alternative to agent.py
 ```
 
-`import_policy.py` uses `pdftoppm` from poppler, which must be on PATH. It writes `normalized_pdf_insurance_rules.json` to the current directory. `agent_tools.py` and `estimate_pro.py` expect that file in `workflow/`. The only checked-in copy is in `archive/`, so copy it over or run the import first.
+`import_policy.py` uses `pdftoppm` from poppler, which must be on PATH. It writes `normalized_pdf_insurance_rules.json` to the current directory. `agent_tools.py` and `estimate_pro.py` expect that file in `workflow/`; the current 66-rule `prime_100` catalog is checked in there.
 
 To test the calculator on its own, without an LLM, call `calculate_cost(rule_dict, allowed_amount=..., remaining_deductible=...)` directly.
 
