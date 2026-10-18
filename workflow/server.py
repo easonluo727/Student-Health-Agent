@@ -1,6 +1,8 @@
 """Agent service for the web frontend: POST /turn -> text/event-stream.
 
 Run:  uvicorn server:app --port 8000        (from workflow/)
+The API is served at /turn, /upload, /plans and again under /api/; when web/out exists (the statically exported
+frontend, built by the Dockerfile) it is served at /, so the deployed product is this one service.
 Protocol: docs/frontend-protocol.md. Everything the model sees comes from harness/
 (main prompt, skills, tools, hooks); this file only runs the loop and speaks SSE.
 Confirm and form cards pause the turn; the user's answer resumes it.
