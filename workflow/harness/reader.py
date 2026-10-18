@@ -80,22 +80,39 @@ def thumbnail(pdf, page=1):
 
 
 def parse_json(text):
-    text = text.strip()
-    fenced = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.S)
-    return json.loads(fenced.group(1) if fenced else text)
+    """The model's JSON object, tolerating thinking, a code fence or words around it."""
+    text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.S).strip()
+    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.S)
+    text = fenced.group(1) if fenced else text[text.find("{"):text.rfind("}") + 1]
+    return json.loads(text)
 
 
 def read_identity(client, model, png):
-    response = client.responses.create(
-        model=model,
-        instructions=IDENTITY_PROMPT,
-        input=[{"role": "user", "content": [
-            {"type": "input_image", "image_url": "data:image/png;base64," + base64.b64encode(png).decode("ascii")},
+    # Thinking off: with it on, the reasoning could use up the output budget and return no JSON.
+    response = client.chat.completions.create(
+        model=model, temperature=0, max_tokens=800,
+        messages=[{"role": "system", "content": IDENTITY_PROMPT}, {"role": "user", "content": [
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(png).decode("ascii")}},
         ]}],
-        max_output_tokens=3000,
-        store=False,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
     )
-    return parse_json(response.output_text)
+    return parse_json(response.choices[0].message.content)
+
+
+def db_catalog():
+    """The plan database (data/plans/policy.sqlite) as a match catalog: a plan matches when its name as printed
+    (the part before " - ") appears, with its insurer, and "Los Angeles" when the name names the campus."""
+    from plan_db import POLICY_DB, PlanDB
+
+    catalog = []
+    for p in PlanDB().plans():
+        name = p["plan_name"].split(" - ")[0].strip()
+        required = [name] + (["Los Angeles"] if "Los Angeles" in p["plan_name"] else [])
+        catalog.append({"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"],
+                        "plan_year": p["plan_year"], "rules": str(POLICY_DB.relative_to(ROOT)),
+                        "match": {"all": required, "any": [p["insurer"].split()[0]]}})
+    # Longer names first, so "Silver 70 Ambetter HMO" is tried before a shorter name it contains.
+    return sorted(catalog, key=lambda plan: -len(plan["match"]["all"][0]))
 
 
 async def read_plan_pdf(client, model, pdf, name, catalog=None):

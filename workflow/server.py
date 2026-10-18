@@ -27,7 +27,7 @@ from pydantic import BaseModel
 from agent_tools import DEFAULT_RULES_PATH
 from amd_client import amd_model, load_env, make_client
 from harness import Harness
-from harness.reader import ROOT, load_catalog, read_plan_pdf
+from harness.reader import ROOT, db_catalog, load_catalog, read_plan_pdf
 from harness.hooks import MAX_REPLY_RETRIES
 from harness.hooks import RATE_OPTION_PREFIX
 from harness.skills.questionnaire.skill import answers_message, build_form, choice_form
@@ -372,17 +372,22 @@ async def read_attachments(session, attachments):
             continue
         search_id = f"doc_{uuid.uuid4().hex[:8]}"
         result = None
-        async for kind, data in read_plan_pdf(client, MODEL, upload["path"], upload["name"]):
+        catalog = db_catalog() if MODE == "plans" else None
+        async for kind, data in read_plan_pdf(client, MODEL, upload["path"], upload["name"], catalog):
             if kind == "progress":
                 yield sse("search_step", {**data, "search_id": search_id, "kind": "document"})
             else:
                 result = data
         plan, identity = result["plan"], result["identity"]
         read = json.dumps(identity, ensure_ascii=False)
-        if MODE == "plans":
+        if MODE == "plans" and plan:
             notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
-                         f"{read}. If this is one of the plans in the plan list, use its plan_id. Otherwise say it "
-                         "isn't in the database yet, so you can't price it; describe only what page 1 shows.]")
+                         f"{read}. It matches {plan['name']} in the plan database: use plan_id {plan['plan_id']}. "
+                         "Benefit numbers come from the database, not from the upload.]")
+        elif MODE == "plans":
+            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
+                         f"{read}. It doesn't match any plan in the database, so you can't price it or quote its "
+                         "benefits. Describe only what page 1 shows, and offer the plans you can price.]")
         elif plan and result["rules_path"]:
             session.switch_plan(plan["plan_id"], result["rules_path"])
             notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
