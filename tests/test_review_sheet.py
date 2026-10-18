@@ -40,14 +40,19 @@ class ReviewSheet(unittest.TestCase):
             self.assertEqual(rows[0]["pdf_cell_text"], "10% Coinsurance")  # the cell for that network
             self.assertEqual(rows[2]["pdf_cell_text"], "50% Coinsurance after Deductible")
 
-            rows[1]["verified"] = "yes"  # only the human-checked row
+            rows[1]["verified"] = "yes"  # only the human-checked row, with a value the person filled in
+            rows[1]["copay_usd"] = "250"
+            rows[1]["deductible_applies"] = "false"
             with sheet.open("w", newline="") as file:
                 writer = csv.DictWriter(file, fieldnames=list(rows[0]))
                 writer.writeheader()
                 writer.writerows(rows)
             self.run_script("apply", str(rules), str(sheet))
             # The model said needs_review=False for rows 0 and 2; without a human "yes" they stay blocked.
-            self.assertEqual([r["needs_review"] for r in json.loads(rules.read_text())], [True, False, True])
+            applied = json.loads(rules.read_text())
+            self.assertEqual([r["needs_review"] for r in applied], [True, False, True])
+            self.assertEqual((applied[1]["copay_usd"], applied[1]["deductible_applies"]), (250, False))
+            self.assertEqual(applied[0]["copay_usd"], None)  # unverified rows keep the extracted values
 
 
 if __name__ == "__main__":

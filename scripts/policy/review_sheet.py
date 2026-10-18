@@ -6,11 +6,12 @@
    The sheet has one row per rule: the extracted values next to the PDF cell they came from,
    and an empty `verified` column.
 
-2. A person checks each row against the PDF, writes `yes` in `verified` (or fixes nothing and
-   leaves it blank), then applies the sheet:
+2. A person checks each row against the PDF, corrects any value in the sheet that is wrong or
+   missing (for example a copay the extraction left empty), writes `yes` in `verified`, and
+   applies the sheet:
      python scripts/policy/review_sheet.py apply OUT_RULES.json REVIEW.csv
-   Only rows marked `yes` get needs_review = false; every other rule is set to needs_review = true,
-   so the calculator refuses it. Values are never edited here; fix extraction errors by re-importing.
+   For rows marked `yes`, the sheet's values replace the extracted ones and needs_review = false.
+   Every other rule is set to needs_review = true, so the calculator refuses it.
 """
 
 import argparse
@@ -59,6 +60,23 @@ def build(args):
     print(f"Review sheet -> {args.sheet}")
 
 
+def _value(field, text):
+    """A sheet cell back to the rule's type: numbers, booleans, or text; blank means null."""
+    text = text.strip()
+    if text in ("", "None", "null"):
+        return None
+    if field == "deductible_applies":
+        if text.lower() in ("true", "yes"):
+            return True
+        if text.lower() in ("false", "no"):
+            return False
+        sys.exit(f"deductible_applies must be true or false, not {text!r}.")
+    if field in ("copay_usd", "plan_pays_percentage", "patient_pays_percentage"):
+        number = float(text.lstrip("$"))
+        return int(number) if number.is_integer() else number
+    return text
+
+
 def apply(args):
     rules = json.loads(Path(args.rules).read_text(encoding="utf-8"))
     with open(args.sheet, newline="", encoding="utf-8") as file:
@@ -70,6 +88,10 @@ def apply(args):
         if int(row["rule_index"]) != rules.index(rule) or row["service"] != rule.get("service"):
             sys.exit(f"Sheet row {row['rule_index']} doesn't match the rules file; rebuild the sheet.")
         ok = row["verified"].strip().lower() == "yes"
+        if ok:  # a person checked this row; their values win
+            for field in FIELDS:
+                rule[field] = _value(field, row[field])
+            rule["reviewer_note"] = row["reviewer_note"].strip() or None
         rule["needs_review"] = not ok
         verified += ok
     Path(args.rules).write_text(json.dumps(rules, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

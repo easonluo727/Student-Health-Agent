@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from amd_client import amd_model, make_client
 
-client = make_client(timeout=900.0)  # image pages can take several minutes
+client = make_client(timeout=360.0, max_retries=3)  # a page takes 1-4 min; retry requests that hang
 MODEL = amd_model()
 DEFAULT_COLUMNS = "Preferred Provider=in-network,Out-of-Network=out-of-network"
 
