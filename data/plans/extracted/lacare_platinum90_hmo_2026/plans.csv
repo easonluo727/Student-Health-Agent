@@ -1,0 +1,2 @@
+plan_id,insurer,plan_name,plan_year,plan_type,network_name,deductible_in_usd,deductible_out_usd,oop_max_in_usd,oop_max_out_usd,coinsurance_in_pct,source_url,verified
+lacare_platinum90_hmo_2026,L.A. Care,Platinum 90 HMO,2026,HMO,NOT FOUND,0,NOT FOUND,5000,NOT FOUND,NOT FOUND,https://www.lacare.org/sites/default/files/la4307_lacc_sbc_platinum_90_hmo_en_202508.pdf,

@@ -1,0 +1,2 @@
+plan_id,insurer,plan_name,plan_year,plan_type,network_name,deductible_in_usd,deductible_out_usd,oop_max_in_usd,oop_max_out_usd,coinsurance_in_pct,source_url,verified
+healthnet_platinum90_hmo_2026,Health Net of CA,Platinum 90 Ambetter HMO,2026,HMO,NOT FOUND,0,NOT FOUND,5000,NOT FOUND,NOT FOUND,https://ifp.healthnetcalifornia.com/content/dam/centene/healthnet/pdfs/general/ca/ifp/sbc/2026/ca-iex-platinum-90-ambetter-hmo-sbc-2026.pdf,

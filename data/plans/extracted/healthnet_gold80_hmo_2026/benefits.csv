@@ -1,0 +1,111 @@
+plan_id,section,service,service_as_printed,component,network,network_tier,copay_usd,coinsurance_pct,deductible_applies,prior_auth,covered,limits_conditions,quote,source_url,source_page,verified
+healthnet_gold80_hmo_2026,Important Questions,plan_level,Overall deductible,,in,,0,NOT FOUND,no,NOT FOUND,yes,,$0.,NOT FOUND,1,
+healthnet_gold80_hmo_2026,Important Questions,plan_level,Out-of-pocket limit,,in,,9200,NOT FOUND,NOT FOUND,NOT FOUND,yes,"$18,400 family per calendar year","$9,200 member/$18,400 family per calendar year.",NOT FOUND,1,
+healthnet_gold80_hmo_2026,If you visit a health care provider’s office or clinic,primary_care_visit,Primary care visit to treat an injury or illness,,in,,40,NOT FOUND,no,NOT FOUND,yes,,Primary care visit to treat an injury or illness | $40 copay/visit | Not covered | None,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you visit a health care provider’s office or clinic,primary_care_visit,Primary care visit to treat an injury or illness,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Primary care visit to treat an injury or illness | $40 copay/visit | Not covered | None,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you visit a health care provider’s office or clinic,specialist_visit,Specialist visit,,in,,70,NOT FOUND,no,yes,yes,,Specialist visit | $70 copay/visit | Not covered | Requires prior authorization.,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you visit a health care provider’s office or clinic,specialist_visit,Specialist visit,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Specialist visit | $70 copay/visit | Not covered | Requires prior authorization.,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you visit a health care provider’s office or clinic,preventive_care,Preventive care/screening/immunization,,in,,0,NOT FOUND,no,NOT FOUND,yes,You may have to pay for services that aren’t preventive. Ask your provider if the services needed are preventive. Then check what your plan will pay for.,Preventive care/screening/immunization | No charge | Not covered | You may have to pay for services that aren’t preventive. Ask your provider if the services needed are preventive. Then check what your plan will pay for.,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you visit a health care provider’s office or clinic,preventive_care,Preventive care/screening/immunization,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Preventive care/screening/immunization | No charge | Not covered | You may have to pay for services that aren’t preventive. Ask your provider if the services needed are preventive. Then check what your plan will pay for.,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you have a test,lab_tests,"Diagnostic test (x-ray, blood work)",,in,,40,NOT FOUND,no,NOT FOUND,yes,Requires referral.,"Diagnostic test (x-ray, blood work) | Lab-$40 copay/visit X-ray-$75 copay/visit | Not covered | Requires referral.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you have a test,lab_tests,"Diagnostic test (x-ray, blood work)",,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,"Diagnostic test (x-ray, blood work) | Lab-$40 copay/visit X-ray-$75 copay/visit | Not covered | Requires referral.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you have a test,xray,"Diagnostic test (x-ray, blood work)",,in,,75,NOT FOUND,no,NOT FOUND,yes,Requires referral.,"Diagnostic test (x-ray, blood work) | Lab-$40 copay/visit X-ray-$75 copay/visit | Not covered | Requires referral.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you have a test,xray,"Diagnostic test (x-ray, blood work)",,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,"Diagnostic test (x-ray, blood work) | Lab-$40 copay/visit X-ray-$75 copay/visit | Not covered | Requires referral.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you have a test,advanced_imaging,"Imaging (CT/PET scans, MRIs)",,in,,75,NOT FOUND,no,yes,yes,,"Imaging (CT/PET scans, MRIs) | $75 copay/procedure | Not covered | Requires prior authorization.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you have a test,advanced_imaging,"Imaging (CT/PET scans, MRIs)",,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,"Imaging (CT/PET scans, MRIs) | $75 copay/procedure | Not covered | Requires prior authorization.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,generic_drugs,Generic drugs (Tier 1),,in,,18,NOT FOUND,no,NOT FOUND,yes,Retail order,"Generic drugs (Tier 1) | $18 copay/retail order $36 copay/mail order | Not covered | Supply/order: up to 30 day (retail); 35-90 day (mail), except where quantity limits apply. Prior authorization required for select drugs.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,generic_drugs,Generic drugs (Tier 1),,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,"Generic drugs (Tier 1) | $18 copay/retail order $36 copay/mail order | Not covered | Supply/order: up to 30 day (retail); 35-90 day (mail), except where quantity limits apply. Prior authorization required for select drugs.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,preferred_brand_drugs,Preferred brand drugs (Tier 2),,in,,60,NOT FOUND,no,NOT FOUND,yes,Retail order,"Preferred brand drugs (Tier 2) | $60 copay/retail order $120 copay/mail order | Not covered | Supply/order: up to 30 day (retail); 35-90 day (mail), except where quantity limits apply. Prior authorization required for select drugs.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,preferred_brand_drugs,Preferred brand drugs (Tier 2),,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,"Preferred brand drugs (Tier 2) | $60 copay/retail order $120 copay/mail order | Not covered | Supply/order: up to 30 day (retail); 35-90 day (mail), except where quantity limits apply. Prior authorization required for select drugs.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,other,Non-preferred brand drugs (Tier 3),,in,,85,NOT FOUND,no,NOT FOUND,yes,Retail order,"Non-preferred brand drugs (Tier 3) | $85 copay/retail order $170 copay/mail order | Not covered | Supply/order: up to 30 day (retail); 35-90 day (mail), except where quantity limits apply. Prior authorization required for select drugs.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,other,Non-preferred brand drugs (Tier 3),,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,"Non-preferred brand drugs (Tier 3) | $85 copay/retail order $170 copay/mail order | Not covered | Supply/order: up to 30 day (retail); 35-90 day (mail), except where quantity limits apply. Prior authorization required for select drugs.",NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,other,Specialty drugs (Tier 4),,in,,NOT FOUND,20,no,NOT FOUND,yes,up to $250 per prescription. Prior authorization required for select drugs. Quantity limits may apply to select drugs. Supply/order: up to a 30 day supply filled by specialty pharmacy.,Specialty drugs (Tier 4) | 20% coinsurance up to $250 per prescription | Not covered | Prior authorization required for select drugs. Quantity limits may apply to select drugs. Supply/order: up to a 30 day supply filled by specialty pharmacy.,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you need drugs to treat your illness or condition.,other,Specialty drugs (Tier 4),,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Specialty drugs (Tier 4) | 20% coinsurance up to $250 per prescription | Not covered | Prior authorization required for select drugs. Quantity limits may apply to select drugs. Supply/order: up to a 30 day supply filled by specialty pharmacy.,NOT FOUND,2,
+healthnet_gold80_hmo_2026,If you have outpatient surgery,other,"Facility fee (e.g., ambulatory surgery center)",facility,in,,130,NOT FOUND,no,yes,yes,Hospital/ASC,"Hospital/ASC-$130 copay/admission
+Services other than surgery­
+20% coinsurance",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you have outpatient surgery,other,"Facility fee (e.g., ambulatory surgery center)",facility,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Not covered,NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you have outpatient surgery,other,Physician/surgeon fees,provider,in,,60,NOT FOUND,no,NOT FOUND,yes,,$60 copay/visit,NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you have outpatient surgery,other,Physician/surgeon fees,provider,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Not covered,NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you need immediate medical attention,emergency_room,Emergency room care,facility,in,,350,NOT FOUND,no,NOT FOUND,yes,"Medical, mental health & substance use disorders","Medical, mental health &
+substance use disorders-
+Facility-$350 copay/visit
+Professional services-No
+charge",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you need immediate medical attention,emergency_room,Emergency room care,provider,in,,0,NOT FOUND,no,NOT FOUND,yes,"Medical, mental health & substance use disorders","Medical, mental health &
+substance use disorders-
+Facility-$350 copay/visit
+Professional services-No
+charge",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you need immediate medical attention,emergency_room,Emergency room care,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,yes,Covered at In-Network cost-share for emergencies only,"Covered at In-Network cost-
+share for emergencies only",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you need immediate medical attention,ambulance,Emergency medical transportation,,in,,250,NOT FOUND,no,NOT FOUND,yes,"Medical, mental health & substance use disorders","Medical, mental health &
+substance use disorders-$250
+copay/transport",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you need immediate medical attention,ambulance,Emergency medical transportation,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,yes,Covered at In-Network cost-share for emergencies only,"Covered at In-Network cost-
+share for emergencies only",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you need immediate medical attention,urgent_care,Urgent care,,in,,40,NOT FOUND,no,NOT FOUND,yes,"Medical, mental health & substance use disorders","Medical, mental health &
+substance use disorders-$40
+copay/visit",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you need immediate medical attention,urgent_care,Urgent care,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,yes,Covered at In-Network cost-share for emergencies only,"Covered at In-Network cost-
+share for emergencies only",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you have a hospital stay,other,"Facility fee (e.g., hospital room)",facility,in,,375,NOT FOUND,no,yes,yes,for a maximum of 5 days per admission,"$375 copay/day
+for a maximum of 5 days per
+admission",NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you have a hospital stay,other,"Facility fee (e.g., hospital room)",facility,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Not covered,NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you have a hospital stay,other,Physician/surgeon fees,provider,in,,0,NOT FOUND,no,NOT FOUND,yes,,No charge,NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you have a hospital stay,other,Physician/surgeon fees,provider,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Not covered,NOT FOUND,3,
+healthnet_gold80_hmo_2026,"If you need mental health, behavioral health, or substance abuse services",mental_health_outpatient,Outpatient services,,in,,40,NOT FOUND,no,no,yes,Office visit-individual therapy session,"Office visit-individual therapy
+session-$40 copay/visit
+group therapy session-$20
+copay/visit
+Other than office visit-No
+charge",NOT FOUND,3,
+healthnet_gold80_hmo_2026,"If you need mental health, behavioral health, or substance abuse services",mental_health_outpatient,Outpatient services,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Not covered,NOT FOUND,3,
+healthnet_gold80_hmo_2026,"If you need mental health, behavioral health, or substance abuse services",other,Inpatient services,,in,,375,NOT FOUND,no,yes,yes,for a maximum of 5 days per admission,"$375 copay/day
+for a maximum of 5 days per
+admission",NOT FOUND,3,
+healthnet_gold80_hmo_2026,"If you need mental health, behavioral health, or substance abuse services",other,Inpatient services,,out,,NOT FOUND,NOT FOUND,no,NOT FOUND,no,,Not covered,NOT FOUND,3,
+healthnet_gold80_hmo_2026,If you are pregnant,other,Office visits,,in,,0,NOT FOUND,no,NOT FOUND,yes,Cost sharing does not apply for preventive services.,"Prenatal-No charge
+Postnatal-$40 copay/visit",NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you are pregnant,other,Office visits,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Cost sharing does not apply for preventive services.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you are pregnant,other,Childbirth/delivery professional services,,in,,0,NOT FOUND,no,NOT FOUND,yes,None,No charge,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you are pregnant,other,Childbirth/delivery professional services,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,None,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you are pregnant,other,Childbirth/delivery facility services,,in,,375,NOT FOUND,no,NOT FOUND,yes,for a maximum of 5 days per admission,"$375 copay/day
+for a maximum of 5 days per
+admission",NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you are pregnant,other,Childbirth/delivery facility services,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,None,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Home health care,,in,,30,NOT FOUND,no,yes,yes,Limited to 100 visits per calendar year.,$30 copay/visit,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Home health care,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Limited to 100 visits per calendar year. Requires prior authorization.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Rehabilitation services,,in,,40,NOT FOUND,no,yes,yes,Requires prior authorization.,$40 copay/visit,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Rehabilitation services,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Requires prior authorization.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Habilitation services,,in,,40,NOT FOUND,no,yes,yes,Requires prior authorization.,$40 copay/visit,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Habilitation services,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Requires prior authorization.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Skilled nursing center,,in,,150,NOT FOUND,no,yes,yes,Limited to 100 days per calendar year. for a maximum of 5 days per admission,"$150 copay/day
+for a maximum of 5 days per
+admission",NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Skilled nursing center,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Limited to 100 days per calendar year. Requires prior authorization.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Durable medical equipment,,in,,NOT FOUND,20,no,yes,yes,Requires prior authorization.,20% coinsurance,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Durable medical equipment,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Requires prior authorization.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Hospice services,,in,,0,NOT FOUND,no,yes,yes,Requires prior authorization.,No charge,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If you need help recovering or have other special health needs,other,Hospice services,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Requires prior authorization.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If your child needs dental or eye care,other,Children’s eye exam,,in,,0,NOT FOUND,no,NOT FOUND,yes,Limited to 1 visit every 12 months.,No charge,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If your child needs dental or eye care,other,Children’s eye exam,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Limited to 1 visit every 12 months.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If your child needs dental or eye care,other,Children’s glasses,,in,,0,NOT FOUND,no,NOT FOUND,yes,Provider selected frames; 1 every 12 months.,No charge,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If your child needs dental or eye care,other,Children’s glasses,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Provider selected frames; 1 every 12 months.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If your child needs dental or eye care,other,Children’s dental check-up,,in,,0,NOT FOUND,no,NOT FOUND,yes,Limited to 1 check-up every 6 months.,No charge,NOT FOUND,4,
+healthnet_gold80_hmo_2026,If your child needs dental or eye care,other,Children’s dental check-up,,out,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,Limited to 1 check-up every 6 months.,Not covered,NOT FOUND,4,
+healthnet_gold80_hmo_2026,Excluded services,other,Chiropractic care,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Chiropractic care,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Cosmetic surgery,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Cosmetic surgery,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Dental care (Adult),,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Dental care (Adult),NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Hearing aids,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Hearing aids,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Infertility treatment,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Infertility treatment,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Long-term care,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Long-term care,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Non-emergency care when traveling outside the U.S.,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Non-emergency care when traveling outside the U.S.,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Private-duty nursing,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Private-duty nursing,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Routine foot care,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,,Routine foot care,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Excluded services,other,Weight loss programs-exclusion does not apply to preventive care behavioral interventions,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,no,exclusion does not apply to preventive care behavioral interventions,Weight loss programs-exclusion does not apply to preventive care behavioral interventions,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Other Covered Services,other,Abortion-termination of pregnancy and related services,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,yes,covered in full,Abortion-termination of pregnancy and related services are covered in full,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Other Covered Services,other,Acupuncture,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,yes,covered when medically necessary,Acupuncture-covered when medically necessary,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Other Covered Services,other,Bariatric surgery,,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,yes,,Bariatric surgery,NOT FOUND,5,
+healthnet_gold80_hmo_2026,Other Covered Services,other,Routine eye care (Adult),,in,,NOT FOUND,NOT FOUND,NOT FOUND,NOT FOUND,yes,screenings/eye refraction for vision correction purposes,Routine eye care (Adult)-screenings/eye refraction for vision correction purposes,NOT FOUND,5,

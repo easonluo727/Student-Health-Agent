@@ -1,0 +1,2 @@
+plan_id,insurer,plan_name,plan_year,plan_type,network_name,deductible_in_usd,deductible_out_usd,oop_max_in_usd,oop_max_out_usd,coinsurance_in_pct,source_url,verified
+anthem_ppo_ucship_ucla_2026_27,Anthem Blue Cross,University of California Student Health Insurance Plan (UC SHIP) - UC Los Angeles Students and Covered Dependents,2026-2027,PPO,NOT FOUND,0,750,9000,12000,NOT FOUND,https://www.studenthealth.ucla.edu/file/68ecc487-cbb7-424f-958a-d76f3b96e60b,
