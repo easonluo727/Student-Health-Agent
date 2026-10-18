@@ -1,4 +1,4 @@
-// Mock backend script that replays the demo flow in PRODUCT.md.
+// Mock backend script that replays the demo flow in docs/PRODUCT.md.
 // Every number here is a PLACEHOLDER for UI development, not plan data.
 // Real numbers come from the FastAPI service (Python calculator + catalogs).
 

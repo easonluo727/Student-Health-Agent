@@ -1,8 +1,9 @@
 # Branch A × MRF rate integration (overlay)
 
-This overlay is a runnable integration of policy benefit rules (Branch A) with the MRF allowed-amount data. It
-does not modify `workflow/`, `scripts/mrf/`, `data/` or any root file. Design decisions and open mappings are
-in [`decisions.md`](decisions.md). The baseline snapshot is in [`baseline/manifest.json`](baseline/manifest.json).
+This overlay connects policy benefit rules (Branch A) to the MRF allowed-amount data. The web agent uses it
+through the pricing skill (`workflow/harness/skills/pricing/`), which imports it read-only. Design decisions and
+open mappings are in [`decisions.md`](decisions.md); the Prime 500 auto-mapping run and its open issues are in
+[`ISSUES_AND_DESIGN.md`](ISSUES_AND_DESIGN.md).
 
 ```text
 user describes a service
@@ -20,9 +21,9 @@ user describes a service
 
 | Path | Purpose |
 |---|---|
-| `baseline/manifest.json`, `baseline/files/workflow/*` | Snapshots of the adapted originals, with git commit, blob and sha256, and the recorded pre-existing state |
 | `overlay/workflow/overlay_config.py` | Data paths (configurable through `BRANCH_A_*` env vars) and the import order (overlay → original workflow → scripts/mrf) |
-| `overlay/workflow/policy_import_v2.py` | PDF import that writes metadata and the benefit schedule separately, plus a pending MRF map; AMD-only LLM |
+| `overlay/workflow/policy_import_v2.py` | PDF import with adjacent-page category context, an adversarial source-image pass, and fail-closed category validation; AMD-only LLM |
+| `overlay/workflow/auto_map_policy.py` | Uses AMD for semantic service-to-MRF matching, validates plan/network and codes/classes/POS/rates in Python, and runs deterministic lookup tests; unsupported mappings remain absent |
 | `overlay/workflow/schema_check.py` | jsonschema validation against `overlay/schemas/` |
 | `overlay/workflow/rate_resolver.py` | `Mappings`, `RateResolver` (benefit rule → verified MRF plan/network → A encounter or B components), `QuoteStore` |
 | `overlay/workflow/canonical_adapter.py` | Read-only adapter: alias map (`FIELD_MAP`), `canonical_provider_rates`, `canonical_A_encounters`, `canonical_B_components`, `canonical_encounter_components` |
@@ -38,7 +39,7 @@ user describes a service
 | `overlay/workflow/list_pending_mappings.py` | Lists mappings that still need a human |
 | `overlay/schemas/*.schema.json` | `policy_metadata.v1`, `benefit_rule.v2`, `policy_mrf_map.v1`, `service_rate_map.v1`, `rate_quote.v1`, `rate_request.v1`, `rate_lookup_result.v1` |
 | `overlay/data/*.json` | Mappings: drafts are `pending_review`; the label map is generated |
-| `overlay/tests/` | 79 unittest tests; `fixtures.py` builds synthetic CSV, SQLite (incl. a provider-level nearby fixture), mapping and rule data; `test_real_database.py` runs on the local database when present |
+| `overlay/tests/` | 90 unittest tests; `fixtures.py` builds synthetic CSV, SQLite (incl. a provider-level nearby fixture), mapping and rule data; `test_real_database.py` runs on the local database when present |
 | `matching_report.md`, `reports/db_inspection.json` | Database facts, column mapping, end-to-end samples and uncovered conditions |
 
 ## Run (from the repository root; nothing is overwritten)
@@ -65,7 +66,40 @@ python policy_import_v2.py --policy-plan-id uc_ship_2026 --metadata-pdf plan.pdf
 
 # chat agent over imported rules
 python branch_a_agent.py --plan uc_ship_2026 --rules /tmp/uc_ship_2026/benefit_rules.json
+
+# automatically match a newly imported policy (AMD semantic matching + deterministic validation),
+# create an isolated overlay directory, and test every accepted option against the real rate lookup
+python branch-a-mrf-integration/overlay/workflow/auto_map_policy.py \
+    --policy-plan-id prime_500_2026 \
+    --metadata local_data/policy-import/policy_metadata.json \
+    --rules local_data/policy-import/benefit_rules.json \
+    --out-dir local_data/policy-import/auto-mapping
 ```
+
+The automatic mapper writes a run-specific overlay, `auto_mapping_audit.json`, an append-only
+`auto_mapping_steps.jsonl` run trace, and checkpoints each completed AMD call so a timeout only retries the
+unfinished stage. Benefit services are sent in small batches; omitted items are retried individually, while
+explicit no-candidate and still-omitted outcomes are recorded separately. The primary AMD model matches by service meaning rather than exact label wording and can
+propose multiple priced options with a clarification question. There is no second-model veto for semantic
+breadth. Python still validates the exact plan/network, catalog identifiers, code, billing class, POS, and an
+eligible allowed-amount row; a uniquely identifiable leading-punctuation typo in a component name is normalized
+and logged. Plan/network identity still receives a separate adversarial review. Out-of-network quotes remain
+hard-blocked from in-network MRF rates.
+The AMD environment variables are required; no fallback model is used. Set
+`BRANCH_A_OVERLAY_DATA=local_data/policy-import/auto-mapping` to run `lookup_cli.py` or the agent against the
+generated mappings.
+
+## Prime 500 auto-mapping run
+
+[`ISSUES_AND_DESIGN.md`](ISSUES_AND_DESIGN.md) covers the system flow, all 32 blocked service examples, the
+local data audit, and unresolved work. The run's audit and generated mappings are in
+[`run-evidence/prime_500_2026/`](run-evidence/prime_500_2026/). For another run, point the mapper at new input
+files and a new output directory; don't overwrite the checked-in run evidence.
+
+For consecutive Schedule of Benefits pages, the importer supplies the preceding page as category-heading
+context and runs a separate visual verification pass over each extracted row. Verified corrections are recorded
+in `policy_metadata.json` under `extraction.benefit_row_verification`; missing categories, uncertain corrections,
+or unaudited changes stop the import.
 
 To use different data, set `BRANCH_A_RATES_CSV`, `BRANCH_A_ENCOUNTERS_CSV`, `BRANCH_A_PLAN_PROFILES`,
 `BRANCH_A_RATES_SQLITE` (needed for NPI lookups), `BRANCH_A_NPI_DIRECTORY` (NPPES locations for the nearby

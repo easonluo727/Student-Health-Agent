@@ -48,9 +48,9 @@ These were measured on a home connection with `scripts/mrf/spike/*.py` (Python 3
 - **Scope shortcut to test first:** negotiated rates follow the *network*, so many CA files likely repeat the same Prudent Buyer rates for different employer plans. Process **one representative large CA file** end to end, then process a second one and compare rates for the same code and NPI. If they match, one or two files are enough for the demo. Report this before scaling up.
 - Approximate cost per 2.2 GB file: about 8–10 min at 4–5 MB/s per process. On a server, run one process per file in parallel.
 
-## Prior teammate design to build on (`MRF_pipeline/MRF_WORKFLOW.md`)
+## Prior teammate design to build on (`scripts/mrf/ORIGINAL_DESIGN.md`)
 
-A teammate has already designed an MRF importer. Read `MRF_pipeline/MRF_WORKFLOW.md`. **If its code exists in the repo or on a branch** (`mrf_rate_store.py`, `import_mrf_rates.py`, `branch_b.py`, `agent_amd_two_branches.py`, `data/plan_profiles.v1.json`, `data/service_code_catalog.v1.json`), **extend it instead of rewriting it**, and keep its file names and CLI where reasonable. If the code is not present, implement the design below in `scripts/mrf/` and say so in your Phase 0 report. Per that document, its database had a schema but **no imported rows yet**, so the large-file path is unproven.
+A teammate has already designed an MRF importer. Read `scripts/mrf/ORIGINAL_DESIGN.md`. **If its code exists in the repo or on a branch** (`mrf_rate_store.py`, `import_mrf_rates.py`, `branch_b.py`, `agent_amd_two_branches.py`, `data/plan_profiles.v1.json`, `data/service_code_catalog.v1.json`), **extend it instead of rewriting it**, and keep its file names and CLI where reasonable. If the code is not present, implement the design below in `scripts/mrf/` and say so in your Phase 0 report. Per that document, its database had a schema but **no imported rows yet**, so the large-file path is unproven.
 
 **Adopt these practices from it:**
 - **Join through `provider_group_id`.** `in_network[].negotiated_rates[].provider_references` holds group IDs, and `provider_references[].provider_groups` maps each ID to NPIs and TINs.

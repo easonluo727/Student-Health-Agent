@@ -78,6 +78,9 @@ Create exactly one object per physical row:
 {"setting": "inpatient" | "outpatient" | "other" | null, "service": string,
  "preferred": string | null, "out_of_network": string | null}
 Copy each cell completely and verbatim. Use the nearest section heading above the row as setting.
+If the current page visibly continues the same schedule table from the immediately preceding page and has no
+new heading, carry forward that page's last applicable section heading. Do not carry across a new heading or
+unrelated page. Do not leave setting null when the current or supplied context shows the category.
 Never merge, split, infer, duplicate, or recreate rows. Never shift text between columns.
 Do not output headings, column labels, blank rows, or footers. Use null only for absent cells.
 """
@@ -90,6 +93,34 @@ ROW_SCHEMA = {"type": "object", "additionalProperties": False, "required": ["row
                                  "service": {"type": "string"},
                                  "preferred": {"type": ["string", "null"]},
                                  "out_of_network": {"type": ["string", "null"]}}}}}}
+
+ROW_VERIFY_INSTRUCTIONS = """
+Act as an adversarial proofreader. Independently compare each extracted row with the CURRENT schedule-page
+image. Use the preceding page image only as context for a clearly continued section heading when the current
+page has no new heading. Preserve row count and order; do not add, remove, merge, or split rows. Correct
+service/preferred/out_of_network transcription errors exactly to the printed cells. Set each row's setting to
+the nearest applicable category (inpatient, outpatient, other), carrying it across a page boundary only when
+the table clearly continues. If evidence is insufficient, leave the field null and report low confidence.
+Return every row, even if unchanged. Report every changed field with exact before/after values and visual
+evidence. Do not change benefit meaning or normalize wording.
+"""
+
+ROW_VERIFY_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["rows", "discrepancies"],
+    "properties": {
+        "rows": ROW_SCHEMA["properties"]["rows"],
+        "discrepancies": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["row", "field", "before", "after", "confidence", "evidence"],
+            "properties": {
+                "row": {"type": "integer", "minimum": 1},
+                "field": {"enum": ["setting", "service", "preferred", "out_of_network"]},
+                "before": {"type": ["string", "null"]},
+                "after": {"type": ["string", "null"]},
+                "confidence": {"enum": ["high", "low"]},
+                "evidence": {"type": "string"},
+            }}}}
+}
 
 NORMALIZE_INSTRUCTIONS = """
 Normalize each input entry. Return {"rules": [...]} with exactly one object per input, same order,
@@ -122,7 +153,10 @@ NORMALIZE_SCHEMA = {"type": "object", "additionalProperties": False, "required":
 
 class Extractor(Protocol):
     def extract_metadata(self, pages: dict[int, bytes]) -> dict: ...
-    def extract_rows(self, page: int, png: bytes) -> list[dict]: ...
+    def extract_rows(self, page: int, png: bytes, previous_page: int | None = None,
+                     previous_png: bytes | None = None) -> list[dict]: ...
+    def verify_rows(self, page: int, png: bytes, rows: list[dict], previous_page: int | None = None,
+                    previous_png: bytes | None = None) -> dict: ...
     def normalize(self, entries: list[dict]) -> list[dict]: ...
 
 
@@ -159,8 +193,25 @@ class AMDExtractor:
             content += [{"type": "text", "text": f"PDF page {page}:"}, self._image(png)]
         return self._json(METADATA_INSTRUCTIONS, content, METADATA_LLM_SCHEMA, "policy_metadata")
 
-    def extract_rows(self, page: int, png: bytes) -> list[dict]:
-        return self._json(ROW_INSTRUCTIONS, [self._image(png)], ROW_SCHEMA, "benefit_rows")["rows"]
+    def extract_rows(self, page: int, png: bytes, previous_page: int | None = None,
+                     previous_png: bytes | None = None) -> list[dict]:
+        content = []
+        if previous_png is not None:
+            content += [{"type": "text", "text": f"PDF page {previous_page} (preceding schedule context only):"},
+                        self._image(previous_png)]
+        content += [{"type": "text", "text": f"PDF page {page} (extract rows from this page):"}, self._image(png)]
+        return self._json(ROW_INSTRUCTIONS, content, ROW_SCHEMA, "benefit_rows")["rows"]
+
+    def verify_rows(self, page: int, png: bytes, rows: list[dict], previous_page: int | None = None,
+                    previous_png: bytes | None = None) -> dict:
+        content = []
+        if previous_png is not None:
+            content += [{"type": "text", "text": f"PDF page {previous_page} (section-heading context only):"},
+                        self._image(previous_png)]
+        content += [{"type": "text", "text": f"PDF page {page} (source of truth):"}, self._image(png),
+                    {"type": "text", "text": "Extracted rows to adversarially verify:\n" +
+                     json.dumps(rows, ensure_ascii=False)}]
+        return self._json(ROW_VERIFY_INSTRUCTIONS, content, ROW_VERIFY_SCHEMA, "benefit_row_verification")
 
     def normalize(self, entries: list[dict]) -> list[dict]:
         return self._json(NORMALIZE_INSTRUCTIONS, json.dumps(entries, ensure_ascii=False), NORMALIZE_SCHEMA,
@@ -196,6 +247,7 @@ def sha256_file(path: Path) -> str:
 def render_pages(pdf: Path, pages: list[int], workdir: Path) -> dict[int, bytes]:
     """pdftoppm at 300 dpi; returns PNG bytes per requested page."""
     out: dict[int, bytes] = {}
+    workdir.mkdir(parents=True, exist_ok=True)
     for page in pages:
         prefix = workdir / f"p{page}"
         subprocess.run(["pdftoppm", "-f", str(page), "-l", str(page), "-r", "300", "-png", str(pdf), str(prefix)],
@@ -260,12 +312,55 @@ def normalize_service(text: str) -> str:
     return " ".join((text or "").splitlines()[0].lower().replace("’", "'").split()) if text else ""
 
 
+def verify_page_rows(page: int, png: bytes, rows: list[dict], extractor: Extractor,
+                     previous_page: int | None = None, previous_png: bytes | None = None) -> tuple[list[dict], list[dict]]:
+    """Accept only auditable, high-confidence corrections from a separate image-review pass."""
+    result = extractor.verify_rows(page, png, rows, previous_page, previous_png)
+    corrected = result.get("rows") if isinstance(result, dict) else None
+    discrepancies = result.get("discrepancies") if isinstance(result, dict) else None
+    if not isinstance(corrected, list) or len(corrected) != len(rows) or not isinstance(discrepancies, list):
+        raise RuntimeError(f"Adversarial review returned an invalid row set for PDF page {page}")
+    changes = {}
+    expected = {"setting", "service", "preferred", "out_of_network"}
+    for row_index, (before, after) in enumerate(zip(rows, corrected), start=1):
+        if not isinstance(after, dict) or set(after) != expected:
+            raise RuntimeError(f"Adversarial review returned an invalid row {row_index} on PDF page {page}")
+        if (not isinstance(after["service"], str)
+                or any(after[field] is not None and not isinstance(after[field], str)
+                       for field in ("preferred", "out_of_network"))):
+            raise RuntimeError(f"Adversarial review returned invalid cell types on PDF page {page}, row {row_index}")
+        for field in expected:
+            old, new = before.get(field), after.get(field)
+            if old != new:
+                changes[(row_index, field)] = (old, new)
+        if after.get("setting") not in ("inpatient", "outpatient", "other"):
+            raise RuntimeError(f"Missing/invalid schedule category on PDF page {page}, row {row_index}")
+        if not after["service"].strip():
+            raise RuntimeError(f"Missing service description on PDF page {page}, row {row_index}")
+    reported = {}
+    for item in discrepancies:
+        if not isinstance(item, dict):
+            raise RuntimeError(f"Adversarial review returned an invalid discrepancy on PDF page {page}")
+        key = (item.get("row"), item.get("field"))
+        if key in reported or key not in changes or item.get("confidence") != "high":
+            raise RuntimeError(f"Unsubstantiated or uncertain correction on PDF page {page}: {item!r}")
+        if ((item.get("before"), item.get("after")) != changes[key]
+                or not str(item.get("evidence") or "").strip()):
+            raise RuntimeError(f"Adversarial review did not substantiate its correction on PDF page {page}: {item!r}")
+        reported[key] = item
+    if set(reported) != set(changes):
+        raise RuntimeError(f"Adversarial review omitted a changed field on PDF page {page}")
+    return corrected, discrepancies
+
+
 def build_benefit_rules(rows_by_page: dict[int, list[dict]], extractor: Extractor, policy_plan_id: str,
                         source_file: str, batch_size: int = 5) -> tuple[list[dict], list[str]]:
     """Same two-step extraction as the original importer, plus stable keys, source file/page and review status."""
     entries, problems = [], []
     for page, rows in sorted(rows_by_page.items()):
         for row_index, row in enumerate(rows, start=1):
+            if row.get("setting") not in ("inpatient", "outpatient", "other"):
+                raise RuntimeError(f"Missing/invalid schedule category on PDF page {page}, row {row_index}")
             for column, network in (("preferred", "in-network"), ("out_of_network", "out-of-network")):
                 text = row.get(column)
                 if text:
@@ -337,7 +432,15 @@ def run_import(policy_plan_id: str, metadata_pdf: Path, metadata_pages: list[int
         meta = build_metadata(extractor.extract_metadata(meta_png), policy_plan_id, metadata_pdf, metadata_pages,
                               sha256_file(metadata_pdf))
         benefit_png = render(benefits_pdf, benefit_pages, Path(tmp) / "benefits")
-        rows = {page: extractor.extract_rows(page, png) for page, png in benefit_png.items()}
+        rows, verification_log = {}, []
+        for page, png in sorted(benefit_png.items()):
+            context_page = page - 1 if page - 1 in benefit_png else None
+            context_png = benefit_png.get(context_page) if context_page is not None else None
+            extracted = extractor.extract_rows(page, png, context_page, context_png)
+            rows[page], discrepancies = verify_page_rows(page, png, extracted, extractor, context_page, context_png)
+            verification_log.append({"page": page, "preceding_page_context": context_page,
+                                     "discrepancies": discrepancies})
+        meta["extraction"]["benefit_row_verification"] = verification_log
     rules, problems = build_benefit_rules(rows, extractor, policy_plan_id, str(benefits_pdf))
     profiles_path = plan_profiles_path or overlay_config.load_paths().plan_profiles
     with open(profiles_path, encoding="utf-8") as f:

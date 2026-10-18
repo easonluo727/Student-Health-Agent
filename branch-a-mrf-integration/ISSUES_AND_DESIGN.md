@@ -15,7 +15,7 @@ The mapper then:
 5. Validates proposed encounter/component IDs, CPT/HCPCS codes, billing class, place of service, insurer/network, and usable positive rates in Python. Low-confidence or empty proposals are blocked.
 6. Runs a deterministic lookup test for every accepted option and writes the mappings, run audit, and stage log.
 
-Code and test snapshots are under [`overlay/`](overlay/); the copied integration overview is [`README.md`](README.md). The canonical working files remain under `branch-a-mrf-integration/overlay/` in this repository; this directory is a collected snapshot, not a move of those source files.
+The code and tests are under [`overlay/`](overlay/); the integration overview is [`README.md`](README.md).
 
 ## Result of this run
 
@@ -24,10 +24,9 @@ Code and test snapshots are under [`overlay/`](overlay/); the copied integration
 - The plan/network stage passed. The service stage was only partially successful; this is not an end-to-end success for all policy benefits.
 - Accepted examples include outpatient physician visits, PT evaluation, chest X-ray, routine labs/STI screening, lumbar MRI, flu shot, therapy visits, preventive visit, and an urgent-care flu encounter. These are the specific catalog options listed in the generated `service_rate_map.v1.json`, not comprehensive coverage of each broad policy benefit.
 
-## Code test status for this collected snapshot
+## Code test status
 
-- Focused automatic-mapping and policy-import tests: **20 passed**.
-- Full copied overlay suite: **93 tests discovered/run, 4 skipped**; it stops on the nested original-repository tests because the active Python environment does not have `ijson` installed (`ModuleNotFoundError`). This is an environment dependency issue; it does not invalidate the 20 focused test results. Install the repository requirements and rerun the full suite before treating the whole repo as green.
+The overlay suite (`python branch-a-mrf-integration/overlay/run_tests.py`) runs 90 tests with 4 skipped; the skipped tests need the local SQLite database.
 
 ## What the run actually found in the local rate files
 

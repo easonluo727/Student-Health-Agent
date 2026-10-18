@@ -1,99 +1,127 @@
-# Student Health Insurance Cost Estimator
+# Student Health Agent
 
-> 当前进度（中文简版）见 [STATUS.md](STATUS.md)。
-A Python project that converts insurance policy PDFs into structured rules and uses them to estimate patient costs.
+**An AI insurance advisor for US students who have to buy their own health insurance, with every number traced to a policy page or a negotiated rate.**
 
-## Current progress
-- Policy import: Converts selected PDF pages into images, extracts benefit tables with an LLM, and normalizes them into JSON. Supports multiple pages, network distinctions, source references, and batch validation. Extraction accuracy still needs improvement.
-- Request interpretation — **in progress**: Match user descriptions to policy services and ask follow-up questions when information is ambiguous.
-- Cost estimation — **in progress**: Update the existing calculator to use the imported rules, handle missing information, and flag complex benefits for review.
+Built for the AMD Developer Hackathon: ACT III (Health and Wellbeing track). Every LLM call runs on an open model (Qwen3.8-27B) served by the AMD API.
 
-## Project Files
+## The problem
 
-| File | Purpose |
-| --- | --- |
-| `workflow/import_policy.py` | Reads policy PDF pages, extracts benefit tables, normalizes them, and saves the insurance rules as JSON. |
-| `workflow/interpret_request.py` | Understands the user’s request, matches candidate rules from the catalog, and returns structured information—including a clarification question if needed. |
-| `workflow/calculate_cost.py` | Returns calculated cost, missing fields, or a review status. |
-| `workflow/estimate_pro.py` | Loads rules, calls `interpret_request.py`, asks follow-up questions, calls `calculate_cost.py`, and prints the result. |
-| `workflow/agent_tools.py` | Loads the policy catalog and exposes deterministic policy lookup and calculation tools. |
-| `workflow/agent.py` | Runs the Branch A chat agent through an AMD OpenAI-compatible endpoint while retaining code-enforced safety guards. |
-| `workflow/normalized_pdf_insurance_rules.json` | Current 66-rule `prime_100` policy catalog used by Branch A. |
-| `.github/workflows/run-estimator.yml` | Runs the estimator manually through GitHub Actions. |
+At 26, a PhD student ages off their parents' plan and has to pick insurance alone. The plan documents run past 150 pages, and the one number that matters, *what will my visits actually cost?*, isn't in them: it depends on prices insurers negotiate privately with each hospital. Since 2022, US insurers must publish those prices in machine-readable files, but the files are hundreds of gigabytes of JSON that no student can read.
 
-## Branch A policy agent
+## What it does
 
-The synchronized Branch A workflow lives in `workflow/`. Configure the AMD
-endpoint and run the guarded agent from that directory:
+You chat with an advisor that knows your plan and the real prices in Los Angeles.
 
-```bash
-export AMD_API_KEY="..."
-export AMD_BASE_URL="https://developer.amd.com.cn/radeon/api/v1"
-export AMD_MODEL="Qwen3.5-35B-A3B"
-cd workflow
-python agent.py
-```
+1. **Upload your plan.** Attach the PDF. The AMD model reads the first page, recognizes the plan, and the conversation switches to that plan's checked benefit rules.
+2. **Answer a short questionnaire.** Instead of asking one question at a time, the agent picks questions from a fixed question bank and sends them as a form: your conditions, how often you see a doctor, your budget, what matters to you.
+3. **Get real numbers.** The agent looks up the negotiated rate for the visit in a database compiled from insurers' price files, applies your plan's copay, coinsurance and deductible, and explains the result. The rate, the rule and the PDF page are shown with every estimate.
+4. **Ask about other insurers.** For an insurer that isn't in the database, a browser worker searches its official site live, with screenshots of each step.
 
-`RADEON_API_KEY` is accepted as a compatibility alias for `AMD_API_KEY`.
-The policy catalog is versioned in Git; API keys, generated images, caches,
-and local databases are not.
+## How it works
 
-## MRF compile pipeline
-
-Builds the **allowed-amount database** from insurers' Transparency in Coverage in-network rate files (MRFs). It is a traditional data-engineering pipeline written in plain Python, and **it makes no LLM calls**. The cost calculator later multiplies plan cost-sharing by the single `allowed_amount` this pipeline produces.
+The core rule: **the model makes judgments, Python makes numbers.** The model decides what to ask, which rule applies and how to explain it. Python computes every dollar amount, and code-level checks reject any reply that contains a number Python didn't produce.
 
 ```text
-insurer TOC / listing ──► file selection ──► streaming filter (2 passes) ──► SQLite shards ──► merge ──► rate selection ──► report + lookup
- (Anthem 11.4 GB TOC,     (/CA_* URLs,        pass 1: in_network, target      (resumable,       rates.sqlite   (POS, modifiers,      allowed_amounts.md/.csv
-  UHC blob API,            dedupe by URL)       codes only → needed group IDs   one per file)                  expiry, type, tiers)   scripts/mrf/lookup.py
-  Cigna signed TOC)                             pass 2: provider_references,
-                                                needed ∩ network ∩ LA NPIs)
+ Next.js chat (web/)  ── SSE ──►  Agent service (workflow/server.py, FastAPI)
+                                      │
+                                      ▼
+                      ┌──────── Agent harness (workflow/harness/) ────────┐
+                      │ Main prompt   who the agent is, ground rules      │
+                      │ Skills        questionnaire · pricing             │
+                      │ Tools         policy rules · calculator ·         │
+                      │               definitions · live search           │
+                      │ Hooks         provenance and reply checks         │
+                      └──────┬──────────────┬──────────────┬──────────────┘
+                             │              │              │
+                 AMD API (Qwen3.8-27B)  Policy rules    Price database
+                  chat · PDF reading    (policies/,     (data/mrf/, compiled
+                                         workflow/)      from insurer MRFs)
 ```
 
-**How it stays small and fast**
+| Part | What it does | Where |
+| --- | --- | --- |
+| **Main prompt** | The agent's role, ground rules (numbers only from Python, facts only from the catalog), and how to work | [`workflow/harness/prompts/system.md`](workflow/harness/prompts/system.md) |
+| **Questionnaire skill** | A 22-question bank; the tool schema enumerates the question IDs, so the model can't invent questions. Every question names the database query or calculator input it feeds | [`workflow/harness/skills/questionnaire/`](workflow/harness/skills/questionnaire/) |
+| **Pricing skill** | Looks up the allowed amount for a benefit and calculates from it. Python stores the rate under a quote ID; the model never handles the amount | [`workflow/harness/skills/pricing/`](workflow/harness/skills/pricing/) |
+| **Hooks** | Block amounts the user never stated, require reading a rule before using it, confirm guesses before calculating, and reject replies with untraced dollar amounts | [`workflow/harness/hooks.py`](workflow/harness/hooks.py), [`workflow/guards.py`](workflow/guards.py) |
+| **Calculator** | Pure, deterministic cost sharing (copay, coinsurance, deductible). Refuses rules a person hasn't verified | [`workflow/calculate_cost.py`](workflow/calculate_cost.py) |
 
-- **Streaming.** The pipeline never downloads a whole file. HTTP is piped through gzip into the parser, so memory stays flat: 208–233 MB peak, most of it the fixed 347k-NPI set.
-- **Two passes instead of buffering.** An Anthem California file lists about 10⁸ LA-NPI memberships across about 55k provider groups. The 16 target codes reference only about 2k of those groups. Pass 1 learns which groups are needed, and pass 2 keeps only those.
-- **Byte-level fast path** (`fastscan.py`). Even a C JSON tokenizer tops out around 30 MB/s of JSON, and UHC's 9.4 GB file is about 200 GB of JSON. Item boundaries are therefore found with a regex on the item's first key, and only target items are parsed. On a real Anthem file, this path produced output identical to the ijson path (7,758 rates and 547,859 members) in 246 s instead of 566 s. When a file's layout makes the shortcut unsafe, the parser falls back to ijson.
-- **Filtering.** Groups are kept only on an exact `network_name` match (for example `CA PPO PRUDENT BUYER`, not `... EXCLUDING SUTTER`) and only when they contain LA NPIs. The LA NPI set comes from NPPES. Tier A is the UCLA/Westwood ZIPs; Tier B is every ZCTA with at least half its land in LA County.
-- **Privacy.** TINs are SHA-256 hashed inside the parser, keeping only the last four digits. No raw TIN is stored.
-- **Resumability.** Each file is processed into its own shard with periodic commits and a `complete`/`failed` status. Re-running skips finished files.
+## Where AMD runs
 
-**Reproduce** (Python 3.12+, `pip install -r requirements.txt`; `ijson` must report the `yajl2_c` backend):
+Every model call goes to the AMD API through one client ([`workflow/amd_client.py`](workflow/amd_client.py)). There is no other provider and no fallback.
+
+| Task | Model input | Where |
+| --- | --- | --- |
+| Chat agent: choosing questions, rules and tools; writing replies | Text and tool calls | [`workflow/server.py`](workflow/server.py) |
+| Recognizing an uploaded plan | Image of page 1 | [`workflow/harness/reader.py`](workflow/harness/reader.py) |
+| Extracting benefit tables from plan PDFs | 300-dpi page images | [`workflow/import_policy.py`](workflow/import_policy.py) |
+| Matching plan benefits to billing codes | Text, then validated in Python | [`branch-a-mrf-integration/overlay/workflow/auto_map_policy.py`](branch-a-mrf-integration/overlay/workflow/auto_map_policy.py) |
+
+## The data
+
+**Price database (allowed amounts).** A streaming Python pipeline, with no LLM, read insurers' Transparency in Coverage files: 316 files, 70 GB compressed, 444 GB of JSON. It kept 629,842 negotiated rates for 41 billing codes across 68,333 Los Angeles providers in 7 networks (Anthem PPO Prudent Buyer, which UC SHIP uses; Anthem Pathway EPO and HMO; UnitedHealthcare Choice Plus; Cigna National PPO; Ambetter from Health Net; L.A. Care). They are grouped into 19 common student visits, such as urgent care for the flu or an ER visit for a sprained ankle. The summary table [`data/mrf/allowed_amounts.csv`](data/mrf/allowed_amounts.csv) is checked in; the full 3.1 GB SQLite database stays local. Details: [`scripts/mrf/README.md`](scripts/mrf/README.md).
+
+**Policy rules.** One rule per service and network, extracted from official plan PDFs by the AMD model ([`workflow/import_policy.py`](workflow/import_policy.py)), then checked by a person against the PDF ([`scripts/policy/review_sheet.py`](scripts/policy/review_sheet.py)). The calculator refuses any rule that a person hasn't marked verified. Plans the agent recognizes are listed in [`policies/catalog.json`](policies/catalog.json).
+
+**Matching rules to prices.** Which network a plan uses, and which billing codes a benefit covers, are mappings that a person approves before they can price anything ([`branch-a-mrf-integration/`](branch-a-mrf-integration/)).
+
+## Run it
+
+Requirements: Python 3.12+, Node 20+ with pnpm, and poppler (`brew install poppler`) for PDF rendering.
 
 ```bash
-python -m unittest discover tests
-python scripts/mrf/build_npi_set.py --nppes-zip <NPPES_Data_Dissemination_*.zip> \
-    --crosswalk tab20_zcta520_county20_natl.txt --out data/mrf/la_npis.csv
-python scripts/mrf/build_manifest.py --month 2026-10 --out data/mrf/work/manifest.jsonl
-python scripts/mrf/run_all.py --manifest data/mrf/work/manifest.jsonl --workers 4
-python scripts/mrf/merge_shards.py --shards data/mrf/work/shards --out data/mrf/rates.sqlite
-python scripts/mrf/report.py --db data/mrf/rates.sqlite
-python scripts/mrf/lookup.py anthem_ca_prudent_buyer_ppo er_ankle_xray
+python -m venv .venv && .venv/bin/pip install -r requirements.txt -r search_worker/requirements.txt
+.venv/bin/playwright install chromium
+
+# AMD API settings (gitignored)
+cat > .env <<'EOF'
+AMD_BASE_URL=https://developer.amd.com.cn/radeon/api/v1
+AMD_API_KEY=...
+AMD_MODEL=Qwen3.8-27B
+SEARCH_WORKER_URL=http://localhost:8100
+EOF
+
+# 1. Search worker (port 8100)
+(cd search_worker && ../.venv/bin/uvicorn worker:app --port 8100) &
+# 2. Agent service (port 8000)
+(cd workflow && ../.venv/bin/uvicorn server:app --port 8000) &
+# 3. Frontend (port 3000)
+cd web && pnpm install && echo "NEXT_PUBLIC_API_BASE=http://localhost:8000" > .env.local && pnpm dev
 ```
 
-To import a single file: `python scripts/mrf/import_mrf_rates.py --input <url> --plan-key <key> [--code 99213 ...]`. The full-run runbook is in `scripts/mrf/server/README.md`.
+Open http://localhost:3000. Without `NEXT_PUBLIC_API_BASE`, the frontend runs against a built-in mock backend instead.
 
-**Measured numbers** (2026-10 files, measured on the 4-vCPU dev VM, about 26 MB/s download through its proxy). "Read" counts both passes plus the header probe, so it is about twice the file size:
+To use another plan from the catalog, start the agent service with `AGENT_PLAN=<plan_id> AGENT_RULES=<rules file>`.
 
-| plan | file | read GB | JSON GB | items / refs scanned | rate rows kept | member rows | min | MB/s | peak RSS MB |
-|---|---|---|---|---|---|---|---|---|---|
-| Anthem Prudent Buyer | `CA_CPTNMED0001` | 3.6 | 14.2 | 41,871 / 55,927 | 7,838 | 586,168 | 3.0 | 20.4 | 220 |
-| Anthem Prudent Buyer | `CA_MPUCMED0000` | 3.4 | 13.4 | 41,183 / 55,427 | 7,758 | 547,920 | 2.8 | 20.5 | 209 |
-| Anthem Prudent Buyer | `CA_PPUCMED0000` (ijson path, reference) | 3.4 | 13.4 | 41,183 / 55,417 | 7,758 | 547,859 | 9.4 | 6.0 | 229 |
-| Anthem Prudent Buyer | `CA_PPUCMED0001` | 3.8 | 14.7 | 41,183 / 57,337 | 7,886 | 599,676 | 2.5 | 24.9 | 218 |
-| Cigna National PPO | `…_national-ppo_in-network-rates` | 1.6 | 35.2 | 1,152,909 / 66,395 | 162,900 | 47,551 | 15.7 | 1.7 | 246 |
-| UHC of California Choice Plus | `…_Choice-Plus_8_in-network-rates` | 9.4 | 188.3 | 18,011 / 33,258 | 89,904 | 22,076 | 13.5 | 11.7 | 302 |
-| **Total** | 6 files | **25.3** | **279.4** | | **284,044** | **2,351,250** | **46.8** | | |
+## Tests
 
-**Expanded run (branch `mrf-expand`).** This run covers 7 networks: Anthem Prudent Buyer, Anthem Pathway EPO and HMO (Covered California), UHC California Choice Plus, Cigna National PPO, Ambetter from Health Net (`Exchange CA`), and L.A. Care Covered (299 contract files). It used 41 billing codes and 19 encounters, read 316 files (70 GB compressed, 444 GB of JSON), and kept 629,842 rate rows covering 68,333 LA NPIs. The import took 73.6 min summed over files, and the report took 63 min. 128 of 133 encounter × network cells have an `allowed_amount`. L.A. Care lists 37% of its rows at $0, which reflects capitated IPA contracts. These rows are excluded as non-prices.
+```bash
+.venv/bin/python -m unittest discover tests                    # calculator, guards, harness, MRF parser (63 tests)
+.venv/bin/python branch-a-mrf-integration/overlay/run_tests.py  # rule-to-price matching (90 tests)
+cd web && pnpm lint && pnpm build
+```
 
-For the first six-file run, the final SQLite was 515 MB: 284k rate rows, 2.35M member rows, and 53,893 distinct LA NPIs. The Anthem table of contents (11.4 GB, 147k reporting structures, 43M file references, 167 unique `CA_*` files totalling 221 GB) streamed in 436 s with 46 MB RSS. Running all 167 Anthem California files means reading about 440 GB, which takes about 1–2 h with 8 workers on a server (see the runbook).
+No test calls the LLM or the network.
 
-**Limitations**
+## Repository layout
 
-- A negotiated rate is not the final allowed amount. Claim edits, bundling, and multiple-procedure reductions change what is actually paid.
-- UC SHIP is self-funded and uses Anthem Blue Cross Prudent Buyer PPO network rates. The demo uses the TOC files listed for the plan `BLUE CROSS PPO - REGENTS OF THE UNIVERSITY OF CALIFORNIA` (EIN 943067788). The same network's rates differ between files: for the same code and NPI, only 85% of keys matched between a UC file and a non-UC file.
-- This is a monthly snapshot (2026-10). Billing codes, encounter templates, and POS fallbacks are candidates until a person verifies them (`verified_by` in `data/mrf/*.csv`).
-- Blue Shield of California (blocked by bot protection on the HealthSparq portal) and Aetna (TLS through the dev proxy) are not included yet. See `data/mrf/discovery/`.
-- Medicare benchmarks are never mixed into these tables.
+| Path | Contents |
+| --- | --- |
+| [`web/`](web/) | Next.js frontend: chat, form cards, estimate cards, live search panel |
+| [`workflow/`](workflow/) | Agent service, harness, calculator, guards, policy PDF import |
+| [`search_worker/`](search_worker/) | Playwright worker that searches insurers' official sites (no LLM) |
+| [`scripts/mrf/`](scripts/mrf/) | Price database pipeline (no LLM) |
+| [`scripts/policy/`](scripts/policy/) | Human review and import of policy rules |
+| [`branch-a-mrf-integration/`](branch-a-mrf-integration/) | Matching policy rules to prices, and the mappings people approved |
+| [`data/`](data/) | Compiled price tables and insurer profiles |
+| [`policies/`](policies/) | Plan catalog, policy definitions and rules |
+| [`docs/`](docs/) | Product definition, technical plan, frontend–backend protocol |
+| [`tests/`](tests/) | Unit tests |
+
+## Limitations
+
+- **Coverage is narrow.** Prices exist for 19 common visits in Los Angeles. Surgery, hospital stays and prescription drug prices aren't in the database.
+- **A negotiated rate is an estimate.** Claim edits and bundling change what is finally paid. Prices are typical rates across a network, not a quote from a specific doctor.
+- **Few plans are fully priced.** Each plan needs its benefit rules checked by a person and its network mapped to the price data. Until then, the agent explains the plan's terms but won't produce an official number.
+- **No premium subsidies, out-of-pocket maximum, or balance billing** in the calculator yet.
+- It is not medical advice and doesn't guarantee coverage.

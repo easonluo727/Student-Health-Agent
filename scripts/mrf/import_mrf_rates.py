@@ -1,11 +1,11 @@
-"""Import one in-network MRF into SQLite (CLI from MRF_pipeline/MRF_WORKFLOW.md, extended).
+"""Import one in-network MRF into SQLite (CLI from scripts/mrf/ORIGINAL_DESIGN.md, extended).
 
     python scripts/mrf/import_mrf_rates.py \
       --input https://.../CA_XXXX.json.gz \
       --plan-key anthem_ca_prudent_buyer_ppo \
       --code 99213 --code 99214            # repeatable; default: data/mrf/billing_codes.csv
 
-Differences from the original design (see docs/prompts/mrf-compile.md):
+Differences from the original design (see docs/mrf-compile-spec.md):
 - `--network` is a filter on provider_references[].network_name (default: the plan profile's).
 - Providers are filtered to the LA NPI set (`--npi-csv`, `--tier A|B`) while streaming.
 - `--input` may be a URL; it is streamed, never downloaded. `--source-url` defaults to it.

@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents (Codex, Claude Code, etc.) when 
 
 ## What this is
 
-A health-insurance agent for US college students who must buy their own commercial insurance (for example, PhD students over 26 who can no longer use a parent's plan). The product does not target international students and does not handle school waiver requirements. `PRODUCT.md` (mostly in Chinese) is the source of truth for the product, including the demo flow.
+A health-insurance agent for US college students who must buy their own commercial insurance (for example, PhD students over 26 who can no longer use a parent's plan). The product does not target international students and does not handle school waiver requirements. `docs/PRODUCT.md` (mostly in Chinese) is the source of truth for the product, including the demo flow.
 
 The product is a chat-first matching agent. Each turn, the LLM picks questions from a question bank (a HINT injected into the prompt) and sends them as form cards in the chat. It then matches three sources:
 - the questionnaire answers, which include the user's weights for each factor;
@@ -13,7 +13,7 @@ The product is a chat-first matching agent. Each turn, the LLM picks questions f
 
 Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names an insurer that is not in the database, a Playwright search worker on Railway looks it up and streams text progress. Search results inform the judgment but are never used to compute costs. The deployment is Vercel (Next.js frontend only) plus Railway (Python FastAPI agent service with the calculator, guards and read-only data, and the search worker). There is no Supabase, and premium subsidies are not computed.
 
-The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the backend over the SSE protocol in `docs/frontend-protocol.md`. The agent service is `workflow/server.py` (`uvicorn server:app --port 8000` from `workflow/`; set `NEXT_PUBLIC_API_BASE=http://localhost:8000` in `web/.env.local`); it serves chat, form, estimate and confirm cards, and calls the search worker (`search_worker/worker.py`, port 8100) when `SEARCH_WORKER_URL` is set. The dashboard report is not wired yet; with `NEXT_PUBLIC_API_BASE` unset the frontend uses a built-in mock (`web/src/lib/mock-script.ts`, placeholder numbers only). The agent code is Python CLI scripts in `workflow/`. The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see the README section "MRF compile pipeline" and `scripts/mrf/server/README.md`); its outputs are in `data/mrf/` and `scripts/mrf/lookup.py` is the integration hook. `archive/` holds superseded scripts.
+The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the backend over the SSE protocol in `docs/frontend-protocol.md`. The agent service is `workflow/server.py` (`uvicorn server:app --port 8000` from `workflow/`; set `NEXT_PUBLIC_API_BASE=http://localhost:8000` in `web/.env.local`); it serves chat, form, estimate and confirm cards, and calls the search worker (`search_worker/worker.py`, port 8100) when `SEARCH_WORKER_URL` is set. The dashboard report is not wired yet; with `NEXT_PUBLIC_API_BASE` unset the frontend uses a built-in mock (`web/src/lib/mock-script.ts`, placeholder numbers only). The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see `scripts/mrf/README.md`); its outputs are in `data/mrf/`.
 
 ## Hard constraint: AMD-only LLMs
 
@@ -27,7 +27,7 @@ Because the runtime models are open-source and weaker than frontier models, put 
 
 ## Running
 
-There is no build or lint setup. Tests: `python -m unittest discover tests`. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). `interpret_request.py` also imports `pydantic`. Every LLM call needs `AMD_BASE_URL`, `AMD_API_KEY` and `AMD_MODEL`, read from the environment or the gitignored repo-root `.env`. Qwen's chat template rejects a system/developer message anywhere but first, so mid-conversation feedback must use the `user` role. Run scripts from inside `workflow/`.
+Tests: `python -m unittest discover tests` and `python branch-a-mrf-integration/overlay/run_tests.py`; frontend: `pnpm lint` and `pnpm build` in `web/`. The README has the full local setup. `requirements.txt` lists `openai` plus `ijson` and `requests` for the MRF pipeline (`ijson` must use its C backend, `yajl2_c`). Every LLM call needs `AMD_BASE_URL`, `AMD_API_KEY` and `AMD_MODEL`, read from the environment or the gitignored repo-root `.env`. Qwen's chat template rejects a system/developer message anywhere but first, so mid-conversation feedback must use the `user` role. Run scripts from inside `workflow/`.
 
 Frontend (Node + pnpm). With `NEXT_PUBLIC_API_BASE` unset it uses the built-in mock backend:
 
@@ -36,21 +36,20 @@ cd web && pnpm install && pnpm dev   # http://localhost:3000; also: pnpm lint, p
 ```
 
 ```bash
-pip install -r requirements.txt pydantic
+pip install -r requirements.txt
 # repo-root .env (gitignored): AMD_BASE_URL=https://developer.amd.com.cn/radeon/api/v1, AMD_API_KEY=..., AMD_MODEL=Qwen3.8-27B
 cd workflow
-python import_policy.py      # interactive: PDF path, plan name, start/end page of the Schedule of Benefits
+python import_policy.py PDF PLAN START END [--columns ...] [--out FILE]   # or no args for prompts
 python agent.py              # LLM tool-calling chat agent; flags: --plan prime_100 --rules <path> --model <AMD model>
-python estimate_pro.py       # older fixed-pipeline alternative to agent.py
 ```
 
-`import_policy.py` uses `pdftoppm` from poppler, which must be on PATH. It writes `normalized_pdf_insurance_rules.json` to the current directory. `agent_tools.py` and `estimate_pro.py` expect that file in `workflow/`; the current 66-rule `prime_100` catalog is checked in there.
+`import_policy.py` uses `pdftoppm` from poppler, which must be on PATH. It writes `normalized_pdf_insurance_rules.json` to the current directory. `agent_tools.py` expects that file in `workflow/` by default; the current 66-rule `prime_100` catalog is checked in there. Long imports can run as parallel page batches; merge them and give a person the review sheet with `scripts/policy/review_sheet.py`.
 
 To test the calculator on its own, without an LLM, call `calculate_cost(rule_dict, allowed_amount=..., remaining_deductible=...)` directly.
 
 ## Architecture
 
-Core design rule from `PRODUCT.md`: **the LLM turns unstructured input into structured data and makes judgments (which questions to ask, which plan fits the user's weights, how to reply). Python computes every number and every ranking, and checks hard facts.** The agent must never compute costs itself.
+Core design rule from `docs/PRODUCT.md`: **the LLM turns unstructured input into structured data and makes judgments (which questions to ask, which plan fits the user's weights, how to reply). Python computes every number and every ranking, and checks hard facts.** The agent must never compute costs itself.
 
 Pipeline:
 
@@ -60,19 +59,19 @@ Pipeline:
    - It refuses unless `needs_review is False` is set explicitly.
    - It only handles rules that are copay-only or coinsurance-only. Combined copay + coinsurance, or a copay subject to the deductible, returns `needs_review`.
    - It ignores the out-of-pocket max and balance billing.
-   - **Percentages use 0–100 units.** The current import prompt asks for whole numbers. The archived JSON still has 0–1 values (e.g. `0.8`), which will fail the "sum to 100" check.
+   - **Percentages use 0–100 units.** The current import prompt asks for whole numbers.
 4. **The web agent harness** (`workflow/harness/`, used by `server.py`) has four parts. Keep each concern in its own part:
    - **Main prompt** `harness/prompts/system.md`: who the agent is (an insurance advisor, not a one-visit estimator), the ground rules, how to work, and style. The ground rules carry over every rule from `agent.py`'s `INSTRUCTIONS`; each encodes an observed failure, so edit them carefully.
    - **Skills** `harness/skills/<name>/`: `SKILL.md` (frontmatter plus the instructions placed in the prompt) and `skill.py` (`build()` returns the skill's tools). The `questionnaire` skill holds the question bank (`bank.py`) and the `ask_questions` tool; its schema enumerates the bank IDs, so the model can't invent questions. Every question names the database query or calculator input it feeds (`maps_to`).
+   - The `pricing` skill wraps the overlay in `branch-a-mrf-integration/` (imported read-only): `get_allowed_amount` stores a rate quote under a `quote_id`, and `calculate_with_quote` costs it, so the model never handles the amount.
    - **Tools** `harness/mcp.py`: MCP-shaped tools (name, description, schema, handler) with no conversation rules: `get_policy_rule`, `calculate_estimate`, `get_definition` (policy definitions on demand instead of in the prompt), `search_insurer`.
-   - **Hooks** `harness/hooks.py`: wraps `guards.py` unchanged, and adds lookup-before-calculate, the questionnaire rules (no re-asking answered questions, prefill only values the user stated), questionnaire numbers as trusted calculator inputs, and Python sending the form itself when the calculator reports missing amounts.
-5. **Older front ends over the calculator:**
+   - **Hooks** `harness/hooks.py`: wraps `guards.py` unchanged (the overlay's `QuoteGuard` subclass when pricing is on), and adds lookup-before-calculate, the questionnaire rules (no re-asking answered questions, prefill only values the user stated), questionnaire numbers as trusted calculator inputs, and Python sending the form itself when the calculator reports missing amounts.
+   - **Plan upload** `harness/reader.py`: the AMD model reads page 1 of an uploaded PDF for the plan's identity only; Python matches it against `policies/catalog.json` and switches the session to that plan's rules.
+5. **Terminal agent** (also used by tests and the overlay for shared helpers):
    - `agent.py` + `agent_tools.py` (terminal agent): `PolicyTools` loads rules for one plan and exposes three tools to the model: `get_catalog`, `get_policy_rule`, and `calculate_estimate`. The model must retrieve a rule before it calculates. The behavioral contract lives in the long `INSTRUCTIONS` prompt in `agent.py`. Examples: missing amounts are null, never 0. Billed price ≠ allowed amount. Annual deductible ≠ remaining deductible. One service occurrence per estimate. A provisional walkthrough is allowed only when the result is `needs_review`. Edit that prompt carefully, because each line encodes a specific failure that was observed.
    - `guards.py` enforces "ask when unsure" in code, not in the prompt, so keep it in the loop when changing `agent.py` (including the AMD migration). It has three hooks. `pre_tool` blocks any amount the user never stated. `post_tool` withholds an `estimated` result until the user confirms the understood service, network, and amounts in the terminal. `check_reply` rejects replies containing dollar amounts traceable to neither the user nor a tool, and replies that fail to ask for missing fields; after 2 retries it substitutes a deterministic question. Tests: `python -m unittest discover tests`.
-   - `estimate_pro.py` + `interpret_request.py` (older): a fixed pipeline. A Pydantic structured-output call matches the request to catalog entries and may return a clarification question. Python then prompts for amounts and calls the calculator.
 
 ## Known inconsistencies
 
-- `.github/workflows/run-estimator.yml` runs `python estimate_multiple_2.0.py` from the repo root, but that script now lives in `archive/`, so the workflow is broken as written.
 - `guards.py` `post_tool` asks for confirmation on every `estimated` result. The agreed rule (`docs/frontend-protocol.md`) is to confirm only when a value was inferred from chat; values from the questionnaire skip confirmation.
-- `guards.py` `pre_tool` accepts amounts the user typed, and in the web harness also questionnaire numbers. Amounts returned by a future price-lookup tool must also count as valid provenance, or the guard will block them.
+- `guards.py` `pre_tool` accepts amounts the user typed, and in the web harness also questionnaire numbers. Rate amounts never reach the model: they stay inside quotes (`calculate_with_quote`).

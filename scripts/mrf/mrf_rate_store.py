@@ -1,4 +1,4 @@
-"""SQLite store for filtered MRF rates (schema from MRF_pipeline/MRF_WORKFLOW.md, plus import status).
+"""SQLite store for filtered MRF rates (schema from scripts/mrf/ORIGINAL_DESIGN.md, plus import status).
 
 Tables:
   mrf_sources       one row per imported file: URL, insurer, plan/network, region, file date,

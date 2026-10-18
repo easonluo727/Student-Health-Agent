@@ -1,20 +1,10 @@
 # Branch A × MRF rate integration: decisions and open items
 
 Scope: an overlay that connects Branch A (policy PDF rules, `workflow/`) to the MRF allowed-amount data
-(`scripts/mrf/`, `data/mrf/`). Every change lives in `branch-a-mrf-integration/`. No original file was edited, and
-nothing is merged back automatically. The baseline is described in `baseline/manifest.json`.
-
-## Protecting the existing implementation
-
-- **Starting point.** Branch `mrf-expand` at commit `3698b7d`. `git status --porcelain --untracked-files=all`
-  printed nothing and the stash was empty, so there were no uncommitted changes to preserve. Gitignored local
-  artifacts (`data/mrf/rates.sqlite`, `la_npis.csv`, `raw/`, `work/`) are listed in the manifest and are
-  referenced by path only. They are never copied.
-- **Baseline.** The four files this overlay adapts (`import_policy.py`, `agent_tools.py`, `agent.py`,
-  `guards.py`) are snapshotted under `baseline/files/`. The manifest records their git blobs and sha256.
-- **Proof the originals are untouched.** `tests/test_real_data_and_baseline.py` checks the originals and data
-  inputs against those hashes, checks that `git status` is empty for every protected path, and runs the
-  original `tests/` suite.
+(`scripts/mrf/`, `data/mrf/`). It imports the original modules read-only and never edits them. Gitignored local
+artifacts (`data/mrf/rates.sqlite`, `la_npis.csv`, `raw/`, `work/`) are referenced by path only, never copied.
+The web agent uses the overlay through `workflow/harness/skills/pricing/`. (An earlier baseline-snapshot check
+that the originals were untouched was removed once the harness started calling the overlay directly.)
 
 ## Design decisions
 
