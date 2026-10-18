@@ -21,6 +21,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent_tools import DEFAULT_RULES_PATH
@@ -505,3 +506,13 @@ async def upload(session_id: str = Form(...), file: UploadFile = File(...)):
 async def turn(request: TurnRequest):
     return StreamingResponse(turn_events(request), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache, no-transform"})
+
+
+# One service for the whole product: the API under /api (the built frontend calls it on the same origin), and the
+# statically exported frontend (web/out, built by the Dockerfile) at /. Mounted last so the API routes win.
+for _path, _endpoint, _methods in (("/api/turn", turn, ["POST"]), ("/api/upload", upload, ["POST"]),
+                                   ("/api/plans", plans, ["GET"])):
+    app.add_api_route(_path, _endpoint, methods=_methods)
+WEB_DIR = Path(os.environ.get("WEB_DIR", ROOT / "web" / "out"))
+if WEB_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")

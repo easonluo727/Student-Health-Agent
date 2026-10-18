@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
 
+// STATIC_EXPORT=1 builds plain files into out/, which the agent service (workflow/server.py) serves from the same
+// origin as its API (Dockerfile). Route files are .ts and pages .tsx, so the export leaves out the mock API routes.
+const staticExport = process.env.STATIC_EXPORT === "1";
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  ...(staticExport
+    ? { output: "export", pageExtensions: ["tsx"], images: { unoptimized: true } }
+    : { cacheComponents: true, partialPrefetching: true }),
   turbopack: {
     rules: {
       "*.css": {

@@ -1,0 +1,14 @@
+.git
+.env
+.venv
+**/__pycache__
+**/node_modules
+web/.next
+web/out
+data/mrf/rates.sqlite*
+data/mrf/raw
+data/mrf/work
+data/policy_pdfs
+data/uploads
+decks
+Health Agent
