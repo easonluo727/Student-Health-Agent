@@ -24,5 +24,25 @@ class CombinedCopayCoinsurance(unittest.TestCase):
                          "needs_review")
 
 
+COPAY_AFTER_DEDUCTIBLE = {"coverage_status": "covered", "needs_review": False, "deductible_applies": True,
+                          "copay_usd": 60, "patient_pays_percentage": None, "plan_pays_percentage": None}
+
+
+class CopayAfterDeductible(unittest.TestCase):
+    def test_part_of_the_deductible_left(self):
+        self.assertEqual(calculate_cost(COPAY_AFTER_DEDUCTIBLE, 300, 100)["patient_cost"], 160.0)
+
+    def test_deductible_met(self):
+        self.assertEqual(calculate_cost(COPAY_AFTER_DEDUCTIBLE, 300, 0)["patient_cost"], 60.0)
+
+    def test_bill_inside_the_deductible(self):
+        self.assertEqual(calculate_cost(COPAY_AFTER_DEDUCTIBLE, 300, 5000)["patient_cost"], 300.0)
+
+    def test_needs_both_amounts(self):
+        self.assertEqual(calculate_cost(COPAY_AFTER_DEDUCTIBLE, 300)["missing_fields"], ["remaining_deductible"])
+        self.assertEqual(calculate_cost(COPAY_AFTER_DEDUCTIBLE)["missing_fields"],
+                         ["allowed_amount", "remaining_deductible"])
+
+
 if __name__ == "__main__":
     unittest.main()

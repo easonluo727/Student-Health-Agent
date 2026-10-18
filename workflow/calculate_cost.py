@@ -83,8 +83,22 @@ It does not verify authorization or other policy eligibility requirements.
         if plan not in (None, Decimal(100)):
             return _result("needs_review", "This rule combines a copay and coinsurance.")
         if deductible:
-            return _result("needs_review", "Copay benefits subject to a deductible are not supported yet.")
-        cost = copay
+            # Copay after the deductible: the full amount up to the remaining deductible, then the copay
+            # (never more than what is left of the bill). $300 visit, $100 deductible left, $60 copay -> 160.
+            required = {"allowed_amount": allowed_amount, "remaining_deductible": remaining_deductible}
+            missing = [name for name, value in required.items() if value is None]
+            if missing:
+                return _result("needs_information", "More information is needed to calculate this benefit.",
+                               missing_fields=missing)
+            try:
+                amount = _number(allowed_amount, "allowed_amount")
+                left = _number(remaining_deductible, "remaining_deductible")
+            except ValueError as error:
+                return _result("invalid_input", str(error))
+            portion = min(amount, left)
+            cost = portion + min(copay, amount - portion)
+        else:
+            cost = copay
     else:
         if patient is None:
             return _result("needs_review", "The rule does not specify a usable patient percentage or copay.")

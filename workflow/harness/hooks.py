@@ -77,6 +77,9 @@ class Hooks:
             return self.guard.pre_tool(name, args)
         if name == "ask_questions":
             return self._check_questions(args)
+        if name == "estimate_cost":  # the only amount the model passes is the remaining deductible
+            return self.guard.pre_tool("calculate_estimate",
+                                       {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
         return None
 
     def post_tool(self, name, args, result):
@@ -91,9 +94,14 @@ class Hooks:
             if result.get("status") == "needs_clarification" and (result.get("clarification") or {}).get("options"):
                 result = {**result, "clarify": result["clarification"]}
             return result
-        if name in ("calculate_estimate", "calculate_with_quote"):
-            rule = self.policy.get_policy_rule(args["rule_id"]).get("rule")
-            result = self.guard.post_tool(name, args, result, rule)  # may pause for confirmation
+        if name in ("calculate_estimate", "calculate_with_quote", "estimate_cost"):
+            if name == "estimate_cost":
+                # Inputs are choices from fixed options, so there is nothing to confirm; record the result's
+                # numbers so the reply may quote them.
+                result = self.guard.post_tool(name, args, result, None)
+            else:
+                rule = self.policy.get_policy_rule(args["rule_id"]).get("rule")
+                result = self.guard.post_tool(name, args, result, rule)  # may pause for confirmation
             if result.get("status") == "needs_information":
                 ask = [CALCULATOR_FIELDS[f] for f in result.get("missing_fields") or [] if f in CALCULATOR_FIELDS]
                 ask = [qid for qid in ask if qid not in self.answers]

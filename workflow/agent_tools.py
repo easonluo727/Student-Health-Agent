@@ -59,7 +59,7 @@ must clarify ambiguous requests and preserve the source of user inputs.
                 continue
             if not isinstance(rule.get("service"), str) or not rule["service"].strip():
                 raise ValueError(f"Rule at index {index} has no valid service name.")
-            if rule.get("network") not in ("in-network", "out-of-network", None):
+            if rule.get("network") not in ("uc-family", "in-network", "out-of-network", None):
                 raise ValueError(f"Rule at index {index} has an invalid network.")
             if rule.get("setting") not in ("inpatient", "outpatient", "other", None):
                 raise ValueError(f"Rule at index {index} has an invalid setting.")

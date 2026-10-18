@@ -6,7 +6,8 @@ Protocol: docs/frontend-protocol.md. Everything the model sees comes from harnes
 Confirm and form cards pause the turn; the user's answer resumes it.
 
 Optional SEARCH_WORKER_URL (search_worker/worker.py) adds the search_insurer tool.
-AGENT_PLAN and AGENT_RULES pick the plan and its rules file (default prime_100).
+AGENT_MODE picks "plans" (default: cost estimates and the Arena on data/plans/policy.sqlite) or "legacy";
+in legacy mode AGENT_PLAN and AGENT_RULES pick the plan and its rules file (default prime_100).
 The dashboard report is not wired yet.
 """
 
@@ -25,12 +26,13 @@ from pydantic import BaseModel
 from agent_tools import DEFAULT_RULES_PATH
 from amd_client import amd_model, load_env, make_client
 from harness import Harness
-from harness.reader import ROOT, read_plan_pdf
+from harness.reader import ROOT, load_catalog, read_plan_pdf
 from harness.hooks import MAX_REPLY_RETRIES
 from harness.hooks import RATE_OPTION_PREFIX
 from harness.skills.questionnaire.skill import answers_message, build_form, choice_form
 
 load_env()
+MODE = os.environ.get("AGENT_MODE", "plans")  # "plans": cost + Arena on the plan database; "legacy": one plan's JSON
 PLAN = os.environ.get("AGENT_PLAN", "prime_100")
 RULES = os.environ.get("AGENT_RULES", str(DEFAULT_RULES_PATH))
 SEARCH_WORKER_URL = os.environ.get("SEARCH_WORKER_URL")
@@ -43,7 +45,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(","),
-    allow_methods=["POST"],  # /turn and /upload
+    allow_methods=["GET", "POST"],  # /plans, /turn and /upload
     allow_headers=["*"],
 )
 client = make_client(timeout=300.0)  # the shared AMD endpoint can be slow under load
@@ -62,18 +64,24 @@ class EndTurn(Exception):
 
 class Session:
     def __init__(self):
-        self.harness = Harness(PLAN, confirm=self._confirm, search_worker_url=SEARCH_WORKER_URL, rules_path=RULES)
+        self.harness = Harness(PLAN, confirm=self._confirm, search_worker_url=SEARCH_WORKER_URL, rules_path=RULES,
+                               mode=MODE)
+        self.plan_id = PLAN if MODE == "legacy" else None
         self.history = []
         self.approved = set()  # confirm summaries the user accepted
         self.pending_confirm = None  # (request_id, summary, call)
         self.open_forms = {}  # request_id -> the form's question dicts
         self.uploads = {}  # file_id -> {"path", "name"}
+        self.context = None  # the last home-screen mode applied
 
     def switch_plan(self, plan_id, rules_path):
         """Use another plan from here on, keeping the conversation and what the user told us."""
+        if MODE == "plans":
+            return  # every plan in the database is available at once
         old = self.harness.hooks
         self.harness = Harness(plan_id, confirm=self._confirm, search_worker_url=SEARCH_WORKER_URL,
                                rules_path=rules_path)
+        self.plan_id = plan_id
         new = self.harness.hooks
         new.user_texts = list(old.user_texts)
         new.answers = dict(old.answers)
@@ -97,6 +105,17 @@ class TurnRequest(BaseModel):
     session_id: str
     input: dict
     reply_target: dict | None = None
+    context: dict | None = None  # {"mode": "calculate" | "review", "plan_ids": [...]} from the home screen
+
+
+def available_plans():
+    """Plans the agent can price: the plan database (plans mode), or catalog plans whose rules file exists."""
+    if MODE == "plans":
+        from plan_db import PlanDB
+
+        return [{"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"], "plan_year": p["plan_year"],
+                 "rules": None} for p in PlanDB().plans()]
+    return [plan for plan in load_catalog() if (ROOT / plan["rules"]).exists()]
 
 
 def sse(event, data):
@@ -171,6 +190,33 @@ def estimate_card(session, args, result):
     }
 
 
+def plan_estimate_card(result):
+    """Estimate card for plans mode: one row per benefit the visit is paid under."""
+    prices = result.get("allowed_amount") or {}
+    rows = []
+    if prices.get("total") is not None:
+        rows.append({"label": "Allowed amount", "amount": prices["total"],
+                     "note": "Typical negotiated rate across the network",
+                     "source": {"kind": "mrf", "label": f"{prices.get('network')} price list, {prices.get('mrf_file_date')}"}})
+    for line in result.get("lines") or []:
+        rows.append({"label": line["benefit"], "amount": line["patient_cost"],
+                     "note": (line.get("quote") or "")[:120] or line["status"],
+                     "source": {"kind": "policy", "label": result["plan_id"], "page": line.get("source_page"),
+                                "quote": (line.get("quote") or "")[:300] or None}})
+    cost = result.get("patient_cost")
+    tier = result.get("network_tier")
+    return {
+        "estimate_id": f"est_{uuid.uuid4().hex[:8]}",
+        "title": result.get("scenario_label") or "Estimate",
+        "plan_name": result.get("plan_id"),
+        "status": result["status"],
+        "patient_cost": {"mid": cost} if result["status"] == "estimated" and cost is not None else None,
+        "rows": rows,
+        "assumptions": [f"Network: {result.get('network')}" + (f" ({tier})" if tier else "")],
+        "message": result.get("message"),
+    }
+
+
 def send_form(session, form):
     session.open_forms[form["request_id"]] = form["questions"]
     return sse("form", form)
@@ -199,6 +245,8 @@ async def run_call(session, call):
 
     if call.name in ("calculate_estimate", "calculate_with_quote") and result.get("status") in ESTIMATE_STATUSES:
         yield sse("estimate", estimate_card(session, args, result))
+    if call.name == "estimate_cost" and result.get("status") in ESTIMATE_STATUSES:
+        yield sse("estimate", plan_estimate_card(result))
 
     if form := result.pop("form", None):  # the model asked with ask_questions
         session.history.append(tool_output(call, result))
@@ -330,7 +378,11 @@ async def read_attachments(session, attachments):
                 result = data
         plan, identity = result["plan"], result["identity"]
         read = json.dumps(identity, ensure_ascii=False)
-        if plan and result["rules_path"]:
+        if MODE == "plans":
+            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
+                         f"{read}. If this is one of the plans in the plan list, use its plan_id. Otherwise say it "
+                         "isn't in the database yet, so you can't price it; describe only what page 1 shows.]")
+        elif plan and result["rules_path"]:
             session.switch_plan(plan["plan_id"], result["rules_path"])
             notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
                          f"{read}. It matches {plan['name']} in the verified plan library, so this conversation now "
@@ -345,6 +397,38 @@ async def read_attachments(session, attachments):
     session.attachment_notes = notes
 
 
+def apply_context(session, context):
+    """Switch plan for the chosen mode and return a note for the model, or None when nothing changed."""
+    if not context or context == session.context:
+        return None
+    session.context = context
+    plans = {plan["plan_id"]: plan for plan in available_plans()}
+    chosen = [plans[pid] for pid in context.get("plan_ids") or [] if pid in plans]
+    if MODE == "plans":
+        names = "; ".join(f"{p['name']} (plan_id {p['plan_id']})" for p in chosen) or "any plans in the plan list"
+        if context.get("mode") == "calculate":
+            return (f"[Mode: cost of a visit. Plans the user picked: {names}. Ask which visit they mean if they "
+                    "haven't said, then use estimate_cost.]")
+        if context.get("mode") == "review":
+            return (f"[Mode: Arena. The user wants to compare and choose between: {names}. Ask about the care they "
+                    "expect and their priorities with the questionnaire, then use compare_plans.]")
+        return None
+    if context.get("mode") == "calculate":
+        if len(chosen) == 1 and chosen[0]["plan_id"] != session.plan_id:
+            session.switch_plan(chosen[0]["plan_id"], str(ROOT / chosen[0]["rules"]))
+        if len(chosen) == 1:
+            return (f"[Mode: calculate. The user picked {chosen[0]['name']} from the plan library and wants to know "
+                    "what care will cost on it. Ask which visit or service they mean if they haven't said.]")
+        return "[Mode: calculate. The user wants to know what care will cost.]"
+    if context.get("mode") == "review":
+        names = "; ".join(plan["name"] for plan in chosen) or "the plans in the library"
+        current = plans.get(session.plan_id, {}).get("name", session.plan_id)
+        return (f"[Mode: review. The user wants to compare these plans and find the one that fits them: {names}. Ask about them "
+                f"and their priorities with the questionnaire before recommending. Only {current} is loaded for "
+                "pricing in this session; say so instead of pricing the others.]")
+    return None
+
+
 async def turn_events(request):
     session = SESSIONS.setdefault(request.session_id, Session())
     hooks = session.harness.hooks
@@ -353,6 +437,9 @@ async def turn_events(request):
     try:
         if kind == "message":
             text = data.get("text", "").strip()
+            if note := apply_context(session, request.context):
+                hooks = session.harness.hooks  # the plan may have changed
+                text = f"{note}\n{text}"
             if request.reply_target:
                 text = f"(About: {request.reply_target.get('label')}) {text}"
             session.pending_confirm = None
@@ -388,6 +475,12 @@ async def turn_events(request):
     except Exception as error:  # report, never leak request contents or keys
         yield sse("error", {"message": f"{type(error).__name__}: {str(error)[:300]}"})
     yield sse("done", {})
+
+
+@app.get("/plans")
+async def plans():
+    return [{"plan_id": plan["plan_id"], "name": plan["name"], "insurer": plan["insurer"],
+             "plan_year": plan["plan_year"]} for plan in available_plans()]
 
 
 @app.post("/upload")

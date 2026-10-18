@@ -48,7 +48,7 @@
 ### ① 保单信息数据库
 - 内容：除了 allowed amount 以外，保单 PDF 里的**所有信息**：保费、deductible、copay、coinsurance、OOP max、网络层级、转诊 / 预授权、限制条件。
 - 格式：**规则 JSON v2**，分计划层和规则层两层，见 issue #1。网络层级和额度由每个计划自己声明，可以表示 UC SHIP 那样的 4 层网络（Ashe 学生健康中心、UC Family、Anthem PPO、网络外）。
-- 存储：每个计划存一个文件 `policies/<plan_id>.json`，只读，跟着代码一起部署。
+- 存储：~~每个计划存一个文件 `policies/<plan_id>.json`~~ ✅ 2026-10-17 改定：存进一个只读 SQLite 文件 `data/plans/policy.sqlite`（`plans` / `benefits` / `plan_networks` 三张表，见 `db/README.md`），跟着代码一起部署。每个计划的 SBC 抽成两张 CSV，放在 `data/plans/extracted/<plan_id>/`；`scripts/policy/build_seed.py` 负责校验、分类，并重新生成这个 SQLite 文件。一行只记一个价格（计划 × SBC 段落 × 服务 × 组成部分 × 网络 × 档位）。团队交来的抽取 CSV 一律视为已核对，在 `data/plans/sources.csv` 的 `verified_by` 里记录。
 - 收录范围：**UC SHIP**，加上**美国最常见的几家大型商业保险**（由团队挑选）。
 - 来源：团队从官方渠道收集保单 PDF（Schedule of Benefits / SBC、保费表），离线收集时可以借助 Tavily 等工具；用户也可以上传保单。**PDF 内容的提取必须由 AMD 模型完成**，不能由其他 LLM 或编码助手生成数据。
 - 资料清单（放进 git）：`plan_id`、计划名称、保险公司、保单年度、来源网址、下载日期、文件哈希、收集人。PDF 文件本身不放进 git。
@@ -61,7 +61,7 @@
 - 这一步不需要 LLM，主要是 CPU 的工作。
 
 ### 两个数据库的对接
-- **计划对照**：我们的 `plan_id` → MRF 里的计划编号。建议在 v2 的计划层加一个字段记录它。
+- **计划对照**：我们的 `plan_id` → MRF 里的计划编号。✅ 2026-10-17：`plan_networks` 表（`data/plans/plan_networks.csv`），按网内档位对应到 `mrf_sources.plan_key` + `network`，每行附依据。团队同意由编码助手根据保单原文和 `data/plan_profiles.v1.json` 建立。
 - **服务对照**：用户的通俗说法 → `service_key` → CPT 代码。CPT 版权问题在非商业阶段不处理。
 - 医生信息：NPI（政府公开的 NPPES）。
 
@@ -92,10 +92,12 @@
 
 ## 8. 部署
 - ✅ 2026-10-16 改定：agent 流程不再放进 Vercel Python 函数，改为一个独立的 **Python FastAPI 服务**。原因：SSE 长连接会受 Vercel 函数执行时长的限制，SQLite 文件也有体积上限；FastAPI 可以直接复用 `guards.py`、`calculate_cost.py` 和 `scripts/mrf/lookup.py`。
-- **Vercel**：Next.js 前端（`web/`），只负责界面。自动生成 HTTPS 网址，作为提交的演示网址。
-- **Railway**：FastAPI agent 服务（agent 循环、guards、计算器、只读数据 JSON + SQLite），以及搜索 worker（Playwright + Chromium）。
+- ~~**Vercel**：Next.js 前端~~ ✅ 2026-10-17 改定：不用 Vercel，前后端都部署在 **Railway**（项目 `student-health-agent`，机房 iad，都从 `frontend` 分支部署）：
+  - 前端服务 `student-health-agent`：Next.js（根目录 `/web`），网址 `student-health-agent-production.up.railway.app`，作为提交的演示网址。
+  - 后端服务 `agent-api`：FastAPI agent 服务（根目录 `/`，启动命令 `cd workflow && uvicorn server:app --host 0.0.0.0 --port $PORT`），包括 agent 循环、guards、计算器和只读数据；磁盘卷 `rates-data` 挂在 `/data`，里面放价格库。环境变量：`AMD_*`、`BRANCH_A_RATES_SQLITE`、`CORS_ORIGINS`。
+  - 搜索 worker（Playwright + Chromium）以后作为第三个服务加进来。
 - 前后端协议见 `docs/frontend-protocol.md`。前端在没有后端时使用自带的 mock（按 Demo 流程回放事件）。
-- 不使用 Supabase：数据都是只读的，规模很小。
+- 不使用 Supabase：数据都是只读的，用 SQLite 文件就够。✅ 2026-10-17：价格库 `rates.sqlite`（3.1 GB）不进 git，用 `railway volume files upload` 上传到 Railway 服务的磁盘卷 `/data`，再用环境变量 `BRANCH_A_RATES_SQLITE=/data/rates.sqlite` 指过去；保单库只有约 100 KB，直接放进 git。磁盘卷要求 Hobby 及以上套餐（免费版只有 0.5 GB）。
 - 另外写好 `Dockerfile` 和 `docker-compose.yml`，满足比赛的容器化要求，让评委能在本机运行。
 
 ## 9. 展示 AMD 的应用
@@ -126,7 +128,7 @@
 | 10/13–14 | 接入 AMD 模型（Token Factory 或 vLLM）；v2 格式（#1）；搜索 worker 部署到 Railway |
 | 10/15–16 | 收集保单并批量提取，建好保单信息数据库；问题库；前端（对话窗 + 问卷卡片） |
 | 10/16–17 | **端到端打通演示流程**；dashboard；整理性能和准确率数据 |
-| 10/17 | 部署到 Vercel 和 Railway；录演示视频；PPT |
+| 10/17 | 部署到 Railway（前后端）；录演示视频；PPT |
 | 10/18 早上 | 提交（⚠️ 以实际截止时间为准） |
 
 ## 13. 待确认事项
