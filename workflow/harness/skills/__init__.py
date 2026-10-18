@@ -42,7 +42,13 @@ def read_skill_md(path: Path, **placeholders):
     return meta, body
 
 
-def load_skills():
+def load_skills(rates=None):
+    """rates: the overlay's BranchATools, or None to leave out the pricing skill."""
     from .questionnaire import skill as questionnaire
 
-    return [questionnaire.build()]
+    skills = [questionnaire.build()]
+    if rates is not None:
+        from .pricing import skill as pricing
+
+        skills.append(pricing.build(rates))
+    return skills

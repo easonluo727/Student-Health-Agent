@@ -27,7 +27,7 @@
 
 | type | 字段 | 含义 |
 | --- | --- | --- |
-| `message` | `text` | 用户在输入框里打的字 |
+| `message` | `text`, `attachments?` | 用户在输入框里打的字；`attachments` 是已上传的 PDF：`[{ "file_id", "name" }]` |
 | `form_response` | `request_id`, `answers` | 提交问卷卡片 |
 | `form_dismiss` | `request_id` | 用户关掉问卷卡片，不回答 |
 | `confirm_response` | `request_id`, `confirmed`, `correction?` | 确认卡片：确认，或者说明哪里不对 |
@@ -35,6 +35,12 @@
 `answers` 按字段名交回，每个答案都是 `{ "value": ..., "unknown": false }`。用户选“I don't know”时是 `{ "value": null, "unknown": true }`。`value` 的类型取决于题型：单选是 string，多选是 string[]，数字和权重是 number，填空是 string。
 
 **后端必须把这些答案记为 `source: "user_form"`，数字直接交给 Python，不经过模型转述。**
+
+### 上传 PDF
+
+`POST {API_BASE}/upload`，`multipart/form-data`，字段 `session_id` 和 `file`（只收 PDF，最大 25 MB）。返回 `{ "file_id", "name", "size" }`。前端把 `file_id` 放进下一条 `message` 的 `attachments`。
+
+后端收到带附件的消息后，先读 PDF 再交给模型：用 AMD 模型读第 1 页，只认出计划身份（计划名、保险公司、年份、网络、文件类型），再由 Python 在计划库 `policies/catalog.json` 里匹配。匹配上就把这段对话切到该计划，算钱用的是人工核对过的规则，不用上传文件里读到的数字；匹配不上就如实说明，不估算。读取进度用 `search_step` 事件发送，带 `kind: "document"`，截图是 PDF 页面。
 
 ### 响应：SSE 事件
 
@@ -48,7 +54,7 @@
 | `form` | `Form` | 问卷卡片，等待用户填写 |
 | `confirm` | `Confirm` | 确认卡片：计算之前展示 agent 理解的服务、网络、金额 |
 | `estimate` | `Estimate` | 对话里的费用结果：一个数字 + 计算过程表格 |
-| `search_step` | `{ search_id, step_id, status, text, url?, title?, screenshot? }` | 搜索进度：对话里显示一行文字（同一个 `step_id` 再次出现时更新这一行）；带 `screenshot` 时，右侧 “Computer” 面板显示这一步的网页截图 |
+| `search_step` | `{ search_id, step_id, status, text, url?, title?, screenshot?, kind? }` | 搜索进度：对话里显示一行文字（同一个 `step_id` 再次出现时更新这一行）；带 `screenshot` 时，右侧 “Computer” 面板显示这一步的网页截图 |
 | `report` | `{ report: Report }` | 打开或更新 dashboard 面板（整份替换） |
 | `error` | `{ message }` | 显示错误，用户可以重试 |
 | `done` | `{}` | 这一轮结束，输入框恢复可用 |

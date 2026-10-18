@@ -47,17 +47,27 @@ def build_form(question_ids, title, intro=None, prefill=None):
     return {"request_id": f"form_{uuid.uuid4().hex[:8]}", "title": title, "intro": intro, "questions": questions}
 
 
-def answers_message(question_ids, answers):
-    """How submitted answers are shown to the model. answers: {field: {"value", "unknown"}}."""
+def choice_form(field, label, options, title, intro=None):
+    """A one-question single-choice form that Python writes itself (not from the bank).
+
+    Used only for choices that come from verified data, such as a price clarification."""
+    return {"request_id": f"form_{uuid.uuid4().hex[:8]}", "title": title, "intro": intro,
+            "questions": [{"field": field, "kind": "single", "label": label, "options": options}]}
+
+
+def answers_message(questions, answers, note=None):
+    """How submitted answers are shown to the model.
+
+    questions: the form's question dicts. answers: {field: {"value", "unknown"}}."""
     lines = ["[Questionnaire answers · source: user_form]"]
-    for qid in question_ids:
-        answer = answers.get(qid) or {"value": None, "unknown": True}
+    for q in questions:
+        answer = answers.get(q["field"]) or {"value": None, "unknown": True}
         if answer.get("unknown") or answer.get("value") in (None, "", []):
             shown = "unknown (the user doesn't know)"
         else:
             shown = json.dumps(answer["value"], ensure_ascii=False)
-        lines.append(f"- `{qid}` ({BY_ID[qid]['label']}): {shown}")
-    lines.append("These come from the user. Pass numbers to the calculator exactly as given.")
+        lines.append(f"- `{q['field']}` ({q['label']}): {shown}")
+    lines.append(note or "These come from the user. Pass numbers to the calculator exactly as given.")
     return "\n".join(lines)
 
 

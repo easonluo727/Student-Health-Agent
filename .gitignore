@@ -18,3 +18,10 @@ data/mrf/rates.sqlite
 .gstack/
 data/mrf/*.sqlite-shm
 data/mrf/*.sqlite-wal
+# Downloaded plan PDFs (official sources listed in docs); not committed
+data/policy_pdfs/
+# PDFs users upload to the agent service
+data/uploads/
+# Local design assets (not published)
+decks/
+docs/AMD-brand-guidelines.pdf

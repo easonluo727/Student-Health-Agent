@@ -1,34 +1,80 @@
+"""Policy PDF import: Schedule of Benefits pages -> normalized rules JSON (AMD model only).
+
+Interactive:  python import_policy.py
+Direct:       python import_policy.py PDF PLAN START END [--columns "..."] [--out FILE]
+
+--columns lists the benefit columns left to right as "Header in PDF=network", for example
+"UC Family=uc-family,Network=in-network,Out-of-Network=out-of-network". The default is the
+two-column layout: "Preferred Provider=in-network,Out-of-Network=out-of-network".
+"""
+
+import argparse
 import base64
 import json
+import re
 import subprocess
+import sys
 from pathlib import Path
 from amd_client import amd_model, make_client
 
-client = make_client(timeout=300.0)
+client = make_client(timeout=900.0)  # image pages can take several minutes
 MODEL = amd_model()
+DEFAULT_COLUMNS = "Preferred Provider=in-network,Out-of-Network=out-of-network"
 
 # Get policy information
+parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+parser.add_argument("pdf", nargs="?")
+parser.add_argument("plan", nargs="?")
+parser.add_argument("start", nargs="?", type=int)
+parser.add_argument("end", nargs="?", type=int)
+parser.add_argument("--columns", default=DEFAULT_COLUMNS)
+parser.add_argument("--out", default="normalized_pdf_insurance_rules.json")
+args = parser.parse_args()
+
 pdf_path = Path(
-    input("PDF Path: ").strip()
+    args.pdf or input("PDF Path: ").strip()
 ).expanduser()
 
 plan_name = (
-    input("Plan Name: ")
+    (args.plan or input("Plan Name: "))
     .strip()
     .lower()
     .replace(" ", "_")
 )
 
 try:
-    start_page_number = int(
+    start_page_number = args.start or int(
         input("Schedule of Benefits PDF Start Page: ")
     )
-    end_page_number = int(
+    end_page_number = args.end or int(
         input("Schedule of Benefits PDF End Page: ")
     )
 except ValueError:
     print("PDF pages must be integers.")
     exit()
+
+# Benefit columns, left to right: (JSON key, header as printed, network value)
+columns = []
+for index, item in enumerate(args.columns.split(","), start=1):
+    header, _, network = item.partition("=")
+    if not header.strip() or not network.strip():
+        print('Each --columns item must look like "Header=network".')
+        exit()
+    columns.append((f"column_{index}", header.strip(), network.strip()))
+if args.columns == DEFAULT_COLUMNS:
+    # Keep the original key names for the default layout.
+    columns = [("preferred", columns[0][1], columns[0][2]),
+               ("out_of_network", columns[1][1], columns[1][2])]
+
+column_schema = ",\n".join(f'  "{key}": string | null' for key, _, _ in columns)
+column_guide = "\n".join(f'- "{key}" is the column headed "{header}".' for key, header, _ in columns)
+
+
+def parse_json(text):
+    """Model JSON, tolerating a surrounding ```json code fence."""
+    text = text.strip()
+    fenced = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.S)
+    return json.loads(fenced.group(1) if fenced else text)
 
 # Check whether the input is legitimate
 if not pdf_path.exists():
@@ -100,11 +146,15 @@ on the same horizontal band. Create exactly one object per physical row:
 {
   "setting": "inpatient" | "outpatient" | "other" | null,
   "service": string,
-  "preferred": string | null,
-  "out_of_network": string | null
+""" + column_schema + """
 }
 
+Benefit columns, left to right:
+""" + column_guide + """
+
 Rules:
+- When one benefit cell spans several columns, copy its full text into
+  each column it spans.
 - Process rows once, from top to bottom.
 - Copy each cell completely and verbatim, including notes, limits,
   copays, percentages, deductible language, and qualifications.
@@ -135,7 +185,7 @@ appears exactly once and that every benefit remains in its original column.
     )
 
     raw_output = response.output_text
-    insurance_rules = json.loads(raw_output)
+    insurance_rules = parse_json(raw_output)
 
     ### (Optional Block for batch) ###
     #batch_size = 5
@@ -164,37 +214,18 @@ appears exactly once and that every benefit remains in its original column.
     entry_id = 0
 
     for row in insurance_rules:
-        preferred_text = row.get("preferred")
-
-        if preferred_text:
+        for key, _, network in columns:
+            benefit_text = row.get(key)
+            if not benefit_text:
+                continue
             entry_id += 1
             benefit_entries.append(
                 {
                     "entry_id": entry_id,
                     "setting": row.get("setting"),
                     "service": row.get("service"),
-                    "network": "in-network",
-                    "benefit_text": preferred_text,
-                    "source_text": json.dumps(
-                        row,
-                        ensure_ascii=False,
-                    ),
-                }
-            )
-
-        out_of_network_text = row.get(
-            "out_of_network"
-        )
-
-        if out_of_network_text:
-            entry_id += 1
-            benefit_entries.append(
-                {
-                    "entry_id": entry_id,
-                    "setting": row.get("setting"),
-                    "service": row.get("service"),
-                    "network": "out-of-network",
-                    "benefit_text": out_of_network_text,
+                    "network": network,
+                    "benefit_text": benefit_text,
                     "source_text": json.dumps(
                         row,
                         ensure_ascii=False,
@@ -290,7 +321,7 @@ exactly matches the input entry_id sequence.
 
         normalized_output = normalization_response.output_text
 
-        normalized_batch = json.loads(
+        normalized_batch = parse_json(
             normalized_output
         )
 
@@ -361,10 +392,9 @@ exactly matches the input entry_id sequence.
     ## Check Point: In-network and out-of-network rules should be paired
     expected_rule_count = 0
     for row in insurance_rules:
-        if row.get("preferred"):
-            expected_rule_count += 1
-        if row.get("out_of_network"):
-            expected_rule_count += 1
+        for key, _, _ in columns:
+            if row.get(key):
+                expected_rule_count += 1
 
     actual_rule_count = len(normalized_rules)
     print("Expected normalized rules:", expected_rule_count)
@@ -403,7 +433,7 @@ print(
 )
 # Save all pages into one JSON file
 with open(
-    "normalized_pdf_insurance_rules.json",
+    args.out,
     "w",
     encoding="utf-8",
 ) as file:
@@ -417,5 +447,5 @@ with open(
 print(
     "\nSaved "
     f"{len(all_normalized_rules)} rules to "
-    "normalized_pdf_insurance_rules.json"
+    f"{args.out}"
 )

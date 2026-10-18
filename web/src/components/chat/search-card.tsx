@@ -1,13 +1,18 @@
-import { CheckCircle2, Loader2, Monitor, XCircle, Search } from "lucide-react"
+import { CheckCircle2, FileText, Loader2, Monitor, XCircle, Search } from "lucide-react"
 import type { SearchStep } from "@/lib/protocol"
 
 export function SearchCard({ steps, onOpenComputer }: { steps: SearchStep[]; onOpenComputer?: () => void }) {
   const running = steps.some((s) => s.status === "running")
+  const isDocument = steps[0]?.kind === "document"
+  const Icon = isDocument ? FileText : Search
+  const heading = isDocument
+    ? running ? "Reading your plan…" : "Read your plan"
+    : running ? "Searching the web…" : "Web search"
   return (
     <div className="rounded-xl border bg-card px-4 py-3">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-        <Search className="size-4 text-primary" />
-        {running ? "Searching the web…" : "Web search"}
+        <Icon className="size-4 text-primary" />
+        {heading}
         {onOpenComputer && steps.some((s) => s.screenshot) && (
           <button
             onClick={onOpenComputer}

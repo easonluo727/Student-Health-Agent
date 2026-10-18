@@ -27,10 +27,15 @@ SEARCH_OFF = ("**Say so when an insurer isn't in the catalog.** Web search is of
 
 
 class Harness:
-    def __init__(self, plan, confirm, search_worker_url=None, rules_path=DEFAULT_RULES_PATH):
+    def __init__(self, plan, confirm, search_worker_url=None, rules_path=DEFAULT_RULES_PATH, pricing=True):
         self.policy = PolicyTools(selected_plan=plan, rules_path=rules_path)
         self.definitions = mcp.Definitions(DEFINITIONS_DIR / f"{self.policy.selected_plan}.txt")
-        self.skills = load_skills()
+        self.rates, rate_options = None, None
+        if pricing:
+            from .skills.pricing.skill import build_rates
+
+            self.rates, rate_options = build_rates(self.policy)
+        self.skills = load_skills(self.rates)
 
         tools = mcp.policy_tools(self.policy)
         if self.definitions.terms:
@@ -41,7 +46,7 @@ class Harness:
             tools.extend(skill.tools)
         self.tools = mcp.ToolRegistry(tools)
 
-        self.hooks = Hooks(self.policy, confirm)
+        self.hooks = Hooks(self.policy, confirm, rates=self.rates, rate_options=rate_options)
         self.system_prompt = self._render_prompt(search_on=bool(search_worker_url))
 
     def _render_prompt(self, search_on):

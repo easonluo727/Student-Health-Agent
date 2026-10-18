@@ -1,4 +1,4 @@
-import type { ServerEvent, TurnRequest } from "./protocol"
+import type { ServerEvent, TurnRequest, UploadResult } from "./protocol"
 import { readSSE } from "./sse"
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api/mock"
@@ -22,4 +22,17 @@ export async function* streamTurn(
   for await (const event of readSSE(response.body)) {
     yield event as ServerEvent
   }
+}
+
+// Upload a PDF; attach the returned file_id to the next message.
+export async function uploadFile(sessionId: string, file: File): Promise<UploadResult> {
+  const body = new FormData()
+  body.append("session_id", sessionId)
+  body.append("file", file)
+  const response = await fetch(`${API_BASE}/upload`, { method: "POST", body })
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null)
+    throw new Error(detail?.detail ?? `Upload failed (${response.status})`)
+  }
+  return response.json()
 }

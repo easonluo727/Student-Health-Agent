@@ -1,5 +1,6 @@
 import type {
   Answer,
+  Attachment,
   Confirm,
   Estimate,
   Form,
@@ -12,7 +13,7 @@ import type {
 export type CardState = "open" | "submitting" | "answered" | "dismissed"
 
 export type TimelineItem =
-  | { kind: "user"; id: string; text: string; replyTarget?: ReplyTarget }
+  | { kind: "user"; id: string; text: string; replyTarget?: ReplyTarget; attachments?: Attachment[] }
   | { kind: "assistant"; id: string; text: string; streaming: boolean }
   | {
       kind: "form"
@@ -51,7 +52,7 @@ export const initialState: ChatState = {
 }
 
 export type Action =
-  | { type: "user_message"; id: string; text: string; replyTarget?: ReplyTarget }
+  | { type: "user_message"; id: string; text: string; replyTarget?: ReplyTarget; attachments?: Attachment[] }
   | { type: "form_submit"; id: string; answers: Record<string, Answer> }
   | { type: "form_dismiss"; id: string }
   | { type: "confirm_submit"; id: string; confirmed: boolean; correction?: string }
@@ -89,7 +90,13 @@ export function reducer(state: ChatState, action: Action): ChatState {
         busy: true,
         items: [
           ...state.items,
-          { kind: "user", id: action.id, text: action.text, replyTarget: action.replyTarget },
+          {
+            kind: "user",
+            id: action.id,
+            text: action.text,
+            replyTarget: action.replyTarget,
+            attachments: action.attachments,
+          },
         ],
       }
 

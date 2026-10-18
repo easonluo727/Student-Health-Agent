@@ -19,8 +19,18 @@ export interface Answer {
   unknown: boolean
 }
 
+// A file uploaded with POST {API_BASE}/upload, attached to the next message.
+export interface Attachment {
+  file_id: string
+  name: string
+}
+
+export interface UploadResult extends Attachment {
+  size: number
+}
+
 export type TurnInput =
-  | { type: "message"; text: string }
+  | { type: "message"; text: string; attachments?: Attachment[] }
   | { type: "form_response"; request_id: string; answers: Record<string, Answer> }
   | { type: "form_dismiss"; request_id: string }
   | { type: "confirm_response"; request_id: string; confirmed: boolean; correction?: string }
@@ -113,6 +123,8 @@ export type StepStatus = "running" | "done" | "failed"
 
 export interface SearchStep {
   search_id: string
+  // "document" when the steps are the agent reading an uploaded PDF; web search otherwise.
+  kind?: "web" | "document"
   step_id: string
   status: StepStatus
   text: string

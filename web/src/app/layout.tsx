@@ -13,15 +13,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Student Health Agent",
-  description: "Pick health insurance with real numbers.",
+  title: "Student Health Agent — real numbers",
+  description:
+    "An AI advisor that helps college students pick health insurance with real numbers. AMD Developer Hackathon · Health & Wellbeing.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
