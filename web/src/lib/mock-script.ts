@@ -2,9 +2,20 @@
 // Every number here is a PLACEHOLDER for UI development, not plan data.
 // Real numbers come from the FastAPI service (Python calculator + catalogs).
 
-import type { Answer, Report, SearchSummary, ServerEvent, Source, TurnRequest } from "./protocol"
+import type { Answer, Plan, Report, SearchSummary, ServerEvent, Source, TurnRequest } from "./protocol"
 
 export type MockStep = ServerEvent | { pause: number }
+
+// Same plans as policies/catalog.json.
+export const MOCK_PLANS: Plan[] = [
+  { plan_id: "uc_ship_ucla_2026", name: "UC SHIP 2026–27 (UCLA)", insurer: "Anthem Blue Cross", plan_year: "2026-27" },
+  {
+    plan_id: "prime_100",
+    name: "Student MediCover Prime 100 (2026–27)",
+    insurer: "UnitedHealthcare StudentResources",
+    plan_year: "2026-27",
+  },
+]
 
 const mockSource = (label: string, page?: number): Source => ({
   kind: "policy",
@@ -456,7 +467,30 @@ export function scriptFor(request: TurnRequest): MockStep[] {
   }
   const insurer = searchTarget(request)
   if (insurer) return search(insurer)
-  if (/how much|cost|price/i.test(text) && /\b(er|emergency|ankle|x-?ray)\b/i.test(text)) {
+  const isER = /\b(er|emergency|ankle|x-?ray)\b/i.test(text)
+  const mode = request.context?.mode
+  const planNames = (request.context?.plan_ids ?? []).map(
+    (id) => MOCK_PLANS.find((p) => p.plan_id === id)?.name ?? id,
+  )
+  if (mode === "calculate" && !isER) {
+    const plan = input.attachments?.length
+      ? `the plan in **${input.attachments[0].name}**, which matches UC SHIP 2026–27 (UCLA) in the library *(mock)*`
+      : planNames.length === 1
+        ? `**${planNames[0]}**`
+        : "your plan"
+    return say(
+      `I'll price care on ${plan}. Which visit or service should I price?\n\n` +
+        "For example: *an ER visit for a sprained ankle*, *a specialist follow-up*, or *a therapy session*.",
+    )
+  }
+  if (mode === "review") {
+    const names = planNames.length ? planNames.map((n) => `**${n}**`).join(" and ") : "the plans in the library"
+    return [
+      ...say(`I'll compare ${names} for you. First, a few questions so I can weigh them the way you would.`),
+      prefsForm,
+    ]
+  }
+  if (/how much|cost|price/i.test(text) && isER) {
     return [
       ...say("I need to make a few assumptions from what you said. Please check them before I calculate."),
       erConfirm,
@@ -473,9 +507,9 @@ export function scriptFor(request: TurnRequest): MockStep[] {
   }
   return say(
     "I can help with two things:\n\n" +
-      "1. **Cost estimates** — what you'd pay for a visit or a year of care on your plan.\n" +
-      "2. **Insurance Arena** — find the plan that fits your health and budget best.\n\n" +
-      "Try: *“This is my UC SHIP, what do you think?”*",
+      "1. **Calculate** what you'd pay for a visit on a plan in our library, or on your own plan PDF.\n" +
+      "2. **Review** the plans in our library and find the one that fits your health and budget.\n\n" +
+      "Try: *“How much would an ER visit for a sprained ankle cost?”*",
   )
 }
 

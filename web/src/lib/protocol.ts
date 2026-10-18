@@ -41,10 +41,27 @@ export interface ReplyTarget {
   label: string
 }
 
+// The feature the user picked on the home screen, sent with every message.
+export type Mode = "calculate" | "review"
+
+export interface TurnContext {
+  mode: Mode
+  plan_ids?: string[]
+}
+
 export interface TurnRequest {
   session_id: string
   input: TurnInput
   reply_target?: ReplyTarget
+  context?: TurnContext
+}
+
+// A plan in the verified library, from GET {API_BASE}/plans.
+export interface Plan {
+  plan_id: string
+  name: string
+  insurer: string
+  plan_year: string
 }
 
 // ---- Event payloads ----

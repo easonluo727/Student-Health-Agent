@@ -23,6 +23,15 @@
 
 `reply_target` 可以不传。用户点了 dashboard 上的某一项再提问时才带上，agent 据此解释那一项。
 
+`context` 也可以不传。用户在首页选了功能后，前端在之后每条 `message` 上都带上它：`{ "mode": "calculate" | "review", "plan_ids": ["uc_ship_ucla_2026"] }`。
+- `calculate` 且只选了一个计划：后端把这段对话切到该计划（和上传 PDF 匹配成功时一样）。
+- `review`：`plan_ids` 是用户勾选要对比的计划。
+- 后端只在 `context` 变化时给模型加一行说明（user 角色），所以重复发送是安全的。
+
+### 计划列表
+
+`GET {API_BASE}/plans` 返回能算钱的计划：`[{ "plan_id", "name", "insurer", "plan_year" }]`。默认（`AGENT_MODE=plans`）来源是计划数据库 `data/plans/policy.sqlite`，所有计划同时可用，`calculate` 不再切换计划，`review` 就是 Arena（`compare_plans`）；`AGENT_MODE=legacy` 时来源是 `policies/catalog.json`。前端用它渲染 Calculate 和 Review 的计划选择。
+
 `input` 有四种：
 
 | type | 字段 | 含义 |

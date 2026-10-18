@@ -7,24 +7,27 @@ import {
   ArrowUp,
   BarChart3,
   FileText,
-  HeartPulse,
   Loader2,
   Monitor,
   PanelRightClose,
   PanelRightOpen,
   Paperclip,
+  ShieldCheck,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ComputerPanel } from "@/components/computer/computer-panel"
 import { ArenaPanel } from "@/components/dashboard/arena-panel"
+import { HomeScreen } from "@/components/home/home-screen"
+import type { PlansState } from "@/components/home/plan-picker"
 import { initialState, reducer, type Action, type TimelineItem } from "@/lib/chat-state"
-import { IS_MOCK, streamTurn, uploadFile } from "@/lib/client"
-import type { Attachment, ReplyTarget, TurnInput } from "@/lib/protocol"
+import { IS_MOCK, listPlans, streamTurn, uploadFile } from "@/lib/client"
+import type { Attachment, Mode, Plan, ReplyTarget, TurnContext, TurnInput } from "@/lib/protocol"
 import { cn } from "@/lib/utils"
 import { ConfirmCard } from "./confirm-card"
 import { EstimateCard } from "./estimate-card"
 import { FormCard } from "./form-card"
+import { ModePill } from "./mode-pill"
 import { SearchCard } from "./search-card"
 
 type PendingFile =
@@ -32,12 +35,12 @@ type PendingFile =
   | { status: "ready"; name: string; attachment: Attachment }
   | { status: "error"; name: string; error: string }
 
-const SUGGESTIONS = [
-  "This is my UC SHIP, what do you think?",
-  "How much would an ER visit for a sprained ankle cost?",
-  "Can you recommend other commercial plans?",
-  "What about Oscar Health?",
-]
+function placeholderFor(context: TurnContext | null, hasFile: boolean) {
+  if (hasFile) return "Which visit or service should I price on this plan?"
+  if (context?.mode === "calculate") return "Which visit or service should I price?"
+  if (context?.mode === "review") return "Tell me about your health, budget, or doctors…"
+  return "Ask about a visit's cost, or which plan fits you…"
+}
 
 export function ChatApp() {
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -45,6 +48,8 @@ export function ChatApp() {
   const sessionRef = useRef<string | null>(null)
   const [draft, setDraft] = useState("")
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null)
+  const [context, setContext] = useState<TurnContext | null>(null)
+  const [plansState, setPlansState] = useState<PlansState>({ status: "loading" })
   const [panelTab, setPanelTab] = useState<"arena" | "computer">("arena")
   const [panelOpen, setPanelOpen] = useState(true)
   const [pendingFile, setPendingFile] = useState<PendingFile | null>(null)
@@ -52,12 +57,24 @@ export function ChatApp() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    listPlans()
+      .then((plans) => setPlansState({ status: "ready", plans }))
+      .catch(() => setPlansState({ status: "error" }))
+  }, [])
+  const plans = plansState.status === "ready" ? plansState.plans : []
+
   const run = useCallback(
-    async (input: TurnInput, before: Action, target?: ReplyTarget) => {
+    async (input: TurnInput, before: Action, target?: ReplyTarget, turnContext?: TurnContext) => {
       dispatch(before)
       sessionRef.current ??= crypto.randomUUID()
       try {
-        for await (const event of streamTurn({ session_id: sessionRef.current, input, reply_target: target })) {
+        for await (const event of streamTurn({
+          session_id: sessionRef.current,
+          input,
+          reply_target: target,
+          context: turnContext,
+        })) {
           dispatch({ type: "server", event })
           // Bring the panel that just got new content to the front.
           if (event.event === "search_step" && event.data.screenshot) {
@@ -82,8 +99,10 @@ export function ChatApp() {
   const attachments = pendingFile?.status === "ready" ? [pendingFile.attachment] : undefined
   const canSend = !state.busy && pendingFile?.status !== "uploading" && Boolean(draft.trim() || attachments)
 
-  const send = (text: string) => {
-    const trimmed = text.trim() || (attachments ? "Here's my plan. What do you think?" : "")
+  // The home-screen actions pass their context directly: state updates land after this call.
+  const send = (text: string, turnContext: TurnContext | null = context) => {
+    const fallback = turnContext?.mode === "calculate" ? "Here's my plan. What would care cost on it?" : "Here's my plan. What do you think?"
+    const trimmed = text.trim() || (attachments ? fallback : "")
     if (!trimmed || state.busy || pendingFile?.status === "uploading") return
     const target = replyTarget ?? undefined
     setDraft("")
@@ -93,7 +112,28 @@ export function ChatApp() {
       { type: "message", text: trimmed, attachments },
       { type: "user_message", id: crypto.randomUUID(), text: trimmed, replyTarget: target, attachments },
       target,
+      turnContext ?? undefined,
     )
+  }
+
+  const start = (text: string, turnContext: TurnContext) => {
+    setContext(turnContext)
+    send(text, turnContext)
+  }
+  const calculateOn = (plan: Plan) =>
+    start(`I want to know what care would cost on ${plan.name}.`, { mode: "calculate", plan_ids: [plan.plan_id] })
+  const review = (chosen: Plan[]) =>
+    start(
+      chosen.length === 1
+        ? `Is ${chosen[0].name} a good fit for me?`
+        : `Help me compare ${chosen.map((p) => p.name).join(" and ")}, and find the plan that fits me.`,
+      { mode: "review", plan_ids: chosen.map((p) => p.plan_id) },
+    )
+  const example = (text: string, mode: Mode) =>
+    start(text, mode === "review" ? { mode, plan_ids: plans.map((p) => p.plan_id) } : { mode })
+  const uploadForCalculate = () => {
+    setContext({ mode: "calculate" })
+    fileRef.current?.click()
   }
 
   const attach = async (file: File | undefined) => {
@@ -107,6 +147,7 @@ export function ChatApp() {
     try {
       const uploaded = await uploadFile(sessionRef.current, file)
       setPendingFile({ status: "ready", name: uploaded.name, attachment: { file_id: uploaded.file_id, name: uploaded.name } })
+      inputRef.current?.focus()
     } catch (error) {
       setPendingFile({
         status: "error",
@@ -143,31 +184,128 @@ export function ChatApp() {
   }
 
   const waiting = state.busy && !state.items.some((i) => i.kind === "assistant" && i.streaming)
+  const isHome = state.items.length === 0
+
+  const composer = (
+    <div>
+      {(replyTarget || pendingFile || !isHome) && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+          {!isHome && <ModePill context={context} plans={plans} disabled={state.busy} onChange={setContext} />}
+          {replyTarget && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-1">
+              Asking about: {replyTarget.label}
+              <button
+                onClick={() => setReplyTarget(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Clear"
+              >
+                <X className="size-3.5" />
+              </button>
+            </span>
+          )}
+          {pendingFile && (
+            <span
+              className={cn(
+                "inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-1",
+                pendingFile.status === "error"
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border bg-card text-foreground",
+              )}
+            >
+              {pendingFile.status === "uploading" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <FileText className="size-3.5" />
+              )}
+              <span className="truncate">{pendingFile.name}</span>
+              {pendingFile.status === "uploading" && <span className="text-muted-foreground">Uploading…</span>}
+              {pendingFile.status === "error" && <span>· {pendingFile.error}</span>}
+              {pendingFile.status !== "uploading" && (
+                <button
+                  onClick={() => setPendingFile(null)}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Remove attachment"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </span>
+          )}
+        </div>
+      )}
+      <form
+        className={cn(
+          "flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm transition-colors focus-within:border-foreground/40",
+          isHome && "p-3 shadow-md",
+        )}
+        onSubmit={(e) => {
+          e.preventDefault()
+          send(draft)
+        }}
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={(e) => {
+            attach(e.target.files?.[0])
+            e.target.value = ""
+          }}
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          disabled={state.busy || pendingFile?.status === "uploading"}
+          onClick={() => fileRef.current?.click()}
+          aria-label="Attach your plan (PDF)"
+          title="Attach your plan (PDF)"
+          className="rounded-xl text-muted-foreground hover:text-foreground"
+        >
+          <Paperclip />
+        </Button>
+        <textarea
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault()
+              send(draft)
+            }
+          }}
+          rows={isHome ? 2 : 1}
+          placeholder={placeholderFor(context, pendingFile?.status === "ready")}
+          className="max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground/70"
+        />
+        <Button type="submit" size="icon" disabled={!canSend} aria-label="Send" className="rounded-xl">
+          <ArrowUp />
+        </Button>
+      </form>
+      <p className="mt-1.5 text-center font-mono text-[11px] text-muted-foreground">
+        Estimates, not medical advice or a guarantee of coverage. Confirm with your insurer.
+      </p>
+    </div>
+  )
 
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden bg-background">
-      {/* Tech grid backdrop */}
-      <div className="bg-tech-grid pointer-events-none absolute inset-0" aria-hidden />
-
-      <header className="relative z-10 flex h-16 shrink-0 items-center gap-3 border-b border-white/5 bg-card/50 px-5 backdrop-blur">
-        <div className="shadow-brand-glow flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[oklch(0.66_0.21_27)] to-[oklch(0.45_0.18_25)]">
-          <HeartPulse className="size-5 text-white" strokeWidth={2.2} />
+    <div className="relative flex h-dvh flex-col overflow-hidden">
+      <header className="relative z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/80 px-5 backdrop-blur">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <ShieldCheck className="size-4.5" strokeWidth={2.2} />
         </div>
         <div className="min-w-0 leading-tight">
-          <div className="truncate font-semibold tracking-tight">
-            Student Health Agent
-          </div>
-          <div className="text-[11px] text-muted-foreground">
-            AI insurance advisor · AMD Developer Hackathon
-          </div>
+          <div className="truncate font-semibold tracking-tight">Student Insurance Agent</div>
+          <div className="text-[11px] text-muted-foreground">Calculate costs · Review plans</div>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[3%] px-2.5 py-1 font-mono text-[11px] text-muted-foreground sm:inline-flex">
-            <span className="size-1.5 animate-pulse-dot rounded-full bg-brand" />
+          <span className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-mono text-[11px] text-muted-foreground sm:inline-flex">
+            <span className="size-1.5 animate-pulse-dot rounded-full bg-foreground" />
             Powered by AMD API · Qwen
           </span>
           {IS_MOCK && (
-            <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-xs text-amber-300">
+            <span className="rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
               Mock backend
             </span>
           )}
@@ -176,132 +314,45 @@ export function ChatApp() {
 
       <div className="flex min-h-0 flex-1">
         <main className={cn("flex min-w-0 flex-1 flex-col", hasPanel && panelOpen && "max-w-[52%]")}>
-          <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
-              {state.items.length === 0 && <EmptyState onPick={send} />}
-              {state.items.map((item) => (
-                <TimelineRow
-                  key={item.id}
-                  item={item}
-                  busy={state.busy}
-                  run={run}
-                  onOpenComputer={openComputer}
-                />
-              ))}
-              {waiting && <TypingDots />}
-              <div ref={bottomRef} />
+          {isHome ? (
+            <div className="flex-1 overflow-y-auto">
+              <HomeScreen
+                plans={plansState}
+                busy={state.busy}
+                composer={composer}
+                onCalculatePlan={calculateOn}
+                onUpload={uploadForCalculate}
+                onReview={review}
+                onExample={example}
+              />
             </div>
-          </div>
-
-          <div className="border-t border-white/5 bg-background/70 px-4 py-3 backdrop-blur">
-            <div className="mx-auto max-w-2xl">
-              {replyTarget && (
-                <div className="mb-2 flex items-center gap-2 text-xs">
-                  <span className="rounded-full border border-brand/30 bg-brand/10 px-2 py-1 text-[oklch(0.78_0.13_30)]">
-                    Asking about: {replyTarget.label}
-                  </span>
-                  <button
-                    onClick={() => setReplyTarget(null)}
-                    className="text-muted-foreground hover:text-foreground"
-                    aria-label="Clear"
-                  >
-                    <X className="size-3.5" />
-                  </button>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto">
+                <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
+                  {state.items.map((item) => (
+                    <TimelineRow
+                      key={item.id}
+                      item={item}
+                      busy={state.busy}
+                      run={run}
+                      onOpenComputer={openComputer}
+                    />
+                  ))}
+                  {waiting && <TypingDots />}
+                  <div ref={bottomRef} />
                 </div>
-              )}
-              {pendingFile && (
-                <div className="mb-2 flex items-center gap-2 text-xs">
-                  <span
-                    className={cn(
-                      "inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-1",
-                      pendingFile.status === "error"
-                        ? "border-destructive/40 bg-destructive/10 text-destructive"
-                        : "border-white/10 bg-white/[4%] text-foreground",
-                    )}
-                  >
-                    {pendingFile.status === "uploading" ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <FileText className="size-3.5" />
-                    )}
-                    <span className="truncate">{pendingFile.name}</span>
-                    {pendingFile.status === "uploading" && <span className="text-muted-foreground">Uploading…</span>}
-                    {pendingFile.status === "error" && <span>· {pendingFile.error}</span>}
-                  </span>
-                  {pendingFile.status !== "uploading" && (
-                    <button
-                      onClick={() => setPendingFile(null)}
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="Remove attachment"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-              <form
-                className="flex items-end gap-2 rounded-2xl border border-white/10 bg-card/80 p-2 shadow-lg shadow-black/20 transition-all focus-within:border-brand/50 focus-within:shadow-[0_0_28px_-8px_oklch(0.60_0.21_27/50%)]"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  send(draft)
-                }}
-              >
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    attach(e.target.files?.[0])
-                    e.target.value = ""
-                  }}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  disabled={state.busy || pendingFile?.status === "uploading"}
-                  onClick={() => fileRef.current?.click()}
-                  aria-label="Attach your plan (PDF)"
-                  title="Attach your plan (PDF)"
-                  className="rounded-xl text-muted-foreground hover:text-foreground"
-                >
-                  <Paperclip />
-                </Button>
-                <textarea
-                  ref={inputRef}
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                      e.preventDefault()
-                      send(draft)
-                    }
-                  }}
-                  rows={1}
-                  placeholder="Ask about your plan, a visit, or which plan fits you…"
-                  className="max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground/70"
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  disabled={!canSend}
-                  aria-label="Send"
-                  className="shadow-brand-glow rounded-xl bg-gradient-to-br from-[oklch(0.62_0.21_27)] to-[oklch(0.47_0.19_26)] text-white hover:from-[oklch(0.66_0.21_27)] hover:to-[oklch(0.50_0.19_26)]"
-                >
-                  <ArrowUp />
-                </Button>
-              </form>
-              <p className="mt-1.5 text-center font-mono text-[11px] text-muted-foreground">
-                Estimates, not medical advice or a guarantee of coverage. Confirm with your insurer.
-              </p>
-            </div>
-          </div>
+              </div>
+              <div className="border-t border-border bg-background/80 px-4 py-3 backdrop-blur">
+                <div className="mx-auto max-w-2xl">{composer}</div>
+              </div>
+            </>
+          )}
         </main>
 
         {hasPanel && panelOpen && (
-          <aside className="flex min-w-0 flex-1 flex-col border-l border-white/5 bg-card/30 backdrop-blur">
-            <div className="flex shrink-0 items-center gap-1 border-b border-white/5 px-3 py-2">
+          <aside className="flex min-w-0 flex-1 flex-col border-l border-border bg-card/60">
+            <div className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-2">
               {state.report && (
                 <PanelTab active={tab === "arena"} onClick={() => setPanelTab("arena")}>
                   <BarChart3 className="size-4" /> Arena
@@ -329,14 +380,13 @@ export function ChatApp() {
         {hasPanel && !panelOpen && (
           <button
             onClick={() => setPanelOpen(true)}
-            className="flex w-10 shrink-0 flex-col items-center gap-2 border-l border-white/5 bg-card/30 pt-3 text-muted-foreground hover:text-foreground"
+            className="flex w-10 shrink-0 flex-col items-center gap-2 border-l border-border bg-card/60 pt-3 text-muted-foreground hover:text-foreground"
             aria-label="Show panel"
           >
             <PanelRightOpen className="size-4" />
           </button>
         )}
       </div>
-
     </div>
   )
 }
@@ -362,20 +412,20 @@ function TimelineRow({
           {item.attachments?.map((file) => (
             <span
               key={file.file_id}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[4%] px-2 py-1 text-xs"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1 text-xs"
             >
-              <FileText className="size-3.5 text-[oklch(0.78_0.13_30)]" />
+              <FileText className="size-3.5" />
               {file.name}
             </span>
           ))}
-          <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-gradient-to-br from-[oklch(0.62_0.21_27)] to-[oklch(0.47_0.19_26)] px-4 py-2 text-sm text-white shadow-lg shadow-brand/25">
+          <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-4 py-2 text-sm text-primary-foreground">
             {item.text}
           </div>
         </div>
       )
     case "assistant":
       return (
-        <div className="prose-chat rounded-2xl border-l-2 border-l-brand/60 bg-card/40 px-4 py-3 text-sm leading-relaxed">
+        <div className="prose-chat rounded-2xl border border-border bg-card px-4 py-3 text-sm leading-relaxed">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
         </div>
       )
@@ -435,60 +485,11 @@ function PanelTab({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors",
-        active
-          ? "border border-brand/30 bg-brand/10 font-medium text-foreground"
-          : "text-muted-foreground hover:text-foreground",
+        active ? "border border-border bg-background font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
       )}
     >
       {children}
     </button>
-  )
-}
-
-function EmptyState({ onPick }: { onPick: (text: string) => void }) {
-  return (
-    <div className="animate-fade-up py-12 text-center">
-      <div className="shadow-brand-glow mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[oklch(0.66_0.21_27)] to-[oklch(0.45_0.18_25)]">
-        <HeartPulse className="size-7 text-white" strokeWidth={2.2} />
-      </div>
-      <p className="font-mono text-[11px] tracking-[0.25em] text-glow uppercase">
-        Ask · Compare · Decide
-      </p>
-      <h1 className="text-gradient-brand mx-auto mt-2 max-w-lg text-3xl leading-tight font-bold tracking-tight">
-        Pick health insurance with real numbers
-      </h1>
-      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-        Aged off your parents&apos; plan? I&apos;ll price your plan for the care you actually use, and
-        compare it with commercial plans — every number traced to a policy page or a negotiated rate.
-      </p>
-      <div className="mx-auto mt-6 flex max-w-xl flex-wrap items-center justify-center gap-2">
-        {[
-          ["629,842", "negotiated rates"],
-          ["96%", "LA network coverage"],
-          ["19", "common student visits"],
-          ["100%", "open models on AMD"],
-        ].map(([value, label]) => (
-          <div
-            key={label}
-            className="rounded-xl border border-white/10 bg-white/[3%] px-3 py-1.5 text-left backdrop-blur"
-          >
-            <span className="font-mono text-sm font-semibold text-[oklch(0.78_0.13_30)]">{value}</span>
-            <span className="ml-1.5 text-xs text-muted-foreground">{label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-8 flex flex-wrap justify-center gap-2">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            onClick={() => onPick(s)}
-            className="rounded-full border border-white/10 bg-white/[3%] px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:border-brand/50 hover:bg-brand/10 hover:text-foreground"
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -498,7 +499,7 @@ function TypingDots() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="size-1.5 animate-bounce rounded-full bg-brand"
+          className="size-1.5 animate-bounce rounded-full bg-foreground/60"
           style={{ animationDelay: `${i * 120}ms` }}
         />
       ))}

@@ -1,4 +1,4 @@
-import type { ServerEvent, TurnRequest, UploadResult } from "./protocol"
+import type { Plan, ServerEvent, TurnRequest, UploadResult } from "./protocol"
 import { readSSE } from "./sse"
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api/mock"
@@ -22,6 +22,13 @@ export async function* streamTurn(
   for await (const event of readSSE(response.body)) {
     yield event as ServerEvent
   }
+}
+
+// Plans the agent can price, for the Calculate and Review pickers.
+export async function listPlans(): Promise<Plan[]> {
+  const response = await fetch(`${API_BASE}/plans`)
+  if (!response.ok) throw new Error(`Server returned ${response.status}`)
+  return response.json()
 }
 
 // Upload a PDF; attach the returned file_id to the next message.
