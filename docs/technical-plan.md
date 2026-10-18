@@ -92,10 +92,11 @@
 
 ## 8. 部署
 - ✅ 2026-10-16 改定：agent 流程不再放进 Vercel Python 函数，改为一个独立的 **Python FastAPI 服务**。原因：SSE 长连接会受 Vercel 函数执行时长的限制，SQLite 文件也有体积上限；FastAPI 可以直接复用 `guards.py`、`calculate_cost.py` 和 `scripts/mrf/lookup.py`。
-- ~~**Vercel**：Next.js 前端~~ ✅ 2026-10-17 改定：不用 Vercel，前后端都部署在 **Railway**（项目 `student-health-agent`，机房 iad，都从 `frontend` 分支部署）：
-  - 前端服务 `student-health-agent`：Next.js（根目录 `/web`），网址 `student-health-agent-production.up.railway.app`，作为提交的演示网址。
-  - 后端服务 `agent-api`：FastAPI agent 服务（根目录 `/`，启动命令 `cd workflow && uvicorn server:app --host 0.0.0.0 --port $PORT`），包括 agent 循环、guards、计算器和只读数据；磁盘卷 `rates-data` 挂在 `/data`，里面放价格库。环境变量：`AMD_*`、`BRANCH_A_RATES_SQLITE`、`CORS_ORIGINS`。
-  - 搜索 worker（Playwright + Chromium）以后作为第三个服务加进来。
+- ~~**Vercel**：Next.js 前端~~ ✅ 2026-10-18 改定：不用 Vercel，**整个产品只部署成 Railway 上的一个服务 `agent-api`**（项目 `student-health-agent`，机房 iad，从 `main` 分支部署，用仓库根目录的 `Dockerfile` 构建）：
+  - Dockerfile 先用 Node 把前端静态导出（`STATIC_EXPORT=1`，生成 `web/out`），再起 FastAPI；FastAPI 在 `/` 提供前端页面，在 `/api/*` 提供接口，前后端同域，不需要 CORS。
+  - 公网网址：https://agent-api-production-adc8.up.railway.app （提交给评委的就是这个）。
+  - 磁盘卷 `rates-data` 挂在 `/data`，里面放价格库；环境变量：`AMD_*`、`BRANCH_A_RATES_SQLITE`、`PORT=8080`。
+  - 搜索 worker（Playwright + Chromium）以后作为第二个服务加进来。
 - 前后端协议见 `docs/frontend-protocol.md`。前端在没有后端时使用自带的 mock（按 Demo 流程回放事件）。
 - 不使用 Supabase：数据都是只读的，用 SQLite 文件就够。✅ 2026-10-17：价格库 `rates.sqlite`（3.1 GB）不进 git，用 `railway volume files upload` 上传到 Railway 服务的磁盘卷 `/data`，再用环境变量 `BRANCH_A_RATES_SQLITE=/data/rates.sqlite` 指过去；保单库只有约 100 KB，直接放进 git。磁盘卷要求 Hobby 及以上套餐（免费版只有 0.5 GB）。
 - 另外写好 `Dockerfile` 和 `docker-compose.yml`，满足比赛的容器化要求，让评委能在本机运行。
