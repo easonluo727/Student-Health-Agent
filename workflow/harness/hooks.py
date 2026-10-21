@@ -6,10 +6,8 @@
   post_tool         after a tool runs; may rewrite the result or pause for confirmation
   check_reply       before a reply is shown; may reject it with feedback
 
-The amount, confirmation and reply checks are guards.ConversationGuard, unchanged; with the
-pricing skill it is the overlay's QuoteGuard, which adds quote rules on top (a quote_id must
-come from Python, the model never passes a price). This file adds lookup-before-use, the
-questionnaire rules, and Python sending a form when a tool needs something from the user.
+The amount, confirmation and reply checks are guards.ConversationGuard, unchanged. This file
+adds the questionnaire rules, and Python sending a form when a tool needs something from the user.
 """
 
 from decimal import Decimal, InvalidOperation
@@ -19,28 +17,22 @@ from guards import MAX_REPLY_RETRIES, ConversationGuard, numbers_in  # noqa: F40
 from .skills.questionnaire.bank import BY_ID, CALCULATOR_FIELDS
 from .skills.questionnaire.skill import MAX_QUESTIONS
 
-RULE_TOOLS = {"calculate_estimate", "get_allowed_amount", "calculate_with_quote"}
-RATE_OPTION_PREFIX = "rate_option__"  # form field for a price clarification: rate_option__<rule_id>
+
+
+def _no_confirm(summary):
+    # The guard asks for confirmation only on calculate_estimate, which this harness doesn't offer.
+    raise RuntimeError("Unexpected confirmation request: " + summary)
 
 
 class Hooks:
-    def __init__(self, policy, confirm, rates=None, rate_options=None):
-        self.policy = policy
-        if rates is not None:
-            from quote_guards import QuoteGuard  # overlay, on sys.path via the pricing skill
-
-            self.guard = QuoteGuard(confirm, rates.store, rate_options)
-        else:
-            self.guard = ConversationGuard(confirm=confirm)
-        self.inspected_ids = set()
+    def __init__(self):
+        self.guard = ConversationGuard(confirm=_no_confirm)
         self.user_texts = []
         self.answers = {}  # question-bank id -> submitted value (None when the user doesn't know)
 
     # Events ---------------------------------------------------------------
 
     def on_user_message(self, text):
-        # A fresh lookup per message avoids using an unseen rule after a correction.
-        self.inspected_ids = set()
         self.guard.start_turn()
         self.guard.record_user(text)
         self.user_texts.append(text)
@@ -58,23 +50,9 @@ class Hooks:
                 numbers.append(str(value))
         self.guard.record_user(" ".join(numbers))
 
-    def provenance(self, field, value):
-        """'user_form' when this value came from the questionnaire, else 'user_message'."""
-        if field in self.answers and value is not None and self.answers[field] == value:
-            return "user_form"
-        return "user_message"
-
     # Tool hooks -----------------------------------------------------------
 
     def pre_tool(self, name, args):
-        if name in RULE_TOOLS and args["rule_id"] not in self.inspected_ids:
-            return {"status": "lookup_required", "message": "Call get_policy_rule for this ID first."}
-        if name == "calculate_estimate":
-            return self.guard.pre_tool(name, args)
-        if name == "get_allowed_amount":
-            return self.guard.pre_tool("resolve_rate", {**args, "provider_npi": None, "service_date": None})
-        if name == "calculate_with_quote":
-            return self.guard.pre_tool(name, args)
         if name == "ask_questions":
             return self._check_questions(args)
         if name == "estimate_cost":  # the only amount the model passes is the remaining deductible
@@ -85,23 +63,10 @@ class Hooks:
     def post_tool(self, name, args, result):
         if name == "ask_questions":
             return result
-        if name == "get_policy_rule":
-            if result.get("status") == "found":
-                self.inspected_ids.add(args["rule_id"])
-            return self.guard.post_tool(name, args, result, result.get("rule"))
-        if name == "get_allowed_amount":
-            result = self.guard.post_tool("resolve_rate", args, result, None)
-            if result.get("status") == "needs_clarification" and (result.get("clarification") or {}).get("options"):
-                result = {**result, "clarify": result["clarification"]}
-            return result
-        if name in ("calculate_estimate", "calculate_with_quote", "estimate_cost"):
-            if name == "estimate_cost":
-                # Inputs are choices from fixed options, so there is nothing to confirm; record the result's
-                # numbers so the reply may quote them.
-                result = self.guard.post_tool(name, args, result, None)
-            else:
-                rule = self.policy.get_policy_rule(args["rule_id"]).get("rule")
-                result = self.guard.post_tool(name, args, result, rule)  # may pause for confirmation
+        if name == "estimate_cost":
+            # Inputs are choices from fixed options, so there is nothing to confirm; record the result's
+            # numbers so the reply may quote them.
+            result = self.guard.post_tool(name, args, result, None)
             if result.get("status") == "needs_information":
                 ask = [CALCULATOR_FIELDS[f] for f in result.get("missing_fields") or [] if f in CALCULATOR_FIELDS]
                 ask = [qid for qid in ask if qid not in self.answers]

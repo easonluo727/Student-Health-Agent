@@ -147,12 +147,11 @@ export interface SearchStep {
   text: string
   url?: string | null
   title?: string | null
-  // JPEG data URL of the page at this step (live search worker only).
+  // JPEG data URL of the page at this step.
   screenshot?: string | null
 }
 
-// Final result of the live search worker (search_worker/worker.py). The agent
-// service turns it into the assistant's reply; it is not sent to the browser.
+// Final result of an insurer search. Only the mock's scripted search produces it.
 export interface SearchSummary {
   insurer: string
   status: "found" | "partial" | "blocked" | "not_found" | "error"

@@ -1,4 +1,4 @@
-"""Human review of AMD-extracted policy rules. No LLM.
+"""Human review of model-extracted policy rules. No LLM.
 
 1. Merge import batches and write a review sheet:
      python scripts/policy/review_sheet.py build OUT_RULES.json REVIEW.csv BATCH.json [BATCH.json ...]

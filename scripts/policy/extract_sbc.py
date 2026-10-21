@@ -1,10 +1,10 @@
-"""Extract a plan's benefit tables from its SBC (or EOC schedule) with the AMD model, into the extraction CSVs.
+"""Extract a plan's benefit tables from its SBC (or EOC schedule) with the LLM, into the extraction CSVs.
 
     cd workflow && python ../scripts/policy/extract_sbc.py PDF PLAN_ID [--pages 2-6] [--summary-pages 1]
         [--source-url URL] [--eoc] [--out DIR]
 
 Python finds the pages (SBC: page 1 "Important Questions" + the "What You Will Pay" table pages; an EOC needs
---pages), renders each page and sends the image plus its text layer to the AMD model, one page per call. The model
+--pages), renders each page and sends the image plus its text layer to the model, one page per call. The model
 returns JSON rows under the extraction rules; Python adds plan_id / source_url / source_page, drops rows repeated
 across pages, and writes <out>/plans.csv + benefits.csv (default data/plans/extracted/<plan_id>/) in the same
 format as the Perplexity extraction, for scripts/policy/build_seed.py.
@@ -27,6 +27,7 @@ from openai import RateLimitError
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "workflow"))
+from llm_client import fast_extra_body, llm_model, make_client  # noqa: E402
 
 PLAN_COLUMNS = ["plan_id", "insurer", "plan_name", "plan_year", "plan_type", "network_name", "deductible_in_usd",
                 "deductible_out_usd", "oop_max_in_usd", "oop_max_out_usd", "coinsurance_in_pct", "source_url",
@@ -156,7 +157,7 @@ def ask(client, model, prompt, pages, context=""):
                 resp = client.chat.completions.create(
                     model=model, messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
                     temperature=temperature, max_tokens=8000,
-                    extra_body={"chat_template_kwargs": {"enable_thinking": False}})
+                    extra_body=fast_extra_body())
                 break
             except RateLimitError:
                 if wait is None:
@@ -222,7 +223,7 @@ def write_csv(path, columns, rows):
 def before_deductible(client, model, summary_text):
     """The standard services page 1 says are covered before the deductible (a choice from fixed options)."""
     resp = client.chat.completions.create(
-        model=model, temperature=0, max_tokens=500, extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        model=model, temperature=0, max_tokens=500, extra_body=fast_extra_body(),
         messages=[{"role": "system", "content": BEFORE_DEDUCTIBLE_PROMPT}, {"role": "user", "content": summary_text}])
     allowed = {s.strip() for s in SERVICES.split(",")}
     return sorted(set(parse_json(resp.choices[0].message.content).get("services") or []) & allowed)
@@ -276,8 +277,7 @@ def main():
         renormalize(out)
         return
 
-    from amd_client import amd_model, make_client
-    client, model = make_client(timeout=600.0, max_retries=2), amd_model()
+    client, model = make_client(timeout=600.0, max_retries=2), llm_model()
 
     texts = page_texts(args.pdf)
     found_summary, found_pages = find_pages(texts)

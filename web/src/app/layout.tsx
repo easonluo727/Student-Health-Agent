@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Student Insurance Agent: calculate costs, review plans",
+  title: "Health Insurance Agent: calculate costs, review plans",
   description:
-    "An AI advisor that helps college students calculate what care costs on their plan and review which plan fits them. AMD Developer Hackathon · Health & Wellbeing.",
+    "An AI advisor that helps people in the US calculate what care costs on their plan and review which plan fits them.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

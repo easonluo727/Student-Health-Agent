@@ -11,7 +11,7 @@ Prompts only ask the model to clarify; these hooks make it unavoidable:
                 when the calculator reported needs_information.
 
 The hooks fail closed: when they cannot verify something, the agent asks.
-They are independent of the LLM API, so they survive the move to AMD.
+They are independent of the LLM API, so they survive a change of provider.
 """
 
 import json

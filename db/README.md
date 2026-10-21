@@ -3,15 +3,17 @@
 | database | file | size | where it lives in production |
 |---|---|---|---|
 | ① policy (`plans`, `benefits`, `plan_networks`) | `data/plans/policy.sqlite` | ~100 KB | committed, deployed with the code |
-| ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite` (`BRANCH_A_RATES_SQLITE`) |
+| ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite`; not read at runtime yet |
 
-Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). Python joins the two through
+Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). The agent prices visits from the
+summary `data/mrf/allowed_amounts.csv` (built from ② by `scripts/mrf/report.py`); ② itself is kept for
+per-provider (NPI) pricing later. Python joins the two through
 `plan_networks.mrf_plan_key` → `mrf_sources.plan_key` (`ATTACH` works for ad-hoc SQL).
 
 ## Policy database: data flow
 
 ```
-plan SBC PDF ──scripts/policy/extract_sbc.py (AMD model) or the Perplexity prompt──>
+plan SBC PDF ──scripts/policy/extract_sbc.py (LLM) or the Perplexity prompt──>
                                     data/plans/extracted/<plan_id>/{plans,benefits}.csv   (raw, kept as extracted)
                                     data/plans/sources.csv        (verified_by set → the whole plan is verified)
                                     data/plans/plan_networks.csv  (bridge to the MRF rates)
@@ -23,8 +25,8 @@ plan SBC PDF ──scripts/policy/extract_sbc.py (AMD model) or the Perplexity p
 ```
 
 `extract_sbc.py` finds an SBC's pages itself (page 1 "Important Questions" + the "What You Will Pay" table pages;
-an EOC needs `--summary-pages`/`--pages`) and sends each page's image and text layer to the AMD model with thinking
-off; a plan takes about 3 minutes. Python then splits nothing and computes nothing: it only fills plan_id /
+an EOC needs `--summary-pages`/`--pages`) and sends each page's image and text layer to the model with thinking
+off (`LLM_EXTRA_BODY`); a plan takes about 3 minutes. Python then splits nothing and computes nothing: it only fills plan_id /
 source_url / source_page, unifies tier spellings ("UC Family Provider" → "UC Family") and drops rows repeated
 across pages.
 
@@ -62,7 +64,6 @@ outside git:
 ```bash
 railway volume files upload ~/Downloads/rates.sqlite.xz /rates.sqlite.xz
 railway ssh -- python -c "import lzma,shutil; shutil.copyfileobj(lzma.open('/data/rates.sqlite.xz'), open('/data/rates.sqlite','wb'))"
-railway variables --set BRANCH_A_RATES_SQLITE=/data/rates.sqlite
 ```
 
 The volume survives redeploys. Locally, unpack the same archive to `data/mrf/rates.sqlite` (gitignored).

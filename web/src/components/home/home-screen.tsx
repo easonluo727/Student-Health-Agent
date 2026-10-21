@@ -34,7 +34,7 @@ export function HomeScreen({
   return (
     <div className="animate-fade-up mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-[12vh] pb-10">
       <p className="font-mono text-[11px] tracking-[0.25em] text-muted-foreground uppercase">
-        Student Insurance Agent
+        Health Insurance Agent
       </p>
       <h1 className="mt-3 text-center text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
         Know what your care costs,

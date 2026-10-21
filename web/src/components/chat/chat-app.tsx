@@ -296,14 +296,10 @@ export function ChatApp() {
           <ShieldCheck className="size-4.5" strokeWidth={2.2} />
         </div>
         <div className="min-w-0 leading-tight">
-          <div className="truncate font-semibold tracking-tight">Student Insurance Agent</div>
+          <div className="truncate font-semibold tracking-tight">Health Insurance Agent</div>
           <div className="text-[11px] text-muted-foreground">Calculate costs · Review plans</div>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-mono text-[11px] text-muted-foreground sm:inline-flex">
-            <span className="size-1.5 animate-pulse-dot rounded-full bg-foreground" />
-            Powered by AMD API · Qwen
-          </span>
           {IS_MOCK && (
             <span className="rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
               Mock backend
