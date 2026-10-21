@@ -31,6 +31,9 @@ closest ones as an approximation, clearly labelled.
 | `needs_information` | Ask for exactly the `missing_fields` (a deductible question is sent as a form automatically). |
 | `needs_review` / `not_covered` | Say so plainly with the `message`, and cite the benefit's page. |
 
+When `allowed_amount.warnings` is not empty, say that part of the price is rough and why, in one sentence.
+A copay plan's cost does not depend on it; a deductible or coinsurance line does.
+
 A line's `limits` and a plan's `rules` (in the plan list) are conditions the user must meet for the cost to hold,
 for example UC SHIP's rule that students need an Ashe Center referral except for urgent care, emergencies and
 LiveHealth Online. When one applies to what the user is about to do, say it before the number, with its page.

@@ -32,13 +32,13 @@
 
 2026-10-20 实测：线上对任何问题都返回 `AuthenticationError: 401 Invalid bearer token`。AMD 的 API key 已经失效。换成新的供应商以后，在 Railway 上把变量改成 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`（旧的 `AMD_*` 已经不读了）。
 
-### issue #6 剩下的（保单 × 价格对接）
+### issue #6（保单 × 价格对接）的状态
 
-已完成：默认价格不再用 UCLA 价；区间算对；对接代码不再崩溃；桥 1 全部有证据。还剩：
-- **桥 2 没人审过**：`plan_db.SCENARIOS`（场景的每个部分走哪一行福利）和 `data/mrf/encounters.csv`（场景对应哪些收费代码，`verified_by` 全空）。需要懂医疗计费的人审一遍。
-- **急诊医院部分的价格**只来自 1–5 家机构；Health Net 和 UHC 没有。按具体医院查价以后会好一些，但要查清医院急诊实际按什么收费。
-- **缺价格的代码**：远程看诊 98005 在 Health Net 和 L.A. Care 没有价格；Health Net 缺 HIV 检测 86701。可以试替代代码（比如 99213 加远程修饰码）。
-- **自动检查**：同一代码在不同网络之间价格差太多就报警。
+2026-10-21 做完：默认价格不再用 UCLA 价；区间算对；对接代码不再崩溃；桥 1 全部有证据；桥 2 审过一遍（`SCENARIOS` 和 `encounters.csv`，依据是 SBC 的联邦费用示例和 Covered CA 2026 统一设计）；copay 不超过服务价格（Covered CA 脚注 6，原来算错）；Ashe Center 看流感按普通门诊算；远程看诊没有 98005 价格时用 99213；样本太少的价格会带警告；`scripts/mrf/check_rates.py` 做跨网络检查。
+
+还剩（`check_rates.py` 报出的就是这些）：
+- **急诊和急诊 X 光的医院部分**：大多数医院把医院费按账单百分比或按病例报价，不是美元价格，所以样本只有 0–74 个编号，Health Net 完全没有。代码没法修，只能如实提醒；按具体医院查价（路线图第 1 步）以后再看。
+- **HIV 检测**：现在常用 87389，但当初只导入了 86701，Health Net 没有 86701 的价格。要把 87389 加进 `data/mrf/billing_codes.csv` 再跑一次导入。
 
 ### 数据自动校验
 

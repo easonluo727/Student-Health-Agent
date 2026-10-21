@@ -1,30 +1,30 @@
 encounter,label,component,codes,billing_class,place_of_service,modifier_rule,verified_by
-urgent_care_flu,Urgent care visit for flu with rapid flu test,visit,99213,professional,20|11,global,
-urgent_care_flu,Urgent care visit for flu with rapid flu test,flu_test,87804,professional,20|11|81,global,
-er_ankle_xray,ER visit for ankle sprain with X-ray,er_physician,99284,professional,23,global,
-er_ankle_xray,ER visit for ankle sprain with X-ray,er_facility,99284,institutional,,global,
-er_ankle_xray,ER visit for ankle sprain with X-ray,xray_read,73610,professional,23|22|11,mod_26,
-er_ankle_xray,ER visit for ankle sprain with X-ray,xray_facility,73610,institutional,,global,
-specialist_followup,Specialist (pulmonology) follow-up visit,visit,99214,professional,11,global,
-office_visit_established,Primary care visit (established patient),visit,99213,professional,11,global,
-office_visit_new,Primary care visit (new patient),visit,99203,professional,11,global,
-spirometry,Spirometry test,test,94010|94060,professional,11,global,
-preventive_visit,Annual preventive visit (age 18-39),visit,99395,professional,11,global,
-therapy_intake,Therapy intake (psychiatric diagnostic evaluation),visit,90791,professional,11|02|10,global,
-therapy_session_45,Therapy session (45 min),visit,90834,professional,11|02|10,global,
-therapy_session_60,Therapy session (60 min),visit,90837,professional,11|02|10,global,
-telehealth_visit,Telehealth visit (video),visit,98005,professional,10|02|11,global,
-routine_labs,Routine blood work (CMP + CBC + lipid panel),cmp,80053,professional,11|81,global,
-routine_labs,Routine blood work (CMP + CBC + lipid panel),cbc,85025,professional,11|81,global,
-routine_labs,Routine blood work (CMP + CBC + lipid panel),lipid,80061,professional,11|81,global,
-sti_screening,STI screening (chlamydia + gonorrhea + HIV),chlamydia,87491,professional,11|81,global,
-sti_screening,STI screening (chlamydia + gonorrhea + HIV),gonorrhea,87591,professional,11|81,global,
-sti_screening,STI screening (chlamydia + gonorrhea + HIV),hiv,86701,professional,11|81,global,
-uti_visit,UTI visit (office visit + urinalysis + urine culture),visit,99213,professional,11,global,
-uti_visit,UTI visit (office visit + urinalysis + urine culture),urinalysis,81001,professional,11|81,global,
-uti_visit,UTI visit (office visit + urinalysis + urine culture),culture,87086,professional,11|81,global,
-flu_shot,Flu shot (vaccine only; administration fee not included),vaccine,90686,professional,11,global,
-knee_mri,Knee MRI without contrast,mri,73721,professional,11|22,global_or_tc_plus_26,
-back_mri,Lumbar spine MRI without contrast,mri,72148,professional,11|22,global_or_tc_plus_26,
-chest_xray,Chest X-ray (2 views),xray,71046,professional,11|22,global_or_tc_plus_26,
-pt_evaluation,Physical therapy evaluation,eval,97161,professional,11,global,
+urgent_care_flu,Urgent care visit for flu with rapid flu test,visit,99213,professional,20|11,global,Claude review 2026-10-21
+urgent_care_flu,Urgent care visit for flu with rapid flu test,flu_test,87804,professional,20|11|81,global,Claude review 2026-10-21
+er_ankle_xray,ER visit for ankle sprain with X-ray,er_physician,99284,professional,23,global,Claude review 2026-10-21
+er_ankle_xray,ER visit for ankle sprain with X-ray,er_facility,99284,institutional,,global,Claude review 2026-10-21
+er_ankle_xray,ER visit for ankle sprain with X-ray,xray_read,73610,professional,23|22|11,mod_26,Claude review 2026-10-21
+er_ankle_xray,ER visit for ankle sprain with X-ray,xray_facility,73610,institutional,,global,Claude review 2026-10-21
+specialist_followup,Specialist (pulmonology) follow-up visit,visit,99214,professional,11,global,Claude review 2026-10-21
+office_visit_established,Primary care visit (established patient),visit,99213,professional,11,global,Claude review 2026-10-21
+office_visit_new,Primary care visit (new patient),visit,99203,professional,11,global,Claude review 2026-10-21
+spirometry,Spirometry test,test,94010|94060,professional,11,global,Claude review 2026-10-21
+preventive_visit,Annual preventive visit (age 18-39),visit,99395,professional,11,global,Claude review 2026-10-21
+therapy_intake,Therapy intake (psychiatric diagnostic evaluation),visit,90791,professional,11|02|10,global,Claude review 2026-10-21
+therapy_session_45,Therapy session (45 min),visit,90834,professional,11|02|10,global,Claude review 2026-10-21
+therapy_session_60,Therapy session (60 min),visit,90837,professional,11|02|10,global,Claude review 2026-10-21
+telehealth_visit,Telehealth visit (video),visit,98005|99213,professional,10|02|11,global,Claude review 2026-10-21
+routine_labs,Routine blood work (CMP + CBC + lipid panel),cmp,80053,professional,11|81,global,Claude review 2026-10-21
+routine_labs,Routine blood work (CMP + CBC + lipid panel),cbc,85025,professional,11|81,global,Claude review 2026-10-21
+routine_labs,Routine blood work (CMP + CBC + lipid panel),lipid,80061,professional,11|81,global,Claude review 2026-10-21
+sti_screening,STI screening (chlamydia + gonorrhea + HIV),chlamydia,87491,professional,11|81,global,Claude review 2026-10-21
+sti_screening,STI screening (chlamydia + gonorrhea + HIV),gonorrhea,87591,professional,11|81,global,Claude review 2026-10-21
+sti_screening,STI screening (chlamydia + gonorrhea + HIV),hiv,86701,professional,11|81,global,Claude review 2026-10-21: 87389 (HIV-1/2 Ag/Ab) is the usual screen today but is not in the rate store yet
+uti_visit,UTI visit (office visit + urinalysis + urine culture),visit,99213,professional,11,global,Claude review 2026-10-21
+uti_visit,UTI visit (office visit + urinalysis + urine culture),urinalysis,81001,professional,11|81,global,Claude review 2026-10-21
+uti_visit,UTI visit (office visit + urinalysis + urine culture),culture,87086,professional,11|81,global,Claude review 2026-10-21
+flu_shot,Flu shot (vaccine only; administration fee not included),vaccine,90686,professional,11,global,Claude review 2026-10-21
+knee_mri,Knee MRI without contrast,mri,73721,professional,11|22,global_or_tc_plus_26,Claude review 2026-10-21
+back_mri,Lumbar spine MRI without contrast,mri,72148,professional,11|22,global_or_tc_plus_26,Claude review 2026-10-21
+chest_xray,Chest X-ray (2 views),xray,71046,professional,11|22,global_or_tc_plus_26,Claude review 2026-10-21
+pt_evaluation,Physical therapy evaluation,eval,97161,professional,11,global,Claude review 2026-10-21

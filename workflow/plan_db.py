@@ -31,6 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY_DB = ROOT / "data" / "plans" / "policy.sqlite"
 RATES_DB = Path(os.environ.get("RATES_DB", ROOT / "data" / "mrf" / "rates.sqlite"))
 ENCOUNTERS_CSV = ROOT / "data" / "mrf" / "encounters.csv"
+# A price from fewer providers than this is flagged. Hospital facility fees are the usual case: most hospitals
+# publish them as a percent of charges or a case rate, which are not dollar prices and are left out.
+THIN_SAMPLE = 10
 
 sys.path.insert(0, str(ROOT / "scripts" / "mrf"))
 import allowed  # noqa: E402  (rate selection rules, shared with the MRF pipeline)
@@ -40,15 +43,22 @@ import allowed  # noqa: E402  (rate selection rules, shared with the MRF pipelin
 class Part:
     service: str                 # benefits.service the component is paid under
     component: str | None = None  # preferred benefits.component (facility / provider / office_visit)
+    fallback: str | None = None   # service to use where the tier has no `service` benefit
 
 
 # encounter key -> {encounters.csv component: Part}. Development-time knowledge of how claims are paid.
+# Tests, labs and X-rays done during a visit are paid under their own benefit, not the visit's: the federal SBC
+# coverage examples list "Emergency room care" and "Diagnostic test (x-ray)" (and office visits and "Diagnostic
+# tests (blood work)") as separate cost shares. A copay never exceeds the price (calculate_cost.py).
+# Reviewed 2026-10-21 against the SBCs in data/policy_pdfs/ and the Covered California 2026 benefit designs.
 SCENARIOS: dict[str, dict[str, Part]] = {
     "office_visit_established": {"visit": Part("primary_care_visit", "office_visit")},
     "office_visit_new": {"visit": Part("primary_care_visit", "office_visit")},
     "telehealth_visit": {"visit": Part("primary_care_visit", "office_visit")},
     "specialist_followup": {"visit": Part("specialist_visit", "office_visit")},
-    "urgent_care_flu": {"visit": Part("urgent_care"), "flu_test": Part("lab_tests")},
+    # The UC SHIP Ashe Center tier has no urgent care benefit: a same-day sick visit there is a primary care visit
+    # ("No charge/visit (Ashe Ctr)", SBC p. 2; booklet p. 20, the Ashe Center is the student's medical home).
+    "urgent_care_flu": {"visit": Part("urgent_care", fallback="primary_care_visit"), "flu_test": Part("lab_tests")},
     "er_ankle_xray": {"er_physician": Part("emergency_room", "provider"), "er_facility": Part("emergency_room", "facility"),
                       "xray_read": Part("xray", "provider"), "xray_facility": Part("xray", "facility")},
     "uti_visit": {"visit": Part("primary_care_visit", "office_visit"), "urinalysis": Part("lab_tests"),
@@ -208,6 +218,9 @@ class PlanDB:
                           "mrf_file_dates": r.mrf_file_dates})
         missing = [p["component"] for p in parts if p["allowed_amount"] is None]
         complete = not missing
+        warnings = [f"The {p['component']} price comes from only {p['n_providers']} provider(s) in this network, "
+                    "so it is rough; most hospitals publish facility fees as a percent of charges, which has no "
+                    "dollar price." for p in parts if p["allowed_amount"] is not None and p["n_providers"] < THIN_SAMPLE]
 
         def total(key):
             vals = [p[key] for p in parts]
@@ -218,6 +231,7 @@ class PlanDB:
                 "basis": "la_county_median" if complete else None,
                 "total": total("allowed_amount"), "low": total("p10"), "high": total("p90"),
                 "components": {p["component"]: p["allowed_amount"] for p in parts}, "parts": parts,
+                "warnings": warnings,
                 "network": link["mrf_network"] or link["mrf_plan_key"],
                 "mrf_file_date": ", ".join(sorted({d for p in parts for d in p["mrf_file_dates"]}))}
 
@@ -251,6 +265,8 @@ class PlanDB:
         groups: OrderedDict[str, dict] = OrderedDict()
         for comp, part in SCENARIOS[scenario].items():
             row = self.benefit(plan_id, part.service, network, tier, part.component, scenario)
+            if row is None and part.fallback:
+                row = self.benefit(plan_id, part.fallback, network, tier, part.component, scenario)
             if row is None:
                 return self._result("needs_review", f"The plan has no {part.service} benefit for this network/tier.",
                                     plan_id, scenario, label, network, tier, prices, [])
@@ -301,7 +317,7 @@ class PlanDB:
                 "plan_id": plan_id, "scenario": scenario, "scenario_label": label, "network": network,
                 "network_tier": tier, "allowed_amount": {k: prices.get(k) for k in
                                                           ("status", "total", "low", "high", "basis", "network",
-                                                           "mrf_file_date", "parts")} if prices else None,
+                                                           "mrf_file_date", "parts", "warnings")} if prices else None,
                 "lines": lines}
 
     def compare(self, plan_ids: list[str], scenarios: list[str]) -> dict:
