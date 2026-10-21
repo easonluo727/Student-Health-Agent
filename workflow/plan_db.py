@@ -185,6 +185,10 @@ class PlanDB:
         if link is None:
             return {"status": "no_rates", "message": "This tier has no price data (e.g. a campus clinic, or "
                                                      "out-of-network); only flat copays can be computed."}
+        if not link["confirmed"]:
+            return {"status": "no_rates", "message": "Which price network this plan uses is not confirmed yet "
+                                                     f"({link['notes'] or 'no evidence recorded'}), so its prices "
+                                                     "are not used; only flat copays can be computed."}
         if self.rates_path is None:
             return {"status": "no_rates", "message": f"The rate store ({RATES_DB}) is not available."}
         parts = []

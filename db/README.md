@@ -50,7 +50,10 @@ One row = one price: plan × SBC section × service × component × setting × n
 ## The bridge: `plan_networks`
 
 Benefits say what share the patient pays; MRF rates say what the provider is paid. `plan_networks` says which MRF
-rates (`mrf_sources.plan_key` + `network`) price each in-network tier of a plan. A tier with no row (a campus clinic
+rates (`mrf_sources.plan_key` + `network`) price each in-network tier of a plan. Each row records its evidence in
+`notes` and `confirmed` (yes = a document or the insurer's TOC names this plan's files and network; for example an
+HIOS or EIN plan ID in the TOC). Rows that are not confirmed are never used for prices.
+`scripts/mrf/toc.py --plans-out` lists every individual-market plan in an insurer's TOC with its files. A tier with no row (a campus clinic
 such as Ashe Center, or out-of-network) has no allowed amount, so only flat copays can be computed there.
 Rows for plans that are not extracted yet wait in `data/plans/plan_networks.csv`; their `plan_id` is the one to use
 when extracting that plan.

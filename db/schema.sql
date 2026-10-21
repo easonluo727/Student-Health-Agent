@@ -56,5 +56,7 @@ CREATE TABLE plan_networks (
     mrf_plan_key TEXT NOT NULL,                   -- mrf_sources.plan_key (data/plan_profiles.v1.json)
     mrf_network  TEXT,                            -- mrf_sources.network; NULL = every network of that plan_key
     notes        TEXT,                            -- evidence for the mapping
+    confirmed    INTEGER NOT NULL DEFAULT 0 CHECK (confirmed IN (0, 1)),  -- 1 = the evidence names this network;
+                                                  -- prices are only used for confirmed links
     PRIMARY KEY (plan_id, network_tier)
 );

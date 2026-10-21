@@ -93,6 +93,12 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         r = self.db.estimate("lacare_silver70_hmo_2026", "specialist_followup")
         self.assertEqual((r["status"], r["patient_cost"]), ("estimated", 90))
 
+    def test_unconfirmed_network_link_is_not_priced(self):
+        # anthem_silver70_epo_2026 -> CA EPO Pathway is inferred from the plan type only (confirmed = 0).
+        prices = self.db.allowed_amounts("anthem_silver70_epo_2026", None, "knee_mri")
+        self.assertEqual(prices["status"], "no_rates")
+        self.assertIn("not confirmed", prices["message"])
+
     def test_tiered_plan_needs_a_tier_and_a_deductible_when_it_applies(self):
         r = self.db.estimate(UCSHIP, "knee_mri", "in", None)
         self.assertEqual((r["status"], r["missing_fields"]), ("needs_information", ["network_tier"]))
