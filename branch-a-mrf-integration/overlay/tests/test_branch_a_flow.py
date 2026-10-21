@@ -154,22 +154,16 @@ class Flow(unittest.TestCase):
         self.assertEqual((r["status"], r["missing_fields"]), ("needs_information", ["remaining_deductible"]))
 
 
-class AMDOnly(unittest.TestCase):
-    def test_agent_and_importer_refuse_without_amd_config_or_with_openai(self):
+class LLMConfig(unittest.TestCase):
+    def test_agent_and_importer_refuse_without_llm_config(self):
         import os
         from unittest import mock
         import policy_import_v2
         with mock.patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(RuntimeError):
-                agent.amd_client()
+                agent.llm_client()
             with self.assertRaises(RuntimeError):
-                policy_import_v2.AMDExtractor()
-        env = {"AMD_BASE_URL": "https://api.openai.com/v1", "AMD_API_KEY": "k", "AMD_MODEL": "m"}
-        with mock.patch.dict(os.environ, env, clear=True):
-            with self.assertRaises(RuntimeError):
-                agent.amd_client()
-            with self.assertRaises(RuntimeError):
-                policy_import_v2.AMDExtractor()
+                policy_import_v2.LLMExtractor()
 
 
 if __name__ == "__main__":

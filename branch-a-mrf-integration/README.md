@@ -22,8 +22,8 @@ user describes a service
 | Path | Purpose |
 |---|---|
 | `overlay/workflow/overlay_config.py` | Data paths (configurable through `BRANCH_A_*` env vars) and the import order (overlay → original workflow → scripts/mrf) |
-| `overlay/workflow/policy_import_v2.py` | PDF import with adjacent-page category context, an adversarial source-image pass, and fail-closed category validation; AMD-only LLM |
-| `overlay/workflow/auto_map_policy.py` | Uses AMD for semantic service-to-MRF matching, validates plan/network and codes/classes/POS/rates in Python, and runs deterministic lookup tests; unsupported mappings remain absent |
+| `overlay/workflow/policy_import_v2.py` | PDF import with adjacent-page category context, an adversarial source-image pass, and fail-closed category validation; any OpenAI-compatible LLM |
+| `overlay/workflow/auto_map_policy.py` | Uses the LLM for semantic service-to-MRF matching, validates plan/network and codes/classes/POS/rates in Python, and runs deterministic lookup tests; unsupported mappings remain absent |
 | `overlay/workflow/schema_check.py` | jsonschema validation against `overlay/schemas/` |
 | `overlay/workflow/rate_resolver.py` | `Mappings`, `RateResolver` (benefit rule → verified MRF plan/network → A encounter or B components), `QuoteStore` |
 | `overlay/workflow/canonical_adapter.py` | Read-only adapter: alias map (`FIELD_MAP`), `canonical_provider_rates`, `canonical_A_encounters`, `canonical_B_components`, `canonical_encounter_components` |
@@ -34,7 +34,7 @@ user describes a service
 | `overlay/workflow/build_zip_centroids.py` | Builds `overlay/data/zcta_centroids_ca.csv` from the Census ZCTA Gazetteer |
 | `overlay/workflow/branch_a_tools.py` | `resolve_rate`, `calculate_with_quote`, per-component costing, manual fallback labeled `user_provided` |
 | `overlay/workflow/quote_guards.py` | `QuoteGuard`: trusts stored quotes, gates clarification, requires NPIs and deductibles to come from the user |
-| `overlay/workflow/branch_a_agent.py` | Strict tool definitions, `execute_tool`, and the AMD chat-completions loop |
+| `overlay/workflow/branch_a_agent.py` | Strict tool definitions, `execute_tool`, and the chat-completions loop |
 | `overlay/workflow/build_encounter_labels.py` | Generates and checks `overlay/data/encounter_labels.v1.json` |
 | `overlay/workflow/list_pending_mappings.py` | Lists mappings that still need a human |
 | `overlay/schemas/*.schema.json` | `policy_metadata.v1`, `benefit_rule.v2`, `policy_mrf_map.v1`, `service_rate_map.v1`, `rate_quote.v1`, `rate_request.v1`, `rate_lookup_result.v1` |
@@ -59,15 +59,15 @@ python lookup_cli.py --no-providers '{"insurer": null, "plan_key": "anthem_ca_pr
   "network": "CA PPO PRUDENT BUYER", "encounter_key": "urgent_care_flu", "service_date": null,
   "selected_provider_npi": null}'
 
-# import a policy PDF (AMD endpoint only)
-export AMD_BASE_URL=... AMD_API_KEY=... AMD_MODEL=...
+# import a policy PDF (any OpenAI-compatible endpoint)
+export LLM_BASE_URL=... LLM_API_KEY=... LLM_MODEL=...
 python policy_import_v2.py --policy-plan-id uc_ship_2026 --metadata-pdf plan.pdf --metadata-pages 1-3 \
     --benefit-pages 12-15 --out-dir /tmp/uc_ship_2026
 
 # chat agent over imported rules
 python branch_a_agent.py --plan uc_ship_2026 --rules /tmp/uc_ship_2026/benefit_rules.json
 
-# automatically match a newly imported policy (AMD semantic matching + deterministic validation),
+# automatically match a newly imported policy (LLM semantic matching + deterministic validation),
 # create an isolated overlay directory, and test every accepted option against the real rate lookup
 python branch-a-mrf-integration/overlay/workflow/auto_map_policy.py \
     --policy-plan-id prime_500_2026 \
@@ -77,15 +77,15 @@ python branch-a-mrf-integration/overlay/workflow/auto_map_policy.py \
 ```
 
 The automatic mapper writes a run-specific overlay, `auto_mapping_audit.json`, an append-only
-`auto_mapping_steps.jsonl` run trace, and checkpoints each completed AMD call so a timeout only retries the
+`auto_mapping_steps.jsonl` run trace, and checkpoints each completed model call so a timeout only retries the
 unfinished stage. Benefit services are sent in small batches; omitted items are retried individually, while
-explicit no-candidate and still-omitted outcomes are recorded separately. The primary AMD model matches by service meaning rather than exact label wording and can
+explicit no-candidate and still-omitted outcomes are recorded separately. The model matches by service meaning rather than exact label wording and can
 propose multiple priced options with a clarification question. There is no second-model veto for semantic
 breadth. Python still validates the exact plan/network, catalog identifiers, code, billing class, POS, and an
 eligible allowed-amount row; a uniquely identifiable leading-punctuation typo in a component name is normalized
 and logged. Plan/network identity still receives a separate adversarial review. Out-of-network quotes remain
 hard-blocked from in-network MRF rates.
-The AMD environment variables are required; no fallback model is used. Set
+The LLM environment variables are required; no fallback model is used. Set
 `BRANCH_A_OVERLAY_DATA=local_data/policy-import/auto-mapping` to run `lookup_cli.py` or the agent against the
 generated mappings.
 

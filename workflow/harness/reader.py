@@ -1,6 +1,6 @@
 """Read an uploaded plan PDF. Runs when the user attaches a file, before the model sees the turn.
 
-1. Render page 1 and send it to the AMD vision model for the plan's identity only: plan name,
+1. Render page 1 and send it to the vision model for the plan's identity only: plan name,
    insurer, networks, plan year and document type. No benefit numbers are taken from this read.
 2. Python matches the identity and the PDF's own text against the plan library
    (policies/catalog.json). A matched plan is priced from its human-checked rules file.
@@ -15,6 +15,8 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
+
+from llm_client import fast_extra_body
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG_PATH = ROOT / "policies" / "catalog.json"
@@ -94,7 +96,7 @@ def read_identity(client, model, png):
         messages=[{"role": "system", "content": IDENTITY_PROMPT}, {"role": "user", "content": [
             {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(png).decode("ascii")}},
         ]}],
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        extra_body=fast_extra_body(),
     )
     return parse_json(response.choices[0].message.content)
 
@@ -127,7 +129,7 @@ async def read_plan_pdf(client, model, pdf, name, catalog=None):
     thumb = await asyncio.to_thread(thumbnail, pdf)
     yield step("open", "done", f"Opened {title} ({pages} pages)", thumb)
 
-    yield step("identify", "running", "Reading page 1 with the AMD model…")
+    yield step("identify", "running", "Reading page 1…")
     try:
         png = await asyncio.to_thread(page_image, pdf)
         identity = await asyncio.to_thread(read_identity, client, model, png)

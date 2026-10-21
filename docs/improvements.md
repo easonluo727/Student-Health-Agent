@@ -14,7 +14,7 @@
 
 **做法**：
 1. 找不到对应的 plan 时，在服务里调用 `scripts/policy/extract_sbc.py` 的抽取流程。先把它改成可以 import 的函数，进度通过 `search_step` 事件推给前端面板（复用现在的 "Agent computer" 面板）。
-2. 抽出的数据存成**这次对话专用的临时 plan**，不写进公共保单库，回答时注明"由 AMD 模型从你的上传中读取，未经人工核对"。`plan_db.PlanDB` 要支持同时查公共库和这次对话的临时 plan，比如为每个对话建一个内存 SQLite，并 ATTACH 公共库。
+2. 抽出的数据存成**这次对话专用的临时 plan**，不写进公共保单库，回答时注明"由模型从你的上传中读取，未经人工核对"。`plan_db.PlanDB` 要支持同时查公共库和这次对话的临时 plan，比如为每个对话建一个内存 SQLite，并 ATTACH 公共库。
 3. 网络匹配：模型从保单原文里找出网络名（只做摘录），Python 再和 `data/plan_profiles.v1.json` 的网络名单比对，比对上就生成 `plan_networks` 行，自动接上协商价。比对不上时只能算固定 copay。
 4. 定位福利页：SBC 用现成的 `find_pages()`，很稳；长手册或 EOC 要按 "Schedule of Benefits"、"Copayment"、"Coinsurance" 等关键词的密度给每页打分，挑出连续的高分页段。
 
@@ -37,7 +37,7 @@
 
 ### 4. 对话速度
 
-**现状**：一轮对话 25 秒到 4 分钟，主要是 AMD 模型开着思考模式（`server.py` 的 `agent_loop` 用的是 responses API）。抽取那边关掉思考后快了十倍以上。
+**现状**：一轮对话 25 秒到 4 分钟，主要是模型开着思考模式（`server.py` 的 `agent_loop` 用的是 responses API）。抽取那边关掉思考后快了十倍以上。
 **做法**：拿几组固定问题，对比开和关思考时的回答质量和用时，再决定 agent 主循环要不要关。也可以只在第一步（理解问题、选工具）开思考，后面写回复时关掉。
 
 ---
@@ -91,7 +91,7 @@ Arena 没有保费数据，所以只比较看病的花费。`data/policy_pdfs/C_
 - **旧模式代码**（`AGENT_MODE=legacy`：`agent_tools.PolicyTools`、`harness/prompts/system.md`、pricing 技能、`policies/`）：线上已经不用了。等新模式稳定以后，可以决定删掉还是只留给终端 agent 用。
 - **`agent-api` 上用不到的变量**：`CORS_ORIGINS`。前后端已经同域，可以删掉。
 - **本地杂项**：仓库根目录的 `Health Agent/.vite/` 是来源不明的 Vite 缓存，可以删。本地还有两个只在本机的分支（`mr-jude-justin/amd-hackathon-plan`、`mr-jude-justin/latest-version-status`），被 Conductor 工作区占用着，各有 27–29 个没合进 main 的提交。
-- **AMD 接口的限制**（抽取时踩过的坑）：
-  - 开着思考模式时，一页福利表要十几分钟，一定要用 chat API 加 `enable_thinking: False`；
+- **之前用 AMD 接口（Qwen）抽取时踩过的坑**，换供应商后可能还会遇到：
+  - 开着思考模式时，一页福利表要十几分钟，一定要用 chat API 关掉思考（Qwen 是 `LLM_EXTRA_BODY={"chat_template_kwargs": {"enable_thinking": false}}`）；
   - 并发请求太多会返回 429，所以一次只抽一个 plan，并带退避重试；
   - 温度为 0 时偶尔陷入重复输出的死循环，所以要设 `max_tokens`，并在重试时调高温度。

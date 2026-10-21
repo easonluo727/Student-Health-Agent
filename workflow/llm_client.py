@@ -1,14 +1,17 @@
-"""The only place an LLM client is created. Every call goes to the AMD API.
+"""The only place an LLM client is created. Any OpenAI-compatible endpoint works.
 
-Reads AMD_BASE_URL, AMD_API_KEY and AMD_MODEL from the environment, falling back
-to the gitignored .env at the repo root. There is no OpenAI default or fallback.
+Reads LLM_BASE_URL, LLM_API_KEY and LLM_MODEL from the environment, falling back
+to the gitignored .env at the repo root. Optional LLM_EXTRA_BODY (JSON) is sent with
+the fast, no-reasoning calls; for Qwen on vLLM use
+{"chat_template_kwargs": {"enable_thinking": false}}.
 """
 
+import json
 import os
 from pathlib import Path
 
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
-REQUIRED = ("AMD_BASE_URL", "AMD_API_KEY", "AMD_MODEL")
+REQUIRED = ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL")
 
 
 def load_env(path=ENV_PATH):
@@ -22,9 +25,16 @@ def load_env(path=ENV_PATH):
             os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
 
 
-def amd_model():
+def llm_model():
     load_env()
-    return os.environ.get("AMD_MODEL")
+    return os.environ.get("LLM_MODEL")
+
+
+def fast_extra_body():
+    """Provider-specific body for calls that should skip reasoning (empty when unset)."""
+    load_env()
+    raw = os.environ.get("LLM_EXTRA_BODY")
+    return json.loads(raw) if raw else {}
 
 
 def make_client(timeout=90.0, max_retries=1):
@@ -35,8 +45,8 @@ def make_client(timeout=90.0, max_retries=1):
     from openai import OpenAI
 
     return OpenAI(
-        base_url=os.environ["AMD_BASE_URL"],
-        api_key=os.environ["AMD_API_KEY"],
+        base_url=os.environ["LLM_BASE_URL"],
+        api_key=os.environ["LLM_API_KEY"],
         timeout=timeout,
         max_retries=max_retries,
     )

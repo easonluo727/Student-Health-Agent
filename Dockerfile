@@ -4,7 +4,7 @@
 #   docker build -t student-health-agent .
 #   docker run -p 8000:8000 --env-file .env -v "$PWD/data/mrf/rates.sqlite:/data/rates.sqlite:ro" student-health-agent
 #
-# Needs AMD_BASE_URL, AMD_API_KEY and AMD_MODEL. The 3.1 GB rates database is not in the image: mount it at
+# Needs LLM_BASE_URL, LLM_API_KEY and LLM_MODEL (any OpenAI-compatible endpoint). The 3.1 GB rates database is not in the image: mount it at
 # /data/rates.sqlite (on Railway, the rates-data volume); without it the agent uses the aggregate allowed amounts.
 
 FROM node:22-slim AS web

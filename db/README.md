@@ -11,7 +11,7 @@ Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). Pyth
 ## Policy database: data flow
 
 ```
-plan SBC PDF ──scripts/policy/extract_sbc.py (AMD model) or the Perplexity prompt──>
+plan SBC PDF ──scripts/policy/extract_sbc.py (LLM) or the Perplexity prompt──>
                                     data/plans/extracted/<plan_id>/{plans,benefits}.csv   (raw, kept as extracted)
                                     data/plans/sources.csv        (verified_by set → the whole plan is verified)
                                     data/plans/plan_networks.csv  (bridge to the MRF rates)
@@ -23,8 +23,8 @@ plan SBC PDF ──scripts/policy/extract_sbc.py (AMD model) or the Perplexity p
 ```
 
 `extract_sbc.py` finds an SBC's pages itself (page 1 "Important Questions" + the "What You Will Pay" table pages;
-an EOC needs `--summary-pages`/`--pages`) and sends each page's image and text layer to the AMD model with thinking
-off; a plan takes about 3 minutes. Python then splits nothing and computes nothing: it only fills plan_id /
+an EOC needs `--summary-pages`/`--pages`) and sends each page's image and text layer to the model with thinking
+off (`LLM_EXTRA_BODY`); a plan takes about 3 minutes. Python then splits nothing and computes nothing: it only fills plan_id /
 source_url / source_page, unifies tier spellings ("UC Family Provider" → "UC Family") and drops rows repeated
 across pages.
 

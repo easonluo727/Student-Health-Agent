@@ -2,7 +2,7 @@
 
     python branch_a_agent.py --plan prime_100 --rules <benefit_rules.json>
 
-LLM: the AMD OpenAI-compatible endpoint only (AMD_BASE_URL, AMD_API_KEY, AMD_MODEL); no OpenAI
+LLM: any OpenAI-compatible endpoint (LLM_BASE_URL, LLM_API_KEY, LLM_MODEL)
 default or fallback. The model chooses rules and options and writes replies; Python resolves rates,
 holds quotes, checks provenance and does every calculation.
 """
@@ -14,7 +14,6 @@ import json
 import math
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
 import overlay_config
 
@@ -140,13 +139,11 @@ def build_tools(plan: str, rules_path: Path, paths: overlay_config.OverlayPaths 
     return tools, QuoteGuard(confirm_in_terminal, resolver.store, n_options)
 
 
-def amd_client():
-    base_url, key, model = (os.environ.get(k) for k in ("AMD_BASE_URL", "AMD_API_KEY", "AMD_MODEL"))
+def llm_client():
+    base_url, key, model = (os.environ.get(k) for k in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL"))
     if not (base_url and key and model):
-        raise RuntimeError("Set AMD_BASE_URL, AMD_API_KEY and AMD_MODEL. No other provider is used.")
-    if urlparse(base_url).hostname == "api.openai.com":
-        raise RuntimeError("AMD-only: OpenAI endpoints are not allowed.")
-    from openai import OpenAI  # client library pointed at the AMD endpoint
+        raise RuntimeError("Set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL.")
+    from openai import OpenAI  # any OpenAI-compatible endpoint
     return OpenAI(base_url=base_url, api_key=key, timeout=90.0, max_retries=1), model
 
 
@@ -177,12 +174,12 @@ def run_turn(client, model, tools, messages, guard, max_steps=8) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Branch A + MRF quote agent (AMD endpoint only)")
+    ap = argparse.ArgumentParser(description="Branch A + MRF quote agent (any OpenAI-compatible endpoint)")
     ap.add_argument("--plan", required=True)
     ap.add_argument("--rules", required=True, type=Path, help="benefit rules JSON (benefit_rule.v2 or legacy)")
     a = ap.parse_args()
     tools, guard = build_tools(a.plan, a.rules)
-    client, model = amd_client()
+    client, model = llm_client()
     messages = [{"role": "system", "content": INSTRUCTIONS + "\nSelected plan and catalog (data):\n"
                  + json.dumps({"plan": tools.plan, "catalog": tools.get_catalog()}, ensure_ascii=False)}]
     print(f"Plan: {tools.plan} | Model: {model} | type quit to exit")

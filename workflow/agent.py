@@ -1,8 +1,8 @@
 """Terminal insurance agent. Run: python agent.py
 
 Requires agent_tools.py, calculate_cost.py, guards.py, normalized_pdf_insurance_rules.json,
-the openai package, and AMD_BASE_URL / AMD_API_KEY / AMD_MODEL
-(environment or repo-root .env; see amd_client.py). No web search in this version.
+the openai package, and LLM_BASE_URL / LLM_API_KEY / LLM_MODEL
+(environment or repo-root .env; see llm_client.py). No web search in this version.
 """
 
 import argparse
@@ -10,7 +10,7 @@ import json
 import math
 from pathlib import Path
 
-from amd_client import amd_model, make_client
+from llm_client import llm_model, make_client
 from agent_tools import DEFAULT_RULES_PATH, PolicyTools
 from guards import MAX_REPLY_RETRIES, ConversationGuard
 
@@ -203,7 +203,7 @@ def run_turn(client, model, tools, history, instructions, guard, max_steps=8):
                 history.append({"role": "assistant", "content": reply})
                 print("\nAgent:", reply)
                 return reply
-            # Qwen's chat template allows a system message only at the start, so
+            # Some chat templates (Qwen) allow a system message only at the start, so
             # the feedback goes in as a user turn marked as coming from the check.
             history.append({"role": "user", "content": "[Automatic check, not the user] Your reply was rejected: " + feedback})
             continue
@@ -229,7 +229,7 @@ def main():
     parser = argparse.ArgumentParser(description="One-plan insurance estimation agent")
     parser.add_argument("--plan", default="prime_100")
     parser.add_argument("--rules", default=str(DEFAULT_RULES_PATH))
-    parser.add_argument("--model", default=amd_model())
+    parser.add_argument("--model", default=llm_model())
     args = parser.parse_args()
     client = make_client()
     tools = PolicyTools(selected_plan=args.plan, rules_path=args.rules)

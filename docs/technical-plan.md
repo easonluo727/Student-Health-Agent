@@ -1,4 +1,4 @@
-# 技术路线（2026-10-13 更新）
+# 技术路线（2026-10-20 更新）
 
 本文档记录团队已经确定的技术路线，产品层面的定义见 `PRODUCT.md`。后续开发都沿用这条路线；要改变方向，先更新本文档。
 
@@ -6,14 +6,11 @@
 
 ---
 
-## 1. 比赛背景
+## 1. 背景
 
-- 比赛：**AMD Developer Hackathon: ACT III**（lablab.ai），线上开发期为 10 月 12–18 日。✅ 已报名。
-- ⚠️ 提交截止：据查是 **10 月 18 日 15:00 UTC（加州时间早上 8 点）**，以活动页面的倒计时为准。
-- 赛道：**只报 Health and Wellbeing**。评审关注：明确的患者需求、负责任地处理健康信息、实用易懂的结果、可衡量的改善。
-- 评分维度：Application of Technology、Presentation、Business Value、Originality。
-- 硬性要求：项目中**相当一部分工作负载**必须跑在 AMD 上，并且 AMD 的部分必须出现在给评委看的产品里。
-- 提交内容：公开的 GitHub 仓库（`amd-health-agent`）、能跑起来的 README、容器化的应用、可访问的演示网址、演示视频、PPT、封面图。API key 只能放在环境变量里。
+- ✅ 2026-10-20 改定：项目转为**创业项目**，目标用户扩大到**全美所有人、所有保险人群**（雇主保险、个人 / marketplace 保险、学生保险，以及正在选保险的人）。之后会参加 Meta 的黑客松和其他比赛。
+- ✅ 2026-10-20 改定：**取消"只能用 AMD"的限制**。模型供应商改为配置项，每个比赛按自己的要求选（见第 7 节）。
+- 历史：项目最初是 AMD Developer Hackathon: ACT III（lablab.ai，10 月 12–18 日，Health and Wellbeing 赛道）的参赛作品，下面第 11–13 节的分工和排期是当时的记录。
 
 ## 2. 核心原则
 
@@ -30,7 +27,7 @@
               离线：建数据库
 ┌──────────────────────────────────────────────────────────┐
 │ 保单 PDF（人工收集，可借助 Tavily 等工具）                  │
-│   → AMD 模型提取 → 程序验证 → 人工复核 → ① 保单信息数据库    │
+│   → LLM 提取 → 程序验证 → 人工复核 → ① 保单信息数据库    │
 │ 保险公司的 MRF 价格文件                                     │
 │   → Python 流式解析 → ② allowed amount 数据库（SQLite）     │
 └──────────────────────────────────────────────────────────┘
@@ -50,7 +47,7 @@
 - 格式：**规则 JSON v2**，分计划层和规则层两层，见 issue #1。网络层级和额度由每个计划自己声明，可以表示 UC SHIP 那样的 4 层网络（Ashe 学生健康中心、UC Family、Anthem PPO、网络外）。
 - 存储：~~每个计划存一个文件 `policies/<plan_id>.json`~~ ✅ 2026-10-17 改定：存进一个只读 SQLite 文件 `data/plans/policy.sqlite`（`plans` / `benefits` / `plan_networks` 三张表，见 `db/README.md`），跟着代码一起部署。每个计划的 SBC 抽成两张 CSV，放在 `data/plans/extracted/<plan_id>/`；`scripts/policy/build_seed.py` 负责校验、分类，并重新生成这个 SQLite 文件。一行只记一个价格（计划 × SBC 段落 × 服务 × 组成部分 × 网络 × 档位）。团队交来的抽取 CSV 一律视为已核对，在 `data/plans/sources.csv` 的 `verified_by` 里记录。
 - 收录范围：**UC SHIP**，加上**美国最常见的几家大型商业保险**（由团队挑选）。
-- 来源：团队从官方渠道收集保单 PDF（Schedule of Benefits / SBC、保费表），离线收集时可以借助 Tavily 等工具；用户也可以上传保单。**PDF 内容的提取必须由 AMD 模型完成**，不能由其他 LLM 或编码助手生成数据。
+- 来源：团队从官方渠道收集保单 PDF（Schedule of Benefits / SBC、保费表），离线收集时可以借助 Tavily 等工具；用户也可以上传保单。**PDF 内容的提取必须由运行时的 LLM 通过抽取脚本完成**，不能由编码助手生成数据。
 - 资料清单（放进 git）：`plan_id`、计划名称、保险公司、保单年度、来源网址、下载日期、文件哈希、收集人。PDF 文件本身不放进 git。
 - 不计算保费补贴。
 
@@ -86,23 +83,23 @@
 - ✅ 负责人：Justin，计划 10 月 14 日部署。
 
 ## 7. 模型
-- **所有 AI 调用都使用 AMD 上的开源模型。** 代码通过 OpenAI 兼容接口（`base_url` + API key + 模型名）调用，见 issue #2。
-- **接口**：⚠️ 主办方表示 **Token Factory 算作 vLLM**，不需要 $100 额度。需要确认：Token Factory 是谁提供的、是否跑在 AMD 上、怎么拿到 key、有哪些模型、有没有调用限制。如果不合适，就在 AMD Developer Cloud 上用 vLLM 自己部署（单张 MI300X，约 $1.99/小时，不用时关机）。
-- **模型**：**Qwen3.5-35B-A3B**。Qwen3.5 全系列都能看图，所以一个模型同时做对话和读保单。可以再拿 Qwen3.5-122B-A10B 在读保单的准确率上对比一次。**不使用 DeepSeek**：完整版单卡放不下，单卡放得下的版本又不能看图。
+- ✅ 2026-10-20 改定：**模型供应商是配置，不写进代码。** 所有客户端都由 `workflow/llm_client.py` 创建，接任何 OpenAI 兼容接口，环境变量为 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`；可选的 `LLM_EXTRA_BODY`（JSON）只用在需要关掉思考的快速调用上（读 PDF、抽取），例如 vLLM 上的 Qwen 用 `{"chat_template_kwargs": {"enable_thinking": false}}`。
+- 每个比赛按规则选供应商和模型（例如 Meta 的比赛用 Llama），只换环境变量。
+- 模型要能看图：读保单 PDF 用的是同一个模型。
+- ⚠️ agent 主循环（`server.py`、`agent.py`）用的是 Responses API，有些供应商只支持 Chat Completions，换供应商前要确认，或者把主循环改成 Chat Completions。
 
 ## 8. 部署
 - ✅ 2026-10-16 改定：agent 流程不再放进 Vercel Python 函数，改为一个独立的 **Python FastAPI 服务**。原因：SSE 长连接会受 Vercel 函数执行时长的限制，SQLite 文件也有体积上限；FastAPI 可以直接复用 `guards.py`、`calculate_cost.py` 和 `scripts/mrf/lookup.py`。
 - ~~**Vercel**：Next.js 前端~~ ✅ 2026-10-18 改定：不用 Vercel，**整个产品只部署成 Railway 上的一个服务 `agent-api`**（项目 `student-health-agent`，机房 iad，从 `main` 分支部署，用仓库根目录的 `Dockerfile` 构建）：
   - Dockerfile 先用 Node 把前端静态导出（`STATIC_EXPORT=1`，生成 `web/out`），再起 FastAPI；FastAPI 在 `/` 提供前端页面，在 `/api/*` 提供接口，前后端同域，不需要 CORS。
   - 公网网址：https://agent-api-production-adc8.up.railway.app （提交给评委的就是这个）。
-  - 磁盘卷 `rates-data` 挂在 `/data`，里面放价格库；环境变量：`AMD_*`、`BRANCH_A_RATES_SQLITE`、`PORT=8080`。
+  - 磁盘卷 `rates-data` 挂在 `/data`，里面放价格库；环境变量：`LLM_*`、`BRANCH_A_RATES_SQLITE`、`PORT=8080`。
   - 搜索 worker（Playwright + Chromium）以后作为第二个服务加进来。
 - 前后端协议见 `docs/frontend-protocol.md`。前端在没有后端时使用自带的 mock（按 Demo 流程回放事件）。
 - 不使用 Supabase：数据都是只读的，用 SQLite 文件就够。✅ 2026-10-17：价格库 `rates.sqlite`（3.1 GB）不进 git，用 `railway volume files upload` 上传到 Railway 服务的磁盘卷 `/data`，再用环境变量 `BRANCH_A_RATES_SQLITE=/data/rates.sqlite` 指过去；保单库只有约 100 KB，直接放进 git。磁盘卷要求 Hobby 及以上套餐（免费版只有 0.5 GB）。
 - 另外写好 `Dockerfile` 和 `docker-compose.yml`，满足比赛的容器化要求，让评委能在本机运行。
 
-## 9. 展示 AMD 的应用
-- 所有 AI 调用（问卷挑题、对话、读保单、搜索时的判断、推荐和解释）都在 AMD 上运行。
+## 9. 演示重点
 - 批量读取保单建立数据库：每份并行提取多次、互相校验，记录处理速度和准确率，放进 PPT。
 - 演示中重点展示“上传保单 → 很快读完 → 马上给出评价”。
 - 可选：小规模 LoRA 微调（保单服务名称 → `service_key`），只在核心功能完成后再做，训练数据必须经过人工核对。
@@ -119,7 +116,7 @@
 7. 用户问一家**数据库里没有**的保险公司 → 搜索 → 说明为什么不合适。
 
 ## 11. 分工
-- **队友**：allowed amount 数据库（MRF）、接入 AMD 模型、读保单的流程。
+- **队友**：allowed amount 数据库（MRF）、接入模型、读保单的流程。
 - **Justin**：前端（对话窗、问卷卡片、dashboard）、问题库设计、保单信息数据库的格式（#1）、收集保单 PDF、搜索 worker。
 
 ## 12. 排期
@@ -134,7 +131,7 @@
 
 ## 13. 待确认事项
 - [ ] 确切的提交截止时间
-- [ ] Token Factory 的情况：提供方、是否跑在 AMD 上、模型、key、限制
+- [ ] 各个比赛的模型要求（Meta 黑客松是否强制用 Llama、用 Llama API 还是自己部署）
 - [ ] 数据库收录哪几家商业保险（团队挑选），以及它们在 MRF 里对应的计划编号
 - [ ] 问题库的具体设计（单独讨论）
 - [ ] 问卷界面的参考产品（用 REA 研究）

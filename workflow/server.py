@@ -27,7 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent_tools import DEFAULT_RULES_PATH
-from amd_client import amd_model, load_env, make_client
+from llm_client import llm_model, load_env, make_client
 from harness import Harness
 from harness.reader import ROOT, db_catalog, load_catalog, read_plan_pdf
 from harness.hooks import MAX_REPLY_RETRIES
@@ -51,8 +51,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],  # /plans, /turn and /upload
     allow_headers=["*"],
 )
-client = make_client(timeout=300.0)  # the shared AMD endpoint can be slow under load
-MODEL = amd_model()
+client = make_client(timeout=300.0)  # a shared endpoint can be slow under load
+MODEL = llm_model()
 
 
 class PendingConfirm(Exception):
@@ -310,7 +310,7 @@ async def agent_loop(session):
                 for chunk in say(reply):
                     yield chunk
                 return
-            # Qwen's chat template allows a system message only at the start.
+            # Some chat templates (Qwen) allow a system message only at the start.
             session.history.append({"role": "user", "content": "[Automatic check, not the user] Your reply was rejected: " + feedback})
             continue
         for call in calls:
@@ -383,16 +383,16 @@ async def read_attachments(session, attachments):
         plan, identity = result["plan"], result["identity"]
         read = json.dumps(identity, ensure_ascii=False)
         if MODE == "plans" and plan:
-            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
+            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: "
                          f"{read}. It matches {plan['name']} in the plan database: use plan_id {plan['plan_id']}. "
                          "Benefit numbers come from the database, not from the upload.]")
         elif MODE == "plans":
-            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
+            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: "
                          f"{read}. It doesn't match any plan in the database, so you can't price it or quote its "
                          "benefits. Describe only what page 1 shows, and offer the plans you can price.]")
         elif plan and result["rules_path"]:
             session.switch_plan(plan["plan_id"], result["rules_path"])
-            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The AMD model read page 1: "
+            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: "
                          f"{read}. It matches {plan['name']} in the verified plan library, so this conversation now "
                          f"uses that plan's catalog. Benefit numbers come from the catalog, not from the upload.]")
         elif plan:

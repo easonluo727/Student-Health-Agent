@@ -1,4 +1,4 @@
-"""Policy PDF import: Schedule of Benefits pages -> normalized rules JSON (AMD model only).
+"""Policy PDF import: Schedule of Benefits pages -> normalized rules JSON (any OpenAI-compatible model).
 
 Interactive:  python import_policy.py
 Direct:       python import_policy.py PDF PLAN START END [--columns "..."] [--out FILE]
@@ -15,10 +15,10 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from amd_client import amd_model, make_client
+from llm_client import llm_model, make_client
 
 client = make_client(timeout=360.0, max_retries=3)  # a page takes 1-4 min; retry requests that hang
-MODEL = amd_model()
+MODEL = llm_model()
 DEFAULT_COLUMNS = "Preferred Provider=in-network,Out-of-Network=out-of-network"
 
 # Get policy information

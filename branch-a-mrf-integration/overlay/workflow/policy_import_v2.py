@@ -12,7 +12,7 @@ Outputs (all validated against overlay/schemas):
   policy_mrf_map.pending.json  one pending_review mapping per policy network category; the model never
                             fills mrf_plan_key / mrf_network (a human does, in overlay/data/policy_mrf_map.v1.json)
 
-LLM calls go only to the AMD OpenAI-compatible endpoint (AMD_BASE_URL, AMD_API_KEY, AMD_MODEL).
+LLM calls go to any OpenAI-compatible endpoint (LLM_BASE_URL, LLM_API_KEY, LLM_MODEL).
 There is no OpenAI default and no fallback. Validation, IDs, page checks and the mapping skeleton are
 deterministic Python. The extractor is injectable so tests run without any LLM.
 """
@@ -28,12 +28,10 @@ import subprocess
 import tempfile
 from pathlib import Path
 from typing import Callable, Protocol
-from urllib.parse import urlparse
 
 import overlay_config
 from schema_check import validate
 
-FORBIDDEN_HOSTS = ("api.openai.com",)
 
 METADATA_LLM_SCHEMA = {
     "type": "object", "additionalProperties": False,
@@ -160,18 +158,16 @@ class Extractor(Protocol):
     def normalize(self, entries: list[dict]) -> list[dict]: ...
 
 
-class AMDExtractor:
-    """OpenAI-compatible client pointed only at the AMD endpoint (vLLM / Token Factory)."""
+class LLMExtractor:
+    """Client for any OpenAI-compatible endpoint."""
 
     def __init__(self, base_url: str | None = None, api_key: str | None = None, model: str | None = None):
-        base_url = base_url or os.environ.get("AMD_BASE_URL")
-        api_key = api_key or os.environ.get("AMD_API_KEY")
-        model = model or os.environ.get("AMD_MODEL")
+        base_url = base_url or os.environ.get("LLM_BASE_URL")
+        api_key = api_key or os.environ.get("LLM_API_KEY")
+        model = model or os.environ.get("LLM_MODEL")
         if not (base_url and api_key and model):
-            raise RuntimeError("Set AMD_BASE_URL, AMD_API_KEY and AMD_MODEL. No other provider is used.")
-        if urlparse(base_url).hostname in FORBIDDEN_HOSTS:
-            raise RuntimeError("AMD-only: OpenAI endpoints are not allowed.")
-        from openai import OpenAI  # client library only; the endpoint is AMD's
+            raise RuntimeError("Set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL.")
+        from openai import OpenAI
         self.client = OpenAI(base_url=base_url, api_key=api_key, timeout=120.0, max_retries=1)
         self.model = model
 
@@ -466,7 +462,7 @@ def main(argv=None) -> None:
         if not p.exists():
             raise SystemExit(f"PDF does not exist: {p}")
     result = run_import(a.policy_plan_id, a.metadata_pdf, parse_pages(a.metadata_pages), a.benefits_pdf or a.metadata_pdf,
-                        parse_pages(a.benefit_pages), a.out_dir, AMDExtractor())
+                        parse_pages(a.benefit_pages), a.out_dir, LLMExtractor())
     print(json.dumps(result, indent=2))
 
 

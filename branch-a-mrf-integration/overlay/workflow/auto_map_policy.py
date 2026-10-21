@@ -1,6 +1,6 @@
-"""Generate semantic policy-to-MRF mappings and test them using the AMD endpoint only.
+"""Generate semantic policy-to-MRF mappings and test them using an OpenAI-compatible LLM endpoint.
 
-The primary AMD model owns service matching; Python validates exact plan/network, catalog identifiers,
+The model owns service matching; Python validates exact plan/network, catalog identifiers,
 and eligible rate rows. A separate adversarial pass is retained for plan/network identity only.
 Unsupported services remain unmapped and cannot produce a quote.
 
@@ -11,7 +11,7 @@ Example (run from repository root):
     --rules local_data/policy-import/benefit_rules.json \
     --out-dir local_data/policy-import/auto-mapping
 
-Requires AMD_BASE_URL, AMD_API_KEY, AMD_MODEL. No other model provider is allowed.
+Requires LLM_BASE_URL, LLM_API_KEY, LLM_MODEL.
 """
 from __future__ import annotations
 
@@ -29,7 +29,6 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlparse
 
 import overlay_config
 
@@ -169,12 +168,10 @@ def build_service_candidates(rules: list[dict], encounter_groups: dict[str, list
     return result, catalog
 
 
-def amd_client():
-    base, key, model = (os.environ.get(k) for k in ("AMD_BASE_URL", "AMD_API_KEY", "AMD_MODEL"))
+def llm_client():
+    base, key, model = (os.environ.get(k) for k in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL"))
     if not (base and key and model):
-        raise RuntimeError("Set AMD_BASE_URL, AMD_API_KEY and AMD_MODEL before automatic mapping.")
-    if urlparse(base).hostname in {"api.openai.com", "chatgpt.com"}:
-        raise RuntimeError("AMD-only project: refusing a non-AMD endpoint.")
+        raise RuntimeError("Set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL before automatic mapping.")
     from openai import OpenAI
     # Checkpoint model requests so retrying an unfinished call is safe.
     return OpenAI(base_url=base, api_key=key, timeout=180, max_retries=1), model
@@ -223,7 +220,7 @@ SERVICE_MAPPING_PROMPT = (
 def propose_service_mappings(args, client, model: str, policy_plan_id: str,
                              service_candidates: list[dict], mrf_catalog: list[dict],
                              batch_size: int = 5) -> dict:
-    """Ask the AMD model in bounded batches; retry omitted services individually."""
+    """Ask the model in bounded batches; retry omitted services individually."""
     merged: dict[tuple[str, str | None], dict] = {}
     batch_events = []
     for start in range(0, len(service_candidates), batch_size):
@@ -280,7 +277,7 @@ def call_json(client, model: str, name: str, system: str, payload, schema: dict)
 
 
 def call_json_cached(args, client, model: str, name: str, system: str, payload, schema: dict) -> dict:
-    """Checkpoint each completed AMD call so a timeout only retries the unfinished stage."""
+    """Checkpoint each completed model call so a timeout only retries the unfinished stage."""
     cache_key = hashlib.sha256(json.dumps(
         [model, name, system, payload, schema], sort_keys=True, ensure_ascii=False, default=str
     ).encode("utf-8")).hexdigest()[:20]
@@ -408,7 +405,7 @@ def make_service_entries(plan_id: str, policy_category: str, accepted: list[dict
                        "policy_plan_id": plan_id, "service": entry["service"], "setting": entry["setting"],
                        "policy_network_category": policy_category, "clarification_question": entry.get("clarification_question"),
                        "options": options, "review_status": "verified",
-                       "reviewed_by": "AMD semantic mapper + deterministic catalog validation",
+                       "reviewed_by": "LLM semantic mapper + deterministic catalog validation",
                        "source": (f"LLM semantic mapping (confidence={entry['confidence']}); policy evidence: "
                                  f"{' | '.join(entry['evidence'])}; candidate codes/classes/POS/rates validated "
                                  "against local MRF files.")})
@@ -437,7 +434,7 @@ def run(args) -> dict:
         rules, groups, labels, rates, target["insurer"], target["network"])
     _log_event(args, "service_candidate_generation", "complete", service_count=len(service_candidates),
                mrf_encounter_count=len(mrf_catalog))
-    client, model = amd_client()
+    client, model = llm_client()
     mapping_schema = {"type": "object", "additionalProperties": False,
                       "required": ["mrf_plan_key", "mrf_network", "confidence", "evidence"],
                       "properties": {"mrf_plan_key": {"type": "string"}, "mrf_network": {"type": "string"},
@@ -479,7 +476,7 @@ def run(args) -> dict:
                validated_count=len(accepted), blocked_count=len(blocked_candidates),
                blocked=blocked_candidates)
     service_review = {"status": "not_run",
-                      "reason": "Service semantic selection is performed by the primary AMD model; "
+                      "reason": "Service semantic selection is performed by the model; "
                                 "Python catalog/rate validation remains enforced.",
                       "component_reference_repairs": component_ref_repairs}
     _log_event(args, "service_adversarial_review", "skipped",
@@ -504,7 +501,7 @@ def run(args) -> dict:
             "candidates": [], "question_for_human": None,
             "evidence": evidence + (["Out-of-network MRF use is prohibited by resolver hard stop."]
                                     if category == "out-of-network" else []),
-            "review_status": "verified", "reviewed_by": "AMD network candidate + exact profile validation"})
+            "review_status": "verified", "reviewed_by": "LLM network candidate + exact profile validation"})
     in_network_entries = make_service_entries(args.policy_plan_id, "in-network", accepted, groups, labels,
                                                rates, target["insurer"], target["network"])
     service_doc["entries"].extend(in_network_entries)
