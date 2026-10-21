@@ -5,7 +5,7 @@ Tables:
                     TOC URL, bytes read, rows scanned/kept, status (running/complete/failed)
   negotiated_rates  one row per negotiated price x kept provider group
   provider_members  provider group -> NPI, hashed TIN (+ last four, type), ZIP/taxonomy/tier
-  rate_summary      built by summarize.py
+  rate_summary      per-network statistics from an earlier report step (not read at runtime)
 
 Resumability: a source is committed every `commit_every` rows while it streams and marked
 `complete` at the end. Re-running an import skips complete sources and deletes the partial

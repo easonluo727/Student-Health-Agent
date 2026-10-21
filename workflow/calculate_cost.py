@@ -98,7 +98,15 @@ It does not verify authorization or other policy eligibility requirements.
             portion = min(amount, left)
             cost = portion + min(copay, amount - portion)
         else:
+            # A copay never exceeds what the service costs: $50 lab copay on a $9 test -> 9 (Covered California
+            # 2026 benefit designs, endnote 6; UC SHIP booklet: "the lesser of the amount shown ... or the amount
+            # the Provider charges"). Without a price the listed copay is the most the user pays.
             cost = copay
+            if allowed_amount is not None:
+                try:
+                    cost = min(copay, _number(allowed_amount, "allowed_amount"))
+                except ValueError as error:
+                    return _result("invalid_input", str(error))
     else:
         if patient is None:
             return _result("needs_review", "The rule does not specify a usable patient percentage or copay.")

@@ -10,7 +10,7 @@ Whether you get insurance through work, the marketplace or school, or are pickin
 
 ## What it does
 
-You chat with an advisor that knows your plan and the real prices in Los Angeles.
+You chat with an advisor that knows your plan and the real prices in Los Angeles. Next on the roadmap: recommending specific in-network doctors near you, priced doctor by doctor, with public quality data (`docs/improvements.md`).
 
 1. **Upload your plan.** Attach the PDF. The model reads the first page, and Python finds the plan in the plan database.
 2. **Answer a short questionnaire.** Instead of asking one question at a time, the agent picks questions from a fixed question bank and sends them as a form: your conditions, how often you see a doctor, your budget, what matters to you.
@@ -56,7 +56,7 @@ Every model call goes through one client ([`workflow/llm_client.py`](workflow/ll
 
 ## The data
 
-**Price database (allowed amounts).** A streaming Python pipeline, with no LLM, read insurers' Transparency in Coverage files: 316 files, 70 GB compressed, 444 GB of JSON. It kept 629,842 negotiated rates for 41 billing codes across 68,333 Los Angeles providers in 7 networks (Anthem PPO Prudent Buyer, which UC SHIP uses; Anthem Pathway EPO and HMO; UnitedHealthcare Choice Plus; Cigna National PPO; Ambetter from Health Net; L.A. Care). They are grouped into 19 common visits, such as urgent care for the flu or an ER visit for a sprained ankle. The agent prices from the summary table [`data/mrf/allowed_amounts.csv`](data/mrf/allowed_amounts.csv), which is checked in; the full 3.1 GB SQLite database stays out of git. Details: [`scripts/mrf/README.md`](scripts/mrf/README.md).
+**Price database (allowed amounts).** A streaming Python pipeline, with no LLM, read insurers' Transparency in Coverage files: 316 files, 70 GB compressed, 444 GB of JSON. It kept 629,842 negotiated rates for 41 billing codes across 68,333 Los Angeles providers in 7 networks (Anthem PPO Prudent Buyer, which UC SHIP uses; Anthem Pathway EPO and HMO; UnitedHealthcare Choice Plus; Cigna National PPO; Ambetter from Health Net; L.A. Care). They are grouped into 19 common visits, such as urgent care for the flu or an ER visit for a sprained ankle. The agent prices directly from this 3.1 GB SQLite database (not in git; on Railway it is a volume): the median over every Los Angeles provider in the plan's network, with a p10–p90 range. Details: [`scripts/mrf/README.md`](scripts/mrf/README.md).
 
 **Plan database.** One row per price a plan states (service × network × tier), extracted from official plan PDFs ([`scripts/policy/extract_sbc.py`](scripts/policy/extract_sbc.py)) and built into [`data/plans/policy.sqlite`](data/plans/policy.sqlite) by [`scripts/policy/build_seed.py`](scripts/policy/build_seed.py). The calculator refuses any row that isn't verified or has a review flag. [`data/plans/plan_networks.csv`](data/plans/plan_networks.csv) says which price network each plan uses. Details: [`db/README.md`](db/README.md).
 
@@ -109,7 +109,7 @@ No test calls the LLM or the network.
 ## Limitations
 
 - **Coverage is narrow.** Prices exist for 19 common visits in Los Angeles. Surgery, hospital stays and prescription drug prices aren't in the database.
-- **A negotiated rate is an estimate.** Claim edits and bundling change what is finally paid. Prices are typical rates across a network, not a quote from a specific doctor.
+- **A negotiated rate is an estimate.** Claim edits and bundling change what is finally paid. For now prices are the median across a network's Los Angeles providers, not a quote from a specific doctor; doctor-level pricing is the next step.
 - **Few plans.** The plan database holds 11 Los Angeles plans. An uploaded plan that isn't in it can't be priced yet.
 - **No premium subsidies, out-of-pocket maximum, or balance billing** in the calculator yet.
 - It is not medical advice and doesn't guarantee coverage.

@@ -11,8 +11,10 @@ Per provider (NPI), for one billing code / billing class / place of service:
   4. among what is left keep the latest expiration date; if several dollar values remain
      (e.g. the NPI is in several groups/TINs), take their median.
 Across providers, `allowed_amount` is chosen in priority order:
-  provider_rate (only when an NPI is requested) -> ucla_health_rate -> westwood_area_median
-  -> la_county_median -> empty with status rate_unavailable.
+  provider_rate (only when an NPI is requested) -> la_county_median (every Los Angeles provider in the
+  network) -> empty with status rate_unavailable.
+p10 / median / p90 are always over the same providers as the chosen value. The UCLA Health and Westwood-area
+medians are still reported for reference but are never the default (they sit near the top of most networks).
 No value is ever invented: every number is a median of real per-provider negotiated rates.
 """
 from __future__ import annotations
@@ -84,14 +86,15 @@ def _r(x):
 
 
 def ucla_health_tins(con: sqlite3.Connection) -> frozenset[str]:
-    """Hashed TINs that are UCLA Health organization NPIs (table built by report.py from NPPES)."""
+    """Hashed TINs that are UCLA Health organization NPIs (table built from NPPES by the removed report.py; kept in the
+    shipped rates.sqlite). Only used for the reference ucla_health_rate."""
     try:
         return frozenset(r[0] for r in con.execute("SELECT tin_sha256 FROM ucla_health_tins"))
     except sqlite3.OperationalError:
         return frozenset()
 
 
-@functools.lru_cache(maxsize=4)
+@functools.lru_cache(maxsize=1)  # one network/code can be 800k pairs; callers cache results
 def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_class: str) -> tuple[Candidate, ...]:
     """All (provider, price) pairs for one plan/code/class. A provider counts as UCLA Health
     (Tier A only) if its NPI is a UCLA organization NPI, its TIN *is* a UCLA organization NPI
@@ -107,11 +110,17 @@ def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_
     """
     ucla_tins = ucla_health_tins(con)
     out = []
+    # A large network has ~800k pairs that repeat a handful of strings (URL, POS lists); share one object per value.
+    shared: dict = {}
+    split = lambda text: shared.setdefault(("split", text), tuple(x for x in (text or "").split(",") if x))  # noqa: E731
+    keep = lambda value: shared.setdefault(value, value)  # noqa: E731
+    is_ucla: dict = {}
     for npi, tier, ucla_org, bname, tin, rate, ntype, exp, sc, mods, fdate, url in con.execute(q, (plan_key, code, billing_class)):
-        ucla = bool(ucla_org or (tin in ucla_tins) or UCLA_PATTERN.search(bname or ""))
-        out.append(Candidate(npi, tier or "B", ucla and tier == "A", rate, (ntype or "").lower(), exp or "9999-12-31",
-                             tuple(x for x in (sc or "").split(",") if x), tuple(x for x in (mods or "").split(",") if x),
-                             fdate or "", url))
+        key = (ucla_org, tin, bname)
+        if key not in is_ucla:
+            is_ucla[key] = bool(ucla_org or (tin in ucla_tins) or UCLA_PATTERN.search(bname or ""))
+        out.append(Candidate(npi, keep(tier or "B"), is_ucla[key] and tier == "A", rate, keep((ntype or "").lower()),
+                             keep(exp or "9999-12-31"), split(sc), split(mods), keep(fdate or ""), keep(url)))
     return tuple(out)
 
 
@@ -186,7 +195,7 @@ def component(con, plan_key: str, code: str, billing_class: str, pos: str | None
     choices = []
     if npi and npi in prov:
         choices.append(("provider_rate", [prov[npi][0]]))
-    choices += [("ucla_health_rate", ucla), ("westwood_area_median", tier_a), ("la_county_median", la)]
+    choices.append(("la_county_median", la))
     for basis, vals in choices:
         if vals:
             res.allowed_amount = _r(statistics.median(vals))

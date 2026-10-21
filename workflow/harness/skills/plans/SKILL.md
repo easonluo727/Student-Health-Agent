@@ -27,9 +27,16 @@ closest ones as an approximation, clearly labelled.
 
 | Status | What to do |
 | --- | --- |
-| `estimated` | Give `patient_cost`, then the lines (which benefit, the copay or coinsurance, the allowed amount). Say the allowed amount is a typical negotiated rate in that network, and its date. |
+| `estimated` | Give `patient_cost`, then the lines (which benefit, the copay or coinsurance, the allowed amount). Say the allowed amount is the median negotiated rate across Los Angeles providers in that network, give its range (`low`–`high`) and its date. |
 | `needs_information` | Ask for exactly the `missing_fields` (a deductible question is sent as a form automatically). |
 | `needs_review` / `not_covered` | Say so plainly with the `message`, and cite the benefit's page. |
+
+When `allowed_amount.warnings` is not empty, say that part of the price is rough and why, in one sentence.
+A copay plan's cost does not depend on it; a deductible or coinsurance line does.
+
+A line's `limits` and a plan's `rules` (in the plan list) are conditions the user must meet for the cost to hold,
+for example UC SHIP's rule that students need an Ashe Center referral except for urgent care, emergencies and
+LiveHealth Online. When one applies to what the user is about to do, say it before the number, with its page.
 
 ### Arena: compare plans (`compare_plans`)
 

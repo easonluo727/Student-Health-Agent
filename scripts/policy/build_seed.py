@@ -49,7 +49,7 @@ BENEFIT_COLUMNS = ["benefit_id", "plan_id", "category", "section", "service", "s
                    "setting", "network", "network_tier", "copay_usd", "coinsurance_pct", "deductible_applies",
                    "prior_auth", "covered", "limits_conditions", "quote", "source_url", "source_page", "verified",
                    "review_flags", "calculable"]
-NETWORK_COLUMNS = ["plan_id", "network_tier", "mrf_plan_key", "mrf_network", "notes"]
+NETWORK_COLUMNS = ["plan_id", "network_tier", "mrf_plan_key", "mrf_network", "notes", "confirmed"]
 
 
 def text(v):
@@ -162,7 +162,7 @@ def bridge(path, plans, benefits):
     for i, r in enumerate(read(path) if path.exists() else [], 2):
         row = {"plan_id": r.get("plan_id"), "network_tier": r.get("network_tier") or "",
                "mrf_plan_key": text(r.get("mrf_plan_key")), "mrf_network": text(r.get("mrf_network")),
-               "notes": text(r.get("notes"))}
+               "notes": text(r.get("notes")), "confirmed": 1 if yes(r.get("confirmed")) else 0}
         if row["plan_id"] not in plans:
             waiting.append(row["plan_id"])
         elif not row["mrf_plan_key"]:

@@ -266,6 +266,14 @@ class TableOfContents(TmpDirCase):
         self.assertEqual(r.header["version"], "2.0.0")
         self.assertTrue(r.complete)
 
+    def test_every_plan_of_a_market_with_its_files(self):
+        path = self.write("toc.json.gz", load(os.path.join(V2, "table-of-contents-sample.json")), gz=True)
+        r = scan_toc(path, lambda loc, d: "behavioral" not in loc, market_types={"individual"})
+        files = {key[1]: locs for key, locs in r.plans.items()}
+        # Both individual plans use the kept in-network file; the group (chip) plan is left out.
+        self.assertEqual(files, {"1111111111": {"https://www.some_site.com/files/in-network-file-123456.json"},
+                                 "000000000": {"https://www.some_site.com/files/in-network-file-123456.json"}})
+
 
 if __name__ == "__main__":
     unittest.main()

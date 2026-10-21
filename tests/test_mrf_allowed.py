@@ -140,26 +140,28 @@ class AllowedAmountPipeline(unittest.TestCase):
         st = self.con.execute("SELECT status FROM mrf_sources WHERE source_url LIKE '%missing.json'").fetchone()[0]
         self.assertEqual(st, "failed")
 
-    def test_ucla_rate_wins_with_pos_and_exclusions(self):
+    def test_network_median_with_pos_and_exclusions(self):
         r = allowed.component(self.con, "test_ppo", "99213", "professional", "11", as_of=AS_OF)
-        self.assertEqual((r.allowed_amount, r.allowed_amount_basis, r.status), (100.0, "ucla_health_rate", "verified_rate"))
-        self.assertEqual(r.westwood_area_median, 95.0)        # UCLA 100, Westwood 90
-        self.assertEqual(r.la_county_median, 85.0)           # 100, 90, 80 (no-POS fallback), 70
+        # Every LA provider: UCLA 100, Westwood 90, LA 80 (no-POS fallback), LA2 70. UCLA is not preferred.
+        self.assertEqual((r.allowed_amount, r.allowed_amount_basis, r.status), (85.0, "la_county_median", "estimated_rate"))
+        self.assertEqual((r.n_providers, r.p10, r.p90), (4, 73.0, 97.0))  # range over the same four providers
+        self.assertEqual(r.ucla_health_rate, 100.0)          # still reported, for reference only
+        self.assertEqual(r.westwood_area_median, 95.0)
         self.assertEqual(r.n_rates_excluded, 4)              # one percentage, one expired, one $0, one placeholder
         uc = allowed.component(self.con, "test_ppo", "99213", "professional", "20", as_of=AS_OF)
-        self.assertEqual(uc.allowed_amount, 130.0)           # POS 20 specific rate preferred
+        self.assertEqual(uc.allowed_amount, 105.0)           # UCLA's POS 20 rate 130 and LA's no-POS 80
 
     def test_pos_preference_list(self):
         # 87804 has only no-POS rates; 99213 at "21|20" finds POS 20 for UCLA (130) and falls back
         # to no-POS rates for the rest.
         r = allowed.component(self.con, "test_ppo", "99213", "professional", "21|20", as_of=AS_OF)
-        self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (130.0, "ucla_health_rate"))
+        self.assertEqual(r.allowed_amount, 105.0)            # same as POS 20: 130 and 80
         r = allowed.component(self.con, "test_ppo", "99213", "professional", "21|11", as_of=AS_OF)
-        self.assertEqual(r.allowed_amount, 100.0)
+        self.assertEqual(r.allowed_amount, 85.0)             # same as POS 11
 
     def test_mod_26_only(self):
         r = allowed.component(self.con, "test_ppo", "73610", "professional", "23", "mod_26", as_of=AS_OF)
-        self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (20.0, "westwood_area_median"))
+        self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (20.0, "la_county_median"))  # only Westwood has a 26
 
     def test_provider_rate_and_county_fallback(self):
         r = allowed.component(self.con, "test_ppo", "99213", "professional", "11", npi=LA_NPI2, as_of=AS_OF)
@@ -170,28 +172,28 @@ class AllowedAmountPipeline(unittest.TestCase):
 
     def test_tc_plus_26(self):
         r = allowed.component(self.con, "test_ppo", "73610", "professional", "23", "global_or_tc_plus_26", as_of=AS_OF)
-        self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (50.0, "westwood_area_median"))  # 30 + 20
+        self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (55.0, "la_county_median"))  # Westwood 30 + 20, LA 60
         self.assertEqual(r.uses_tc_plus_26, 1)
         g = allowed.component(self.con, "test_ppo", "73610", "professional", "23", "global", as_of=AS_OF)
         self.assertEqual(g.allowed_amount, 60.0)  # without the TC+26 rule only the global rate counts
 
     def test_encounter_sum_and_worst_basis(self):
         r = lookup.lookup_allowed_amount("Test Insurer", NET, "er_ankle_xray", con=self.con, as_of=AS_OF)
-        # 200 (prof, POS 23) + 1500 (facility) + 50 (Westwood TC+26)
-        self.assertEqual(r["allowed_amount"], 1750.0)
+        # 200 (prof, POS 23) + 1500 (facility) + 55 (median of Westwood TC+26 = 50 and LA 60)
+        self.assertEqual(r["allowed_amount"], 1755.0)
         self.assertEqual(r["allowed_amount_basis"], "la_county_median")
         self.assertEqual(r["status"], "estimated_rate")
         self.assertEqual([c["billing_class"] for c in r["components"]], ["professional", "institutional", "professional"])
         self.assertEqual(r["source"]["source_urls"], ["https://example.test/CA_TEST.json.gz"])
         flu = lookup.lookup_allowed_amount("test_ppo", None, "urgent_care_flu", con=self.con, as_of=AS_OF)
-        self.assertEqual(flu["allowed_amount"], 172.0)  # 130 (UCLA, POS 20) + 42
+        self.assertEqual(flu["allowed_amount"], 147.0)  # 105 (POS 20) + 42
 
     def test_unavailable_never_invents(self):
         r = lookup.lookup_allowed_amount("test_ppo", None, "spirometry", con=self.con, as_of=AS_OF)
         self.assertIsNone(r["allowed_amount"])
         self.assertEqual(r["status"], "rate_unavailable")
         code = lookup.lookup_allowed_amount("test_ppo", None, "99213", con=self.con, as_of=AS_OF)
-        self.assertEqual(code["allowed_amount"], 100.0)
+        self.assertEqual(code["allowed_amount"], 85.0)
 
 
 if __name__ == "__main__":

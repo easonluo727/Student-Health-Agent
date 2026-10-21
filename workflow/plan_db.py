@@ -1,22 +1,24 @@
 """Matching and costing on the two read-only databases. No LLM: every number and ranking is computed here.
 
   policy database   data/plans/policy.sqlite   plans, benefits (one row per price), plan_networks (the bridge)
-  allowed amounts   data/mrf/allowed_amounts.csv, built from the MRF rate store (rates.sqlite) by
-                    scripts/mrf/report.py: per insurer network, the allowed amount of each common encounter
-                    and of each of its components
+  rate store        data/mrf/rates.sqlite (env RATES_DB; /data/rates.sqlite on Railway): every negotiated rate
+                    the MRF pipeline kept, per network, billing code and Los Angeles provider
 
-A *scenario* is one common encounter (encounters.csv). Each of its components is paid under one of the plan's
-benefits (SCENARIOS below). estimate() matches each component to a benefit row, prices it from the plan's network
-through plan_networks, groups components paid under the same row (one copay per visit), and runs the pure
+A *scenario* is one common encounter (data/mrf/encounters.csv: its components and their billing codes). Each
+component is paid under one of the plan's benefits (SCENARIOS below). estimate() matches each component to a
+benefit row, prices each component in the plan's network (plan_networks -> rate store, scripts/mrf/allowed.py:
+the median over every Los Angeles provider in the network, with p10-p90), groups components paid under the same row (one copay per visit), and runs the pure
 calculator (calculate_cost.py) on each group, using the remaining deductible in order. compare() runs the same
 scenarios on several plans, assuming the deductible is not met and already met, and ranks them.
 """
 from __future__ import annotations
 
 import csv
-import json
+import datetime as dt
+import os
 import re
 import sqlite3
+import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 from decimal import Decimal
@@ -27,24 +29,36 @@ from calculate_cost import calculate_cost
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_DB = ROOT / "data" / "plans" / "policy.sqlite"
-ALLOWED_CSV = ROOT / "data" / "mrf" / "allowed_amounts.csv"
+RATES_DB = Path(os.environ.get("RATES_DB", ROOT / "data" / "mrf" / "rates.sqlite"))
 ENCOUNTERS_CSV = ROOT / "data" / "mrf" / "encounters.csv"
-PROFILES_JSON = ROOT / "data" / "plan_profiles.v1.json"
+# A price from fewer providers than this is flagged. Hospital facility fees are the usual case: most hospitals
+# publish them as a percent of charges or a case rate, which are not dollar prices and are left out.
+THIN_SAMPLE = 10
+
+sys.path.insert(0, str(ROOT / "scripts" / "mrf"))
+import allowed  # noqa: E402  (rate selection rules, shared with the MRF pipeline)
 
 
 @dataclass(frozen=True)
 class Part:
     service: str                 # benefits.service the component is paid under
     component: str | None = None  # preferred benefits.component (facility / provider / office_visit)
+    fallback: str | None = None   # service to use where the tier has no `service` benefit
 
 
 # encounter key -> {encounters.csv component: Part}. Development-time knowledge of how claims are paid.
+# Tests, labs and X-rays done during a visit are paid under their own benefit, not the visit's: the federal SBC
+# coverage examples list "Emergency room care" and "Diagnostic test (x-ray)" (and office visits and "Diagnostic
+# tests (blood work)") as separate cost shares. A copay never exceeds the price (calculate_cost.py).
+# Reviewed 2026-10-21 against the SBCs in data/policy_pdfs/ and the Covered California 2026 benefit designs.
 SCENARIOS: dict[str, dict[str, Part]] = {
     "office_visit_established": {"visit": Part("primary_care_visit", "office_visit")},
     "office_visit_new": {"visit": Part("primary_care_visit", "office_visit")},
     "telehealth_visit": {"visit": Part("primary_care_visit", "office_visit")},
     "specialist_followup": {"visit": Part("specialist_visit", "office_visit")},
-    "urgent_care_flu": {"visit": Part("urgent_care"), "flu_test": Part("lab_tests")},
+    # The UC SHIP Ashe Center tier has no urgent care benefit: a same-day sick visit there is a primary care visit
+    # ("No charge/visit (Ashe Ctr)", SBC p. 2; booklet p. 20, the Ashe Center is the student's medical home).
+    "urgent_care_flu": {"visit": Part("urgent_care", fallback="primary_care_visit"), "flu_test": Part("lab_tests")},
     "er_ankle_xray": {"er_physician": Part("emergency_room", "provider"), "er_facility": Part("emergency_room", "facility"),
                       "xray_read": Part("xray", "provider"), "xray_facility": Part("xray", "facility")},
     "uti_visit": {"visit": Part("primary_care_visit", "office_visit"), "urinalysis": Part("lab_tests"),
@@ -66,43 +80,52 @@ SPECIAL = re.compile(r"pregnan|maternity|prenatal|postnatal|home delivery|mail|s
 SCENARIO_ALLOWS = {"telehealth_visit": re.compile(r"telehealth|online|virtual|livehealth", re.I)}
 
 
-def _money(text):
-    return [float(m.replace(",", "")) for m in re.findall(r"\$([\d,]+(?:\.\d+)?)", text or "")]
-
-
 @lru_cache(maxsize=1)
 def _encounters():
-    """encounter key -> (label, [component names in order])."""
-    out: dict[str, tuple[str, list[str]]] = {}
+    """encounter key -> (label, [component rows in order]); a row has codes, billing_class, place_of_service,
+    modifier_rule."""
+    out: dict[str, tuple[str, list[dict]]] = {}
     with open(ENCOUNTERS_CSV, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
-            label, parts = out.get(r["encounter"], (r["label"], []))
-            parts.append(r["component"])
-            out[r["encounter"]] = (label, parts)
+            out.setdefault(r["encounter"], (r["label"], []))[1].append(r)
     return out
 
 
-@lru_cache(maxsize=1)
-def _allowed():
-    """(insurer, network) -> {encounter label: row} for the A_encounter table."""
-    table: dict[tuple[str, str], dict[str, dict]] = {}
-    with open(ALLOWED_CSV, newline="", encoding="utf-8") as f:
-        for r in csv.DictReader(f):
-            if r["table"] == "A_encounter":
-                table.setdefault((r["insurer"], r["network"]), {})[r["encounter"]] = r
-    return table
+@lru_cache(maxsize=None)
+def _rates_con(path: str) -> sqlite3.Connection:
+    return sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
 
 
-@lru_cache(maxsize=1)
-def _profiles():
-    with open(PROFILES_JSON, encoding="utf-8") as f:
-        return {p["plan_key"]: p for p in json.load(f)["plans"]}
+@lru_cache(maxsize=None)
+def _component(rates_path: str, plan_key: str, code: str, billing_class: str, pos: str | None, modifier_rule: str,
+               as_of: str) -> allowed.ComponentResult:
+    """One component's price in one network. A large network takes seconds (Anthem PPO has 800k provider-rate
+    pairs for 99213), so each result is kept for the day; there are only about 200 combinations."""
+    return allowed.component(_rates_con(rates_path), plan_key, code, billing_class, pos, modifier_rule, as_of=as_of)
 
 
 class PlanDB:
-    def __init__(self, path: Path = POLICY_DB):
+    def __init__(self, path: Path = POLICY_DB, rates_path: Path = RATES_DB):
         self.con = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
         self.con.row_factory = sqlite3.Row
+        # Without the rate store only flat copays can be computed.
+        self.rates_path = str(rates_path) if Path(rates_path).exists() else None
+
+    def warm(self) -> None:
+        """Price every component of every scenario in every linked network, so requests don't wait."""
+        for (plan_key,) in self.con.execute("SELECT DISTINCT mrf_plan_key FROM plan_networks"):
+            for scenario in SCENARIOS:
+                for row in _encounters().get(scenario, ("", []))[1]:
+                    self._price(plan_key, row)
+
+    def _price(self, plan_key: str, row: dict) -> allowed.ComponentResult:
+        r = None
+        for code in row["codes"].split("|"):  # alternatives, first with a rate wins
+            r = _component(self.rates_path, plan_key, code, row["billing_class"], row["place_of_service"] or None,
+                           row["modifier_rule"], dt.date.today().isoformat())
+            if r.allowed_amount is not None:
+                break
+        return r
 
     # ------------------------------------------------------------------ catalog
     def plans(self) -> list[dict]:
@@ -146,6 +169,13 @@ class PlanDB:
 
         return min(rows, key=rank)
 
+    def rules(self, plan_id: str) -> list[dict]:
+        """Plan-wide rules that are not amounts (for example UC SHIP's Ashe Center referral requirement)."""
+        return [{"rule": r["service_as_printed"], "text": r["limits_conditions"] or r["quote"],
+                 "source_page": r["source_page"]}
+                for r in self.con.execute("SELECT * FROM benefits WHERE plan_id=? AND service='plan_level' "
+                                          "AND copay_usd IS NULL AND coinsurance_pct IS NULL", (plan_id,))]
+
     def deductible(self, plan_id: str, network: str = "in", tier: str | None = None) -> float | None:
         """The individual medical deductible of one tier, from its plan_level row."""
         rows = [dict(r) for r in self.con.execute(
@@ -164,28 +194,46 @@ class PlanDB:
         return dict(row) if row else None
 
     def allowed_amounts(self, plan_id: str, tier: str | None, scenario: str) -> dict:
-        """Allowed amount of each component of a scenario in the plan's network, or why there is none."""
-        label, components = _encounters()[scenario]
+        """Allowed amount of each component of a scenario in the plan's network, or why there is none.
+
+        status: priced (every component), partial (some), no_rates (none, or no network / no rate store)."""
+        _, rows = _encounters()[scenario]
         link = self.network(plan_id, tier)
         if link is None:
             return {"status": "no_rates", "message": "This tier has no price data (e.g. a campus clinic, or "
                                                      "out-of-network); only flat copays can be computed."}
-        profile = _profiles().get(link["mrf_plan_key"], {})
-        names = [link["mrf_network"]] if link["mrf_network"] else (profile.get("network_names") or [])
-        table = _allowed()
-        rows = [t for (ins, net), t in table.items() if ins == profile.get("insurer") and (not names or net in names)]
-        row = rows[0].get(label) if len(rows) == 1 else None
-        if row is None:
-            return {"status": "no_rates", "message": f"No allowed amount for {label!r} in this network."}
-        amounts = _money(row["components"])
-        if len(amounts) != len(components):
-            amounts = [float(row["allowed_amount"])] if len(components) == 1 else []
-        if not amounts:
-            return {"status": "no_rates", "message": "The price data does not split this encounter by component."}
-        return {"status": row["status"], "basis": row["allowed_amount_basis"], "total": float(row["allowed_amount"]),
-                "low": float(row["p10"]) if row["p10"] else None, "high": float(row["p90"]) if row["p90"] else None,
-                "components": dict(zip(components, amounts)), "network": f"{row['insurer']} / {row['network']}",
-                "mrf_file_date": row["mrf_file_date"]}
+        if not link["confirmed"]:
+            return {"status": "no_rates", "message": "Which price network this plan uses is not confirmed yet "
+                                                     f"({link['notes'] or 'no evidence recorded'}), so its prices "
+                                                     "are not used; only flat copays can be computed."}
+        if self.rates_path is None:
+            return {"status": "no_rates", "message": f"The rate store ({RATES_DB}) is not available."}
+        parts = []
+        for row in rows:
+            r = self._price(link["mrf_plan_key"], row)
+            parts.append({"component": row["component"], "billing_code": r.billing_code,
+                          "billing_class": r.billing_class, "place_of_service": r.place_of_service,
+                          "allowed_amount": r.allowed_amount, "basis": r.allowed_amount_basis,
+                          "n_providers": r.n_providers, "p10": r.p10, "p90": r.p90,
+                          "mrf_file_dates": r.mrf_file_dates})
+        missing = [p["component"] for p in parts if p["allowed_amount"] is None]
+        complete = not missing
+        warnings = [f"The {p['component']} price comes from only {p['n_providers']} provider(s) in this network, "
+                    "so it is rough; most hospitals publish facility fees as a percent of charges, which has no "
+                    "dollar price." for p in parts if p["allowed_amount"] is not None and p["n_providers"] < THIN_SAMPLE]
+
+        def total(key):
+            vals = [p[key] for p in parts]
+            return round(sum(vals), 2) if complete and all(v is not None for v in vals) else None
+
+        return {"status": "priced" if complete else "partial" if len(missing) < len(parts) else "no_rates",
+                "message": None if complete else "No negotiated rate in this network for: " + ", ".join(missing) + ".",
+                "basis": "la_county_median" if complete else None,
+                "total": total("allowed_amount"), "low": total("p10"), "high": total("p90"),
+                "components": {p["component"]: p["allowed_amount"] for p in parts}, "parts": parts,
+                "warnings": warnings,
+                "network": link["mrf_network"] or link["mrf_plan_key"],
+                "mrf_file_date": ", ".join(sorted({d for p in parts for d in p["mrf_file_dates"]}))}
 
     # ------------------------------------------------------------------ costing
     @staticmethod
@@ -210,13 +258,15 @@ class PlanDB:
                     "message": "This plan has several in-network tiers; choose one.",
                     "options": plan["in_network_tiers"]}
         tier = tier if network == "in" else None
-        label, _ = _encounters()[scenario]
+        label = _encounters()[scenario][0]
         prices = self.allowed_amounts(plan_id, tier, scenario) if network == "in" else {"status": "no_rates"}
 
         # Components paid under the same benefit row are one bill under that row (one copay per visit).
         groups: OrderedDict[str, dict] = OrderedDict()
         for comp, part in SCENARIOS[scenario].items():
             row = self.benefit(plan_id, part.service, network, tier, part.component, scenario)
+            if row is None and part.fallback:
+                row = self.benefit(plan_id, part.fallback, network, tier, part.component, scenario)
             if row is None:
                 return self._result("needs_review", f"The plan has no {part.service} benefit for this network/tier.",
                                     plan_id, scenario, label, network, tier, prices, [])
@@ -241,13 +291,14 @@ class PlanDB:
                           "components": g["components"], "allowed_amount": allowed, "status": result["status"],
                           "patient_cost": result["patient_cost"], "message": result["message"],
                           "missing_fields": result["missing_fields"], "source_page": row["source_page"],
-                          "quote": row["quote"], "review_flags": row["review_flags"]})
+                          "quote": row["quote"], "limits": row["limits_conditions"],
+                          "review_flags": row["review_flags"]})
             if result["status"] == "not_covered":
                 return self._result("not_covered", f"{row['service_as_printed']} is not covered.", plan_id, scenario,
                                     label, network, tier, prices, lines)
             if result["status"] != "estimated":
                 missing = result["missing_fields"]
-                if "allowed_amount" in missing and prices.get("status") == "no_rates":
+                if "allowed_amount" in missing and prices.get("status") in ("no_rates", "partial"):
                     return self._result("needs_review", prices.get("message", "No price data."), plan_id, scenario,
                                         label, network, tier, prices, lines)
                 return self._result(result["status"], result["message"], plan_id, scenario, label, network, tier,
@@ -266,7 +317,7 @@ class PlanDB:
                 "plan_id": plan_id, "scenario": scenario, "scenario_label": label, "network": network,
                 "network_tier": tier, "allowed_amount": {k: prices.get(k) for k in
                                                           ("status", "total", "low", "high", "basis", "network",
-                                                           "mrf_file_date")} if prices else None,
+                                                           "mrf_file_date", "parts", "warnings")} if prices else None,
                 "lines": lines}
 
     def compare(self, plan_ids: list[str], scenarios: list[str]) -> dict:

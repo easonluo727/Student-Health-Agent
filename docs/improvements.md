@@ -2,7 +2,27 @@
 
 记录于 2026-10-18，2026-10-20 更新。按优先级排列，每条写清楚现状、问题和建议做法。做完一条就把它挪到文末的"已完成"，或者直接删掉。
 
-现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 11 个 plan，价格库 `rates.sqlite`（3.1 GB）放在 Railway 磁盘卷的 `/data`，目前运行时不读它。2026-10-20 删掉了 legacy 模式和搜索 worker，现在只有一条路径。
+现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 11 个 plan，11 个都有带证据的网络对接（桥 1）。价格库 `rates.sqlite`（3.1 GB，Railway 磁盘卷 `/data`）运行时直接查，暂时按网络里所有洛杉矶医生的中位数算，按路线图第 1 步改成按具体医生算。2026-10-20 删掉了 legacy 模式、搜索 worker 和 CSV 价格汇总表，现在只有一条路径。相关 issue：#5（人和计划的年度匹配）、#6（保单 × 价格对接）。
+
+---
+
+## 路线图（2026-10-20 定）
+
+按顺序做：
+
+1. **按位置推荐医生（geographic matching）**：不取中位数，只有两条路：用户指定了医生，就按这位医生的协商价算；没指定，就找出计划网络里合适专科的候选医生，每位都按自己的协商价算出用户要付多少，由 agent 结合用户的全部信息明确推荐 1–5 位。
+   - Python 负责查找和算钱（harness 里的工具），agent 负责判断和解释。
+   - 医生是谁、在哪：用价格库里的 NPI 查 NPPES（政府免费接口：姓名、地址、电话、专科、执照号）。注意价格库里的 `tin_business_name` 是收款方（税号登记名），不一定是看病的医生。
+   - 位置：问卷加一道"愿意去多远"的选择题。距离具体怎么算，以后再定。
+   - HMO：按每个计划自己的规则筛选（先选医疗集团，再选集团里的医生）。L.A. Care 的价格文件里网络名就是医疗集团。
+   - 急诊不做推荐。
+   - `allowed.component()` 已经支持按 NPI 取这位医生的价格（`provider_rate`）。
+2. **医生水平（rate my doctor）**：给每位医生建一份档案，每一项都有公开来源，agent 按用户在意的点比较。具体做法再商量。候选来源：加州医学委员会（处分记录，按执照号）、CMS Care Compare（MIPS 绩效分，不是每个医生都有，例如 NPI 1205190659 Jun Chung 就没有；医学院和毕业年份）、Medicare 服务量、CMS 医院星级、搜索（职称、执业医院）。查不到的项说"没有公开数据"，不能编。水平低的医生要如实告诉用户。
+3. **更深的 computer search**：用 Computer Use 查医生和医院的评价（例如 Google 评价）。注意网站条款对自动抓取的限制。
+4. **登录**
+5. **个人信息的长期记忆**：登录以后，记住用户的病情、常看的医生、计划等，下次不用再问。
+
+前提：桥 1（计划对网络）必须先全部确认。2026-10-20 已完成：11 个计划都有证据（`data/plans/plan_networks.csv` 的 `notes`）。以后加计划按 `db/README.md` 的"Adding a plan"。
 
 ---
 
@@ -12,9 +32,13 @@
 
 2026-10-20 实测：线上对任何问题都返回 `AuthenticationError: 401 Invalid bearer token`。AMD 的 API key 已经失效。换成新的供应商以后，在 Railway 上把变量改成 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`（旧的 `AMD_*` 已经不读了）。
 
-### "远程看诊"场景在 8 个计划上崩溃
+### issue #6（保单 × 价格对接）的状态
 
-2026-10-20 把 11 个计划 × 17 个场景全部跑了一遍：140 个算出结果，39 个按设计要追问用户（选网络档位、报剩余自付额），**8 个崩溃**：Health Net 和 L.A. Care 的全部 8 个计划，一算 `telehealth_visit` 就抛 `ValueError`。原因是 `data/mrf/allowed_amounts.csv` 里这个场景的价格是空字符串，`plan_db.allowed_amounts()`（`float(row["allowed_amount"])`）没有处理。空值应该返回 `no_rates`，而不是抛异常。
+2026-10-21 做完：默认价格不再用 UCLA 价；区间算对；对接代码不再崩溃；桥 1 全部有证据；桥 2 审过一遍（`SCENARIOS` 和 `encounters.csv`，依据是 SBC 的联邦费用示例和 Covered CA 2026 统一设计）；copay 不超过服务价格（Covered CA 脚注 6，原来算错）；Ashe Center 看流感按普通门诊算；远程看诊没有 98005 价格时用 99213；样本太少的价格会带警告；`scripts/mrf/check_rates.py` 做跨网络检查。
+
+还剩（`check_rates.py` 报出的就是这些）：
+- **急诊和急诊 X 光的医院部分**：大多数医院把医院费按账单百分比或按病例报价，不是美元价格，所以样本只有 0–74 个编号，Health Net 完全没有。代码没法修，只能如实提醒；按具体医院查价（路线图第 1 步）以后再看。
+- **HIV 检测**：现在常用 87389，但当初只导入了 86701，Health Net 没有 86701 的价格。要把 87389 加进 `data/mrf/billing_codes.csv` 再跑一次导入。
 
 ### 数据自动校验
 
@@ -37,14 +61,9 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 **耗时**：标准 SBC 3–5 分钟，65 页以上的长保单会更久。
 **工作量**：约半天，主要花在长保单的测试上。
 
-### 2. 接上 3.1 GB 价格库，支持按具体医生查价
+### 2. 按具体医生查价
 
-**现状**：`plan_db.py` 读的是 `data/mrf/allowed_amounts.csv`。这是 `scripts/mrf/report.py` 从 3.1 GB 的库预先算好的汇总：每个网络 × 每个就诊场景一个典型协商价（UCLA Health 价或洛杉矶中位数），附 p10/p90 区间。线上卷里的 `rates.sqlite` 目前运行时没人读（以前只有已删除的 legacy pricing 技能用它）。
-
-**做法**：
-- `estimate_cost` 增加一个可选参数 `provider_npi`。传了 NPI 时，用 `scripts/mrf/allowed.py` 的 `fetch_candidates` 在 `rates.sqlite` 里按 plan_key + 收费代码 + NPI 查真实协商价，查不到再退回汇总值。
-- 前端估价卡片标明价格来源：是这位医生的协商价，还是网络中位数。
-- 回答里可以给出 p10–p90 区间，而不只是一个数。
+已并入上面路线图第 1 步。
 
 ### 3. 问卷改版
 
@@ -104,7 +123,7 @@ Arena 没有保费数据，所以只比较看病的花费。`data/policy_pdfs/C_
 
 - **服务器上的压缩包**：Railway 磁盘卷里还有 `/rates.sqlite.xz`（273 MB），已经没用了。按 Railway 的规定只能本人删除：`railway volume files --volume rates-data delete /rates.sqlite.xz`
 - **搜索**：旧的搜索 worker 已删除，新的搜索还没定，候选方向见 `PRODUCT.md` 的"搜索"一节。
-- **会话存在内存里**：`server.py` 的 `SESSIONS = {}` 永远不清理，重新部署就全部丢失，也不能开多个实例。至少要改成 SQLite 存储并设过期时间。
+- **会话存在内存里**：`server.py` 的 `SESSIONS = {}` 永远不清理，重新部署就全部丢失，也不能开多个实例。至少要改成 SQLite 存储并设过期时间。路线图第 4、5 步（登录、长期记忆）也需要先有持久化的存储。
 - **legacy 剩下的**：`scripts/policy/review_sheet.py`（和 `tests/test_review_sheet.py`）只处理已删除的 `import_policy.py` 产出的规则 JSON，可以删。`scripts/policy/import_plan_csv.py` 自己的输出（`policies/*.json`）也没人用了，只有 `build_seed.py` 还在用它的 CSV 辅助函数，可以把那几个函数挪进 `build_seed.py` 后删掉。前端仍支持确认卡片（`confirm`），后端已经不发了。
 - **`agent-api` 上用不到的变量**：`CORS_ORIGINS`。前后端已经同域，可以删掉。
 - **本地分支**：本地还有两个只在本机的分支（`mr-jude-justin/amd-hackathon-plan`、`mr-jude-justin/latest-version-status`），被 Conductor 工作区占用着，各有 27–29 个没合进 main 的提交。

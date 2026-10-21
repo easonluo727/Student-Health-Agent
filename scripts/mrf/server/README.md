@@ -88,12 +88,11 @@ python scripts/mrf/run_all.py --manifest data/mrf/work/manifest.jsonl --workers 
 
 ```bash
 python scripts/mrf/merge_shards.py --shards data/mrf/work/shards --out data/mrf/rates.sqlite
-python scripts/mrf/report.py --db data/mrf/rates.sqlite
-ls -lh data/mrf/rates.sqlite data/mrf/allowed_amounts.*
+ls -lh data/mrf/rates.sqlite
 ```
 
-Commit `rates.sqlite` only if it is under 50 MB. Otherwise publish it as a release asset.
-Always commit `allowed_amounts.md` and `allowed_amounts.csv`.
+Commit `rates.sqlite` only if it is under 50 MB. Otherwise publish it as a release asset and upload it to the
+Railway volume (`db/README.md`); the agent reads it directly.
 
 ## Blocked insurers
 

@@ -44,5 +44,20 @@ class CopayAfterDeductible(unittest.TestCase):
                          ["allowed_amount", "remaining_deductible"])
 
 
+FLAT_COPAY = {"coverage_status": "covered", "needs_review": False, "deductible_applies": False,
+              "copay_usd": 50, "patient_pays_percentage": None, "plan_pays_percentage": None}
+
+
+class FlatCopay(unittest.TestCase):
+    def test_copay_never_exceeds_the_price(self):  # Covered California endnote 6: the lesser amount
+        self.assertEqual(calculate_cost(FLAT_COPAY, 9)["patient_cost"], 9.0)
+
+    def test_copay_below_the_price(self):
+        self.assertEqual(calculate_cost(FLAT_COPAY, 300)["patient_cost"], 50.0)
+
+    def test_without_a_price_the_copay_is_the_most(self):
+        self.assertEqual(calculate_cost(FLAT_COPAY)["patient_cost"], 50.0)
+
+
 if __name__ == "__main__":
     unittest.main()

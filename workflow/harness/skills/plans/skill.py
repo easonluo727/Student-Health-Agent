@@ -32,8 +32,14 @@ def _validate(db, args):
 
 
 def plan_summary(db):
-    return [{k: p[k] for k in ("plan_id", "plan_name", "insurer", "plan_year", "plan_type", "deductible_in_usd",
-                               "oop_max_in_usd", "in_network_tiers")} for p in db.plans()]
+    out = []
+    for p in db.plans():
+        summary = {k: p[k] for k in ("plan_id", "plan_name", "insurer", "plan_year", "plan_type", "deductible_in_usd",
+                                     "oop_max_in_usd", "in_network_tiers")}
+        if rules := db.rules(p["plan_id"]):
+            summary["rules"] = rules
+        out.append(summary)
+    return out
 
 
 def build(db: PlanDB):
