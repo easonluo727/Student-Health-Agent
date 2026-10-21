@@ -3,9 +3,11 @@
 | database | file | size | where it lives in production |
 |---|---|---|---|
 | ① policy (`plans`, `benefits`, `plan_networks`) | `data/plans/policy.sqlite` | ~100 KB | committed, deployed with the code |
-| ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite` (`BRANCH_A_RATES_SQLITE`) |
+| ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite`; not read at runtime yet |
 
-Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). Python joins the two through
+Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). The agent prices visits from the
+summary `data/mrf/allowed_amounts.csv` (built from ② by `scripts/mrf/report.py`); ② itself is kept for
+per-provider (NPI) pricing later. Python joins the two through
 `plan_networks.mrf_plan_key` → `mrf_sources.plan_key` (`ATTACH` works for ad-hoc SQL).
 
 ## Policy database: data flow
@@ -62,7 +64,6 @@ outside git:
 ```bash
 railway volume files upload ~/Downloads/rates.sqlite.xz /rates.sqlite.xz
 railway ssh -- python -c "import lzma,shutil; shutil.copyfileobj(lzma.open('/data/rates.sqlite.xz'), open('/data/rates.sqlite','wb'))"
-railway variables --set BRANCH_A_RATES_SQLITE=/data/rates.sqlite
 ```
 
 The volume survives redeploys. Locally, unpack the same archive to `data/mrf/rates.sqlite` (gitignored).

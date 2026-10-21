@@ -1,8 +1,0 @@
-{
-  "source_url": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_Gaz_zcta_national.zip",
-  "source_file": "2024_Gaz_zcta_national.txt",
-  "source_sha256": "7b85c04a131672f58b38a950eb82855d5fd4054f0bd9bc3f69aa28897a714e3d",
-  "filter": "California ZCTAs 90000-96199",
-  "point": "INTPTLAT/INTPTLONG (Census internal point)",
-  "rows": 1802
-}

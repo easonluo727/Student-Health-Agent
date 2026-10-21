@@ -6,7 +6,7 @@ import type { Answer, Plan, Report, SearchSummary, ServerEvent, Source, TurnRequ
 
 export type MockStep = ServerEvent | { pause: number }
 
-// Same plans as policies/catalog.json.
+// Placeholder plans for the mock backend.
 export const MOCK_PLANS: Plan[] = [
   { plan_id: "uc_ship_ucla_2026", name: "UC SHIP 2026–27 (UCLA)", insurer: "Anthem Blue Cross", plan_year: "2026-27" },
   {

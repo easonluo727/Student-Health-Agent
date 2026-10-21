@@ -5,12 +5,7 @@ The API is served at /turn, /upload, /plans and again under /api/; when web/out 
 frontend, built by the Dockerfile) it is served at /, so the deployed product is this one service.
 Protocol: docs/frontend-protocol.md. Everything the model sees comes from harness/
 (main prompt, skills, tools, hooks); this file only runs the loop and speaks SSE.
-Confirm and form cards pause the turn; the user's answer resumes it.
-
-Optional SEARCH_WORKER_URL (search_worker/worker.py) adds the search_insurer tool.
-AGENT_MODE picks "plans" (default: cost estimates and the Arena on data/plans/policy.sqlite) or "legacy";
-in legacy mode AGENT_PLAN and AGENT_RULES pick the plan and its rules file (default prime_100).
-The dashboard report is not wired yet.
+Form cards pause the turn; the user's answers resume it. The dashboard report is not wired yet.
 """
 
 import asyncio
@@ -26,19 +21,15 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from agent_tools import DEFAULT_RULES_PATH
 from llm_client import llm_model, load_env, make_client
 from harness import Harness
-from harness.reader import ROOT, db_catalog, load_catalog, read_plan_pdf
 from harness.hooks import MAX_REPLY_RETRIES
-from harness.hooks import RATE_OPTION_PREFIX
-from harness.skills.questionnaire.skill import answers_message, build_form, choice_form
+from harness.reader import db_catalog, read_plan_pdf
+from harness.skills.questionnaire.skill import answers_message, build_form
+from plan_db import PlanDB
 
 load_env()
-MODE = os.environ.get("AGENT_MODE", "plans")  # "plans": cost + Arena on the plan database; "legacy": one plan's JSON
-PLAN = os.environ.get("AGENT_PLAN", "prime_100")
-RULES = os.environ.get("AGENT_RULES", str(DEFAULT_RULES_PATH))
-SEARCH_WORKER_URL = os.environ.get("SEARCH_WORKER_URL")
+ROOT = Path(__file__).resolve().parents[1]
 MAX_STEPS = 8
 UPLOAD_DIR = ROOT / "data" / "uploads"
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
@@ -55,50 +46,18 @@ client = make_client(timeout=300.0)  # a shared endpoint can be slow under load
 MODEL = llm_model()
 
 
-class PendingConfirm(Exception):
-    def __init__(self, summary):
-        super().__init__(summary)
-        self.summary = summary
-
-
 class EndTurn(Exception):
     """A card is waiting for the user; stop the loop until they answer."""
 
 
 class Session:
     def __init__(self):
-        self.harness = Harness(PLAN, confirm=self._confirm, search_worker_url=SEARCH_WORKER_URL, rules_path=RULES,
-                               mode=MODE)
-        self.plan_id = PLAN if MODE == "legacy" else None
+        self.harness = Harness()
         self.history = []
-        self.approved = set()  # confirm summaries the user accepted
-        self.pending_confirm = None  # (request_id, summary, call)
         self.open_forms = {}  # request_id -> the form's question dicts
         self.uploads = {}  # file_id -> {"path", "name"}
+        self.attachment_notes = []
         self.context = None  # the last home-screen mode applied
-
-    def switch_plan(self, plan_id, rules_path):
-        """Use another plan from here on, keeping the conversation and what the user told us."""
-        if MODE == "plans":
-            return  # every plan in the database is available at once
-        old = self.harness.hooks
-        self.harness = Harness(plan_id, confirm=self._confirm, search_worker_url=SEARCH_WORKER_URL,
-                               rules_path=rules_path)
-        self.plan_id = plan_id
-        new = self.harness.hooks
-        new.user_texts = list(old.user_texts)
-        new.answers = dict(old.answers)
-        for text in old.user_texts:
-            new.guard.record_user(text)
-        for value in old.answers.values():
-            if isinstance(value, (int, float)):
-                new.guard.record_user(str(value))
-
-    def _confirm(self, summary):
-        # guards.post_tool calls this synchronously; the web answer arrives in a later request.
-        if summary in self.approved:
-            return True, "yes"
-        raise PendingConfirm(summary)
 
 
 SESSIONS = {}
@@ -112,13 +71,8 @@ class TurnRequest(BaseModel):
 
 
 def available_plans():
-    """Plans the agent can price: the plan database (plans mode), or catalog plans whose rules file exists."""
-    if MODE == "plans":
-        from plan_db import PlanDB
-
-        return [{"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"], "plan_year": p["plan_year"],
-                 "rules": None} for p in PlanDB().plans()]
-    return [plan for plan in load_catalog() if (ROOT / plan["rules"]).exists()]
+    return [{"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"], "plan_year": p["plan_year"]}
+            for p in PlanDB().plans()]
 
 
 def sse(event, data):
@@ -139,62 +93,8 @@ def tool_output(call, result):
             "output": json.dumps(result, ensure_ascii=False, allow_nan=False)}
 
 
-def estimate_card(session, args, result):
-    harness = session.harness
-    quote = result.get("rate_quote") or {}
-    rule = harness.policy.get_policy_rule(args["rule_id"]).get("rule") or {}
-    policy_source = {
-        "kind": "policy",
-        "label": rule.get("plan") or harness.policy.selected_plan,
-        "page": rule.get("source_page"),
-        "quote": (rule.get("source_text") or "")[:300] or None,
-    }
-
-    def user_source(field):
-        kind = harness.hooks.provenance(field, args.get(field))
-        return {"kind": kind, "label": "Your questionnaire" if kind == "user_form" else "Your message"}
-
-    deductible_note = {True: "Deductible applies", False: "Deductible doesn't apply"}.get(
-        rule.get("deductible_applies"), "Unknown whether the deductible applies"
-    )
-    if quote:
-        allowed_row = {
-            "label": "Allowed amount", "amount": quote.get("allowed_amount"),
-            "note": "Typical negotiated rate across the network" if quote.get("aggregate") else "Negotiated rate",
-            "source": {"kind": "mrf", "label": f"{quote.get('insurer')} {quote.get('mrf_network')} price list, "
-                                              f"{quote.get('mrf_snapshot_date')}"},
-        }
-    else:
-        allowed_row = {
-            "label": "Allowed amount", "amount": args.get("allowed_amount"),
-            "note": "Not provided yet" if args.get("allowed_amount") is None else "You provided",
-            "source": user_source("allowed_amount"),
-        }
-    rows = [
-        allowed_row,
-        {"label": "Remaining deductible", "amount": args.get("remaining_deductible"), "note": deductible_note,
-         "source": user_source("remaining_deductible")},
-    ]
-    if rule.get("copay_usd") is not None:
-        rows.append({"label": "Copay", "amount": rule["copay_usd"], "source": policy_source})
-    if rule.get("patient_pays_percentage") is not None:
-        rows.append({"label": "Coinsurance", "amount": None,
-                     "note": f"You pay {rule['patient_pays_percentage']}%", "source": policy_source})
-    cost = result.get("patient_cost")
-    return {
-        "estimate_id": f"est_{uuid.uuid4().hex[:8]}",
-        "title": (rule.get("service") or "Estimate").split("\n")[0].capitalize(),
-        "plan_name": harness.policy.selected_plan,
-        "status": result["status"],
-        "patient_cost": {"mid": cost} if result["status"] == "estimated" and cost is not None else None,
-        "rows": rows,
-        "assumptions": [f"Network: {rule.get('network') or 'unknown'}"],
-        "message": result.get("message"),
-    }
-
-
-def plan_estimate_card(result):
-    """Estimate card for plans mode: one row per benefit the visit is paid under."""
+def estimate_card(result):
+    """One row per benefit the visit is paid under."""
     prices = result.get("allowed_amount") or {}
     rows = []
     if prices.get("total") is not None:
@@ -226,42 +126,20 @@ def send_form(session, form):
 
 
 async def run_call(session, call):
-    """Run one tool call through hooks and tools, yielding SSE chunks.
-
-    Raises PendingConfirm (confirm card) or EndTurn (form card) to pause the turn."""
+    """Run one tool call through hooks and tools, yielding SSE chunks. Raises EndTurn (form card) to pause the turn."""
     harness = session.harness
     args, result = harness.tools.parse(call.name, call.arguments)
     if result is None:
         result = harness.hooks.pre_tool(call.name, args)
     if result is None:
-        tool = harness.tools[call.name]
-        if tool.stream:
-            search_id = f"search_{uuid.uuid4().hex[:8]}"
-            async for kind, data in tool.stream(args):
-                if kind == "progress":
-                    yield sse("search_step", {**data, "search_id": search_id})
-                else:
-                    result = data
-        else:
-            result = tool.run(args)
+        result = harness.tools[call.name].run(args)
         result = harness.hooks.post_tool(call.name, args, result)
 
-    if call.name in ("calculate_estimate", "calculate_with_quote") and result.get("status") in ESTIMATE_STATUSES:
-        yield sse("estimate", estimate_card(session, args, result))
     if call.name == "estimate_cost" and result.get("status") in ESTIMATE_STATUSES:
-        yield sse("estimate", plan_estimate_card(result))
+        yield sse("estimate", estimate_card(result))
 
     if form := result.pop("form", None):  # the model asked with ask_questions
         session.history.append(tool_output(call, result))
-        yield send_form(session, form)
-        raise EndTurn
-    if clarify := result.pop("clarify", None):  # the price depends on a choice: Python asks
-        form = choice_form(RATE_OPTION_PREFIX + args["rule_id"], clarify["question"],
-                           [{"value": o["option_id"], "label": o["label"]} for o in clarify["options"]],
-                           "One quick question", "The price depends on this.")
-        session.history.append(tool_output(call, {
-            **result, "message": "Python sent the user this question as a form. Wait for the answer.",
-        }))
         yield send_form(session, form)
         raise EndTurn
     if ask := result.pop("auto_ask", None):  # the calculator is missing inputs: Python asks
@@ -317,55 +195,13 @@ async def agent_loop(session):
             try:
                 async for chunk in run_call(session, call):
                     yield chunk
-            except PendingConfirm as pending:
-                request_id = f"confirm_{uuid.uuid4().hex[:8]}"
-                session.pending_confirm = (request_id, pending.summary, call)
-                yield sse("confirm", confirm_card(request_id, pending.summary))
-                return
             except EndTurn:
                 return
     raise RuntimeError("Tool-loop limit reached. Please try a more specific request.")
 
 
-def confirm_card(request_id, summary):
-    items = []
-    for line in summary.splitlines()[1:]:
-        label, _, value = line.strip().partition(":")
-        items.append({"label": label.strip(), "value": value.strip(), "source": "inferred"})
-    return {"request_id": request_id, "title": "Before I show an estimate, is this right?", "items": items}
-
-
-async def resume_confirm(session, data):
-    _, summary, call = session.pending_confirm
-    session.pending_confirm = None
-    if data.get("confirmed"):
-        session.approved.add(summary)
-        async for chunk in run_call(session, call):
-            yield chunk
-        return
-    correction = data.get("correction") or "Something is off."
-    session.harness.hooks.guard.record_user(correction)
-    session.history.append(tool_output(call, {
-        "status": "user_rejected", "user_reply": correction,
-        "message": "The user did not confirm these details, so no estimate was released. "
-                   "Use the user's reply and ask what still needs to change.",
-    }))
-
-
-def rate_option_note(questions, answers):
-    """For a price clarification, tell the model exactly which call comes next."""
-    for q in questions:
-        if q["field"].startswith(RATE_OPTION_PREFIX):
-            value = (answers.get(q["field"]) or {}).get("value")
-            rule_id = q["field"][len(RATE_OPTION_PREFIX):]
-            if value:
-                return f"Now call get_allowed_amount with rule_id {rule_id!r} and option_id {value!r}."
-            return "The user doesn't know. Explain the options briefly, or ask for the allowed amount instead."
-    return None
-
-
 async def read_attachments(session, attachments):
-    """Read each attached PDF and switch to its plan when it matches the library. Yields SSE chunks."""
+    """Read each attached PDF and match it against the plan database. Yields SSE chunks."""
     notes = []
     for attachment in attachments:
         upload = session.uploads.get(attachment.get("file_id"))
@@ -374,66 +210,36 @@ async def read_attachments(session, attachments):
             continue
         search_id = f"doc_{uuid.uuid4().hex[:8]}"
         result = None
-        catalog = db_catalog() if MODE == "plans" else None
-        async for kind, data in read_plan_pdf(client, MODEL, upload["path"], upload["name"], catalog):
+        async for kind, data in read_plan_pdf(client, MODEL, upload["path"], upload["name"], db_catalog()):
             if kind == "progress":
                 yield sse("search_step", {**data, "search_id": search_id, "kind": "document"})
             else:
                 result = data
-        plan, identity = result["plan"], result["identity"]
-        read = json.dumps(identity, ensure_ascii=False)
-        if MODE == "plans" and plan:
-            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: "
-                         f"{read}. It matches {plan['name']} in the plan database: use plan_id {plan['plan_id']}. "
+        plan, read = result["plan"], json.dumps(result["identity"], ensure_ascii=False)
+        intro = f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: {read}. "
+        if plan:
+            notes.append(intro + f"It matches {plan['name']} in the plan database: use plan_id {plan['plan_id']}. "
                          "Benefit numbers come from the database, not from the upload.]")
-        elif MODE == "plans":
-            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: "
-                         f"{read}. It doesn't match any plan in the database, so you can't price it or quote its "
-                         "benefits. Describe only what page 1 shows, and offer the plans you can price.]")
-        elif plan and result["rules_path"]:
-            session.switch_plan(plan["plan_id"], result["rules_path"])
-            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: "
-                         f"{read}. It matches {plan['name']} in the verified plan library, so this conversation now "
-                         f"uses that plan's catalog. Benefit numbers come from the catalog, not from the upload.]")
-        elif plan:
-            notes.append(f"[The user uploaded {upload['name']}. It is {plan['name']}, but that plan's rules aren't "
-                         f"loaded yet, so you can't price it. Page 1 says: {read}. Say so plainly.]")
         else:
-            notes.append(f"[The user uploaded {upload['name']} ({result['pages']} pages). Page 1 says: {read}. "
-                         "This plan isn't in the verified plan library, so you can't price it or quote its "
-                         "benefits. Describe only what page 1 shows, and say what you can do instead.]")
+            notes.append(intro + "It doesn't match any plan in the database, so you can't price it or quote its "
+                         "benefits. Describe only what page 1 shows, and offer the plans you can price.]")
     session.attachment_notes = notes
 
 
 def apply_context(session, context):
-    """Switch plan for the chosen mode and return a note for the model, or None when nothing changed."""
+    """A note for the model about the home-screen mode, or None when nothing changed."""
     if not context or context == session.context:
         return None
     session.context = context
     plans = {plan["plan_id"]: plan for plan in available_plans()}
     chosen = [plans[pid] for pid in context.get("plan_ids") or [] if pid in plans]
-    if MODE == "plans":
-        names = "; ".join(f"{p['name']} (plan_id {p['plan_id']})" for p in chosen) or "any plans in the plan list"
-        if context.get("mode") == "calculate":
-            return (f"[Mode: cost of a visit. Plans the user picked: {names}. Ask which visit they mean if they "
-                    "haven't said, then use estimate_cost.]")
-        if context.get("mode") == "review":
-            return (f"[Mode: Arena. The user wants to compare and choose between: {names}. Ask about the care they "
-                    "expect and their priorities with the questionnaire, then use compare_plans.]")
-        return None
+    names = "; ".join(f"{p['name']} (plan_id {p['plan_id']})" for p in chosen) or "any plans in the plan list"
     if context.get("mode") == "calculate":
-        if len(chosen) == 1 and chosen[0]["plan_id"] != session.plan_id:
-            session.switch_plan(chosen[0]["plan_id"], str(ROOT / chosen[0]["rules"]))
-        if len(chosen) == 1:
-            return (f"[Mode: calculate. The user picked {chosen[0]['name']} from the plan library and wants to know "
-                    "what care will cost on it. Ask which visit or service they mean if they haven't said.]")
-        return "[Mode: calculate. The user wants to know what care will cost.]"
+        return (f"[Mode: cost of a visit. Plans the user picked: {names}. Ask which visit they mean if they "
+                "haven't said, then use estimate_cost.]")
     if context.get("mode") == "review":
-        names = "; ".join(plan["name"] for plan in chosen) or "the plans in the library"
-        current = plans.get(session.plan_id, {}).get("name", session.plan_id)
-        return (f"[Mode: review. The user wants to compare these plans and find the one that fits them: {names}. Ask about them "
-                f"and their priorities with the questionnaire before recommending. Only {current} is loaded for "
-                "pricing in this session; say so instead of pricing the others.]")
+        return (f"[Mode: Arena. The user wants to compare and choose between: {names}. Ask about the care they "
+                "expect and their priorities with the questionnaire, then use compare_plans.]")
     return None
 
 
@@ -446,28 +252,21 @@ async def turn_events(request):
         if kind == "message":
             text = data.get("text", "").strip()
             if note := apply_context(session, request.context):
-                hooks = session.harness.hooks  # the plan may have changed
                 text = f"{note}\n{text}"
             if request.reply_target:
                 text = f"(About: {request.reply_target.get('label')}) {text}"
-            session.pending_confirm = None
             if attachments := data.get("attachments"):
                 async for chunk in read_attachments(session, attachments):
                     yield chunk
-                hooks = session.harness.hooks  # the plan may have changed
                 text = "\n".join([*session.attachment_notes, text])
             hooks.on_user_message(text)
             session.history.append({"role": "user", "content": text})
-        elif kind == "confirm_response" and session.pending_confirm and session.pending_confirm[0] == data.get("request_id"):
-            async for chunk in resume_confirm(session, data):
-                yield chunk
         elif kind in ("form_response", "form_dismiss") and data.get("request_id") in session.open_forms:
             questions = session.open_forms.pop(data["request_id"])
             if kind == "form_response":
                 answers = data.get("answers") or {}
                 hooks.on_form_answers(questions, answers)
-                session.history.append({"role": "user", "content": answers_message(
-                    questions, answers, note=rate_option_note(questions, answers))})
+                session.history.append({"role": "user", "content": answers_message(questions, answers)})
             else:
                 session.history.append({"role": "user", "content": (
                     "[The user closed the questionnaire without answering. Continue with what you have.]")})

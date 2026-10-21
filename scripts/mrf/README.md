@@ -1,6 +1,6 @@
 # MRF compile pipeline
 
-Part of [Student Health Agent](../../README.md). The original importer design this pipeline extends is in [`ORIGINAL_DESIGN.md`](ORIGINAL_DESIGN.md); the full-run runbook is in [`server/README.md`](server/README.md); the rate-selection spec is [`docs/mrf-compile-spec.md`](../../docs/mrf-compile-spec.md).
+Part of [Health Insurance Agent](../../README.md). The full-run runbook is in [`server/README.md`](server/README.md); the rate-selection rules are in the docstring of [`allowed.py`](allowed.py).
 
 Builds the **allowed-amount database** from insurers' Transparency in Coverage in-network rate files (MRFs). It is a traditional data-engineering pipeline written in plain Python, and **it makes no LLM calls**. The cost calculator later multiplies plan cost-sharing by the single `allowed_amount` this pipeline produces.
 

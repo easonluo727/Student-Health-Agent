@@ -85,9 +85,11 @@ LLM 判断：需要知道哪些信息？从问题库里挑题，组成问卷
 
 
 # 搜索
-- **用途**：用户问到**数据库里没有的保险公司**时，现场搜索这家公司的信息，并说明它是否适合用户。重点是**展示搜索过程**，不追求全面。
-- **实现**：产品运行时全部使用 **Playwright**（不用 Tavily），部署在 **Railway**。搜索过程以**实时文字**显示在对话里，例如“正在搜索……正在打开某某保险的计划页面……”。
-- **搜到的信息**：用来判断这家公司是否合适（例如没有合适的计划、价格明显偏高），**不用来计算费用**，并且始终标明来源。
+- **现状**：2026-10-20 删掉了原来的 Playwright 搜索 worker（按关键词到保险公司官网找背景信息，结果不参与算钱，也从没部署过）。现在用户问到库里没有的计划或保险公司时，agent 直接说明查不到。
+- **新的搜索还没定**。候选方向：
+  1. **找保单**：用户说出库里没有的计划名，就去网上找它的官方 SBC PDF，交给抽取流程（`scripts/policy/extract_sbc.py`），生成这次对话专用的临时计划，然后就能算钱。和"上传 PDF"共用一条抽取流程。
+  2. **找医生**："我的医生在不在这个计划的网内、协商价多少"，查 3.1 GB 的价格库（按 NPI），不用上网。
+- MRF 没法现场查：保险公司只提供巨大的压缩 JSON 文件，没有查询接口，必须像现在这样提前切出需要的部分。
 
 
 # Agent 与代码的分工
@@ -156,26 +158,23 @@ Agent 作为调度员，把能力做成 tools：发问卷、查保单信息、�
 
 ### 架构与部署
 ```
-Vercel
- └─ Next.js 前端（对话窗 + 问卷卡片 + dashboard 面板）
-        │ SSE（协议见 docs/frontend-protocol.md）↓
-Railway
- ├─ FastAPI agent 服务
- │   ├─ agent 流程（调用 LLM，供应商由环境变量配置）
- │   ├─ 计算器、guards.py
- │   └─ 只读数据：保单信息数据库（policies/*.json，规则 JSON v2）+ allowed amount 数据库（SQLite）
- │          │ 需要搜索时调用 ↓
- └─ 搜索 worker（Playwright + Chromium），实时推送文字进度
+Railway 上的一个服务 agent-api
+ └─ FastAPI agent 服务
+     ├─ 静态导出的 Next.js 前端（对话窗 + 问卷卡片 + dashboard 面板），在 /
+     ├─ API（SSE，协议见 docs/frontend-protocol.md），在 /api
+     ├─ agent 流程（调用 LLM，供应商由环境变量配置）
+     ├─ 匹配和计算：plan_db.py、calculate_cost.py、guards.py
+     └─ 只读数据：保单信息数据库（data/plans/policy.sqlite）+ allowed amount 汇总表（data/mrf/allowed_amounts.csv）
 ```
 - 模型供应商是配置项（`workflow/llm_client.py`），每个比赛按要求换。
 - 数据都是只读的，跟着代码一起部署，不需要 Supabase。
 - **report JSON 是 dashboard 的唯一数据来源**：后端生成和更新它，前端渲染它，agent 读取它。
 
-技术细节见 `docs/technical-plan.md`。
+技术细节见 `AGENTS.md` 和 `db/README.md`。
 
 
 # Demo 流程
-**演示人物**：26 岁的 UCLA 博士生，美国公民，刚满 26 岁、不能再用父母的保险，需要自己选保险。轻度哮喘（日常用吸入剂，一年看 2 次专科），一次流感去 urgent care，一次打球扭伤脚踝去急诊、拍 X 光。
+**演示人物**（只是一个例子）：26 岁的 UCLA 博士生，美国公民，刚满 26 岁、不能再用父母的保险，需要自己选保险。轻度哮喘（日常用吸入剂，一年看 2 次专科），一次流感去 urgent care，一次打球扭伤脚踝去急诊、拍 X 光。
 
 1. 用户：“这是我的 UC SHIP，你觉得这个保险怎么样？”
 2. agent 发问卷，用户填写病情和就医习惯。
@@ -183,7 +182,7 @@ Railway
 4. 用户：“你推荐什么别的商业保险吗？”
 5. agent 再发问卷，用户填写预算和各项需求的权重。
 6. agent 从数据库里匹配，推荐最适合的计划，并展示 dashboard。
-7. 用户问一家**数据库里没有**的保险公司 → agent 搜索 → 说明为什么不合适（例如没有合适的计划、价格明显偏高）。
+7. 用户问一家**数据库里没有**的保险公司 → agent 说明查不到（新的搜索做好以后再改这一步）。
 
 
 # Criteria to success
@@ -193,4 +192,4 @@ Railway
     2. 对几组计划请懂保险的人人工排序，看推荐结果是否一致
 3. the scope of insurance being considered (how many companies and plans being considered)
 4. **matching 的质量**：问卷挑的题对不对（该问的问、不该问的不问），收集到的信息能不能用于两个数据库的查询
-5. **搜索的展示效果**：能否找到数据库里没有的保险公司的信息，并给出合理的判断
+5. **搜索**：新的搜索定下来以后再定标准

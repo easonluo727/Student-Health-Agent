@@ -1,8 +1,24 @@
 # 待改进清单
 
-记录于 2026-10-18。按优先级排列，每条写清楚现状、问题和建议做法。做完一条就把它挪到文末的"已完成"，或者直接删掉。
+记录于 2026-10-18，2026-10-20 更新。按优先级排列，每条写清楚现状、问题和建议做法。做完一条就把它挪到文末的"已完成"，或者直接删掉。
 
-现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已上线跑通。保单库 `data/plans/policy.sqlite` 有 11 个 plan，价格库 `rates.sqlite`（3.1 GB）放在 Railway 磁盘卷的 `/data`。
+现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 11 个 plan，价格库 `rates.sqlite`（3.1 GB）放在 Railway 磁盘卷的 `/data`，目前运行时不读它。2026-10-20 删掉了 legacy 模式和搜索 worker，现在只有一条路径。
+
+---
+
+## P0：现在就坏的
+
+### 线上服务对所有问题都报错
+
+2026-10-20 实测：线上对任何问题都返回 `AuthenticationError: 401 Invalid bearer token`。AMD 的 API key 已经失效。换成新的供应商以后，在 Railway 上把变量改成 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`（旧的 `AMD_*` 已经不读了）。
+
+### "远程看诊"场景在 8 个计划上崩溃
+
+2026-10-20 把 11 个计划 × 17 个场景全部跑了一遍：140 个算出结果，39 个按设计要追问用户（选网络档位、报剩余自付额），**8 个崩溃**：Health Net 和 L.A. Care 的全部 8 个计划，一算 `telehealth_visit` 就抛 `ValueError`。原因是 `data/mrf/allowed_amounts.csv` 里这个场景的价格是空字符串，`plan_db.allowed_amounts()`（`float(row["allowed_amount"])`）没有处理。空值应该返回 `no_rates`，而不是抛异常。
+
+### 数据自动校验
+
+Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完全一样，可以拿来自动交叉检查。2026-10-20 手工比了一次：大部分一致，不一致的集中在 L.A. Care Silver 70（见第 6 条，7 项被错标成要先过自付额）和 Anthem（同一服务多行，Anthem Gold 的 X 光有 22 行，其中 15 行算不了）。建议把这个比对写成 `build_seed.py` 的一步：不一致就打上 review_flags，没核对过的不给用户看。再准备一套固定问题和标准答案，每次改动后自动跑。
 
 ---
 
@@ -23,7 +39,7 @@
 
 ### 2. 接上 3.1 GB 价格库，支持按具体医生查价
 
-**现状**：`plan_db.py` 读的是 `data/mrf/allowed_amounts.csv`。这是 `scripts/mrf/report.py` 从 3.1 GB 的库预先算好的汇总：每个网络 × 每个就诊场景一个典型协商价（UCLA Health 价或洛杉矶中位数），附 p10/p90 区间。线上卷里的 `rates.sqlite` 目前只有旧模式（`AGENT_MODE=legacy`）的 pricing 技能会用到。
+**现状**：`plan_db.py` 读的是 `data/mrf/allowed_amounts.csv`。这是 `scripts/mrf/report.py` 从 3.1 GB 的库预先算好的汇总：每个网络 × 每个就诊场景一个典型协商价（UCLA Health 价或洛杉矶中位数），附 p10/p90 区间。线上卷里的 `rates.sqlite` 目前运行时没人读（以前只有已删除的 legacy pricing 技能用它）。
 
 **做法**：
 - `estimate_cost` 增加一个可选参数 `provider_npi`。传了 NPI 时，用 `scripts/mrf/allowed.py` 的 `fetch_candidates` 在 `rates.sqlite` 里按 plan_key + 收费代码 + NPI 查真实协商价，查不到再退回汇总值。
@@ -87,10 +103,11 @@ Arena 没有保费数据，所以只比较看病的花费。`data/policy_pdfs/C_
 ## P4：工程和运维
 
 - **服务器上的压缩包**：Railway 磁盘卷里还有 `/rates.sqlite.xz`（273 MB），已经没用了。按 Railway 的规定只能本人删除：`railway volume files --volume rates-data delete /rates.sqlite.xz`
-- **搜索 worker**（Playwright 查库外保险公司）还没部署。要部署的话是第二个 Railway 服务，再给 `agent-api` 设上 `SEARCH_WORKER_URL`。
-- **旧模式代码**（`AGENT_MODE=legacy`：`agent_tools.PolicyTools`、`harness/prompts/system.md`、pricing 技能、`policies/`）：线上已经不用了。等新模式稳定以后，可以决定删掉还是只留给终端 agent 用。
+- **搜索**：旧的搜索 worker 已删除，新的搜索还没定，候选方向见 `PRODUCT.md` 的"搜索"一节。
+- **会话存在内存里**：`server.py` 的 `SESSIONS = {}` 永远不清理，重新部署就全部丢失，也不能开多个实例。至少要改成 SQLite 存储并设过期时间。
+- **legacy 剩下的**：`scripts/policy/review_sheet.py`（和 `tests/test_review_sheet.py`）只处理已删除的 `import_policy.py` 产出的规则 JSON，可以删。`scripts/policy/import_plan_csv.py` 自己的输出（`policies/*.json`）也没人用了，只有 `build_seed.py` 还在用它的 CSV 辅助函数，可以把那几个函数挪进 `build_seed.py` 后删掉。前端仍支持确认卡片（`confirm`），后端已经不发了。
 - **`agent-api` 上用不到的变量**：`CORS_ORIGINS`。前后端已经同域，可以删掉。
-- **本地杂项**：仓库根目录的 `Health Agent/.vite/` 是来源不明的 Vite 缓存，可以删。本地还有两个只在本机的分支（`mr-jude-justin/amd-hackathon-plan`、`mr-jude-justin/latest-version-status`），被 Conductor 工作区占用着，各有 27–29 个没合进 main 的提交。
+- **本地分支**：本地还有两个只在本机的分支（`mr-jude-justin/amd-hackathon-plan`、`mr-jude-justin/latest-version-status`），被 Conductor 工作区占用着，各有 27–29 个没合进 main 的提交。
 - **之前用 AMD 接口（Qwen）抽取时踩过的坑**，换供应商后可能还会遇到：
   - 开着思考模式时，一页福利表要十几分钟，一定要用 chat API 关掉思考（Qwen 是 `LLM_EXTRA_BODY={"chat_template_kwargs": {"enable_thinking": false}}`）；
   - 并发请求太多会返回 429，所以一次只抽一个 plan，并带退避重试；

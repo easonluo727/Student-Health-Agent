@@ -2,8 +2,8 @@
 
 1. Render page 1 and send it to the vision model for the plan's identity only: plan name,
    insurer, networks, plan year and document type. No benefit numbers are taken from this read.
-2. Python matches the identity and the PDF's own text against the plan library
-   (policies/catalog.json). A matched plan is priced from its human-checked rules file.
+2. Python matches the identity and the PDF's own text against the plan database
+   (data/plans/policy.sqlite). A matched plan is priced from the database, never from the upload.
 
 read_plan_pdf() is an async generator: ("progress", step) any number of times, then ("result", r).
 """
@@ -18,8 +18,6 @@ from pathlib import Path
 
 from llm_client import fast_extra_body
 
-ROOT = Path(__file__).resolve().parents[2]
-CATALOG_PATH = ROOT / "policies" / "catalog.json"
 
 IDENTITY_PROMPT = """
 This is the first page of a health insurance document. Read only what identifies the plan.
@@ -38,12 +36,8 @@ Copy names as printed. Use null or [] when the page doesn't show it. Don't read 
 """
 
 
-def load_catalog(path=CATALOG_PATH):
-    return json.loads(Path(path).read_text(encoding="utf-8"))["plans"]
-
-
 def match_plan(text, catalog):
-    """The catalog plan whose match phrases all appear in text, or None. Case-insensitive."""
+    """The plan whose match phrases all appear in text, or None. Case-insensitive."""
     lower = text.lower()
     for plan in catalog:
         rule = plan["match"]
@@ -104,21 +98,20 @@ def read_identity(client, model, png):
 def db_catalog():
     """The plan database (data/plans/policy.sqlite) as a match catalog: a plan matches when its name as printed
     (the part before " - ") appears, with its insurer, and "Los Angeles" when the name names the campus."""
-    from plan_db import POLICY_DB, PlanDB
+    from plan_db import PlanDB
 
     catalog = []
     for p in PlanDB().plans():
         name = p["plan_name"].split(" - ")[0].strip()
         required = [name] + (["Los Angeles"] if "Los Angeles" in p["plan_name"] else [])
         catalog.append({"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"],
-                        "plan_year": p["plan_year"], "rules": str(POLICY_DB.relative_to(ROOT)),
+                        "plan_year": p["plan_year"],
                         "match": {"all": required, "any": [p["insurer"].split()[0]]}})
     # Longer names first, so "Silver 70 Ambetter HMO" is tried before a shorter name it contains.
     return sorted(catalog, key=lambda plan: -len(plan["match"]["all"][0]))
 
 
-async def read_plan_pdf(client, model, pdf, name, catalog=None):
-    catalog = catalog if catalog is not None else load_catalog()
+async def read_plan_pdf(client, model, pdf, name, catalog):
     title = name or Path(pdf).name
 
     def step(step_id, status, text, screenshot=None):
@@ -141,15 +134,11 @@ async def read_plan_pdf(client, model, pdf, name, catalog=None):
                                              identity.get("plan_year")) if v)
         yield step("identify", "done", f"Found: {shown or 'no plan name on page 1'}", thumb)
 
-    yield step("match", "running", "Looking for this plan in the verified plan library…")
+    yield step("match", "running", "Looking for this plan in the plan database…")
     text = await asyncio.to_thread(page_text, pdf)
     plan = match_plan(text + "\n" + json.dumps(identity, ensure_ascii=False), catalog)
-    rules = ROOT / plan["rules"] if plan else None
-    if plan and rules.exists():
-        yield step("match", "done", f"Matched {plan['name']} in the verified plan library")
-    elif plan:
-        yield step("match", "failed", f"Recognized {plan['name']}, but its rules aren't loaded yet")
+    if plan:
+        yield step("match", "done", f"Matched {plan['name']} in the plan database")
     else:
-        yield step("match", "failed", "This plan isn't in the verified plan library yet")
-    yield "result", {"pages": pages, "identity": identity, "plan": plan,
-                     "rules_path": str(rules) if plan and rules.exists() else None}
+        yield step("match", "failed", "This plan isn't in the plan database yet")
+    yield "result", {"pages": pages, "identity": identity, "plan": plan}

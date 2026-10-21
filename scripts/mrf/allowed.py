@@ -1,4 +1,4 @@
-"""Deterministic rate selection and the single `allowed_amount` value (docs/mrf-compile-spec.md).
+"""Deterministic rate selection and the single `allowed_amount` value.
 
 Per provider (NPI), for one billing code / billing class / place of service:
   1. drop `percentage` and `per diem` rates, expired rates, $0 rates (capitated/bundled

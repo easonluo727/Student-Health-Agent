@@ -3,9 +3,7 @@
     python scripts/policy/import_plan_csv.py plans.csv benefits.csv
 
 Writes policies/plans.json (plan-level facts) and policies/rules.json (one rule per plan x service x network,
-in the rule schema that workflow/agent_tools.PolicyTools and calculate_cost read). Use it with:
-
-    cd workflow && python agent.py --plan <plan_id> --rules ../policies/rules.json
+in the rule schema calculate_cost reads). build_seed.py reuses its CSV helpers (read, num, yes).
 
 A row is usable for calculation only when its `verified` column is "yes" (a person checked the number against
 the official source). Every other row is stored with needs_review = true. Bad rows are listed and skipped.

@@ -47,15 +47,7 @@ def build_form(question_ids, title, intro=None, prefill=None):
     return {"request_id": f"form_{uuid.uuid4().hex[:8]}", "title": title, "intro": intro, "questions": questions}
 
 
-def choice_form(field, label, options, title, intro=None):
-    """A one-question single-choice form that Python writes itself (not from the bank).
-
-    Used only for choices that come from verified data, such as a price clarification."""
-    return {"request_id": f"form_{uuid.uuid4().hex[:8]}", "title": title, "intro": intro,
-            "questions": [{"field": field, "kind": "single", "label": label, "options": options}]}
-
-
-def answers_message(questions, answers, note=None):
+def answers_message(questions, answers):
     """How submitted answers are shown to the model.
 
     questions: the form's question dicts. answers: {field: {"value", "unknown"}}."""
@@ -67,7 +59,7 @@ def answers_message(questions, answers, note=None):
         else:
             shown = json.dumps(answer["value"], ensure_ascii=False)
         lines.append(f"- `{q['field']}` ({q['label']}): {shown}")
-    lines.append(note or "These come from the user. Pass numbers to the calculator exactly as given.")
+    lines.append("These come from the user. Pass numbers to the calculator exactly as given.")
     return "\n".join(lines)
 
 

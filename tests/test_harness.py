@@ -13,9 +13,8 @@ from harness.skills.questionnaire.bank import BY_ID, CALCULATOR_FIELDS, GROUPS, 
 from harness.skills.questionnaire.skill import answers_message, build_form  # noqa: E402
 
 
-def harness(search=False, pricing=True):
-    return Harness("prime_100", confirm=lambda summary: (True, "yes"),
-                   search_worker_url="http://worker" if search else None, pricing=pricing)
+def harness():
+    return Harness()
 
 
 def call(h, name, **args):
@@ -76,28 +75,15 @@ class QuestionBank(unittest.TestCase):
 
 class Prompt(unittest.TestCase):
     def test_prompt_is_fully_rendered(self):
-        for search in (False, True):
-            prompt = harness(search).system_prompt
-            self.assertEqual(re.findall(r"\{\{[A-Z_]+\}\}", prompt), [])
-            self.assertIn("## questionnaire", prompt)
-            self.assertIn("`specialist_visits`", prompt)
-        self.assertIn("search_insurer", harness(True).system_prompt)
-        self.assertNotIn("search_insurer", harness(False).system_prompt)
+        prompt = harness().system_prompt
+        self.assertEqual(re.findall(r"\{\{[A-Z_]+\}\}", prompt), [])
+        self.assertIn("## questionnaire", prompt)
+        self.assertIn("## plans", prompt)
+        self.assertIn("`specialist_visits`", prompt)
 
     def test_tools(self):
-        names = [t["name"] for t in harness(True).tools.definitions()]
-        self.assertEqual(names, ["get_policy_rule", "calculate_estimate", "get_definition",
-                                 "search_insurer", "ask_questions", "get_allowed_amount", "calculate_with_quote"])
-        names = [t["name"] for t in harness(pricing=False).tools.definitions()]
-        self.assertNotIn("get_allowed_amount", names)
-        self.assertIn("## pricing", harness().system_prompt)
-
-    def test_definitions_lookup(self):
-        h = harness()
-        found = h.definitions.lookup("allowed amount")
-        self.assertEqual(found["status"], "found")
-        self.assertTrue(found["text"].startswith("ALLOWED AMOUNT means"))
-        self.assertEqual(h.definitions.lookup("no such term")["status"], "not_found")
+        names = [t["name"] for t in harness().tools.definitions()]
+        self.assertEqual(names, ["ask_questions", "list_plans", "estimate_cost", "compare_plans"])
 
 
 class QuestionnaireHooks(unittest.TestCase):
@@ -137,8 +123,6 @@ class QuestionnaireHooks(unittest.TestCase):
         })
         args = {"rule_id": "rule_x", "allowed_amount": 250, "remaining_deductible": 0}
         self.assertIsNone(h.hooks.guard.pre_tool("calculate_estimate", args))
-        self.assertEqual(h.hooks.provenance("allowed_amount", 250), "user_form")
-        self.assertEqual(h.hooks.provenance("allowed_amount", 300), "user_message")
 
     def test_weights_do_not_count_as_amounts(self):
         h = harness()
@@ -147,81 +131,34 @@ class QuestionnaireHooks(unittest.TestCase):
                                          {"rule_id": "r", "allowed_amount": 4, "remaining_deductible": None})
         self.assertEqual(blocked["status"], "ask_user")
 
-    def test_calculate_requires_lookup_first(self):
+    def test_remaining_deductible_must_be_user_stated(self):
         h = harness()
-        args = {"rule_id": "rule_0", "allowed_amount": None, "remaining_deductible": None}
-        self.assertEqual(h.hooks.pre_tool("calculate_estimate", args)["status"], "lookup_required")
+        h.hooks.on_user_message("What does a specialist visit cost on Silver 70?")
+        args = {"plan_id": "p", "scenario": "s", "network": "in", "network_tier": None, "remaining_deductible": 500}
+        self.assertEqual(h.hooks.pre_tool("estimate_cost", args)["status"], "ask_user")
+        h.hooks.on_user_message("I still have 500 left on my deductible")
+        self.assertIsNone(h.hooks.pre_tool("estimate_cost", args))
 
     def test_missing_calculator_inputs_are_asked_by_python(self):
         h = harness()
         result = {"status": "needs_information", "patient_cost": None,
-                  "missing_fields": ["allowed_amount"], "message": "Need the allowed amount."}
-        out = h.hooks.post_tool("calculate_estimate",
-                                {"rule_id": "rule_0", "allowed_amount": None, "remaining_deductible": None}, result)
-        self.assertEqual(out["auto_ask"], ["allowed_amount"])
+                  "missing_fields": ["remaining_deductible"], "message": "Need the remaining deductible."}
+        out = h.hooks.post_tool("estimate_cost", {"remaining_deductible": None}, result)
+        self.assertEqual(out["auto_ask"], ["remaining_deductible"])
 
 
 class UploadMatching(unittest.TestCase):
-    """policies/catalog.json matching on text from an uploaded PDF (no LLM)."""
+    """Plan database matching on text from an uploaded PDF (no LLM)."""
 
     def test_match_plan(self):
-        from harness.reader import load_catalog, match_plan
-        catalog = load_catalog()
-        sbc = "Anthem Blue Cross: UC SHIP, UC Los Angeles Students and Covered Dependents"
-        booklet = "University of California Student Health Insurance Plan UC LOS ANGELES Students"
-        self.assertEqual(match_plan(sbc, catalog)["plan_id"], "uc_ship_ucla_2026")
-        self.assertEqual(match_plan(booklet, catalog)["plan_id"], "uc_ship_ucla_2026")
-        self.assertEqual(match_plan("STUDENT MEDICOVER PRIME 100 2026-2027", catalog)["plan_id"], "prime_100")
+        from harness.reader import db_catalog, match_plan
+        catalog = db_catalog()
+        ucla = "Anthem Blue Cross: University of California Student Health Insurance Plan (UC SHIP), UC Los Angeles"
+        davis = "Anthem Blue Cross: University of California Student Health Insurance Plan (UC SHIP), UC Davis"
+        self.assertEqual(match_plan(ucla, catalog)["plan_id"], "anthem_ppo_ucship_ucla_2026_27")
+        self.assertIsNone(match_plan(davis, catalog))
+        self.assertEqual(match_plan("L.A. Care Covered Silver 70 HMO", catalog)["plan_id"], "lacare_silver70_hmo_2026")
         self.assertIsNone(match_plan("STUDENT MEDICOVER PRIME 500 International", catalog))
-        self.assertIsNone(match_plan("L.A. Care Covered Silver 70 HMO, Los Angeles", catalog))
-
-
-class Pricing(unittest.TestCase):
-    """The overlay's rate lookup over data/mrf/allowed_amounts.csv (no SQLite, no LLM)."""
-
-    def test_lookup_requires_reading_the_rule(self):
-        h = harness()
-        self.assertEqual(call(h, "get_allowed_amount", rule_id="rule_28", option_id=None)["status"],
-                         "lookup_required")
-
-    def test_clarification_becomes_a_form_then_prices(self):
-        h = harness()
-        h.hooks.on_user_message("What does a doctor visit cost?")
-        call(h, "get_policy_rule", rule_id="rule_28")  # outpatient physician's visits, in-network
-        first = call(h, "get_allowed_amount", rule_id="rule_28", option_id=None)
-        self.assertEqual(first["status"], "needs_clarification")
-        self.assertEqual([o["option_id"] for o in first["clarify"]["options"]], ["office_established", "office_new"])
-
-        # The model may not pick the option itself before the user answers.
-        self.assertEqual(call(h, "get_allowed_amount", rule_id="rule_28", option_id="office_established")["status"],
-                         "clarification_required")
-        field = "rate_option__rule_28"
-        h.hooks.on_form_answers([{"field": field, "kind": "single", "label": "?"}],
-                                {field: {"value": "office_established", "unknown": False}})
-        quote = call(h, "get_allowed_amount", rule_id="rule_28", option_id="office_established")
-        self.assertEqual(quote["status"], "success")
-        self.assertTrue(quote["usable"])
-        self.assertEqual((quote["insurer"], quote["mrf_network"]), ("UnitedHealthcare", "Choice-Plus"))
-        self.assertGreater(quote["allowed_amount"], 0)
-
-        result = call(h, "calculate_with_quote", rule_id="rule_28", quote_id=quote["quote_id"],
-                      remaining_deductible=None)
-        # The prime_100 rule still needs a person to fill in "$25 copay + 80%", so the calculator refuses.
-        self.assertEqual(result["status"], "needs_review")
-
-    def test_unknown_quote_is_blocked(self):
-        h = harness()
-        call(h, "get_policy_rule", rule_id="rule_28")
-        blocked = call(h, "calculate_with_quote", rule_id="rule_28", quote_id="q_made_up", remaining_deductible=None)
-        self.assertEqual(blocked["status"], "invalid_quote")
-
-    def test_pending_mapping_is_not_priced(self):
-        h = harness()
-        x_ray = next(r["rule_id"] for r in h.policy.get_catalog()
-                     if r["service"] == "diagnostic x-ray services" and r["network"] == "in-network")
-        call(h, "get_policy_rule", rule_id=x_ray)
-        self.assertEqual(call(h, "get_allowed_amount", rule_id=x_ray, option_id=None)["status"],
-                         "mapping_pending_review")
 
 
 if __name__ == "__main__":

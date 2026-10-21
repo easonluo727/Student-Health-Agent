@@ -1,2 +1,0 @@
-jsonschema>=4.18
-openai  # client library only, pointed at the configured LLM endpoint (agent/import runtime; not needed for tests)
