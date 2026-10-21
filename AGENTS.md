@@ -6,10 +6,13 @@ This file provides guidance to AI coding agents (Codex, Claude Code, etc.) when 
 
 A health-insurance agent for everyone in the US, across all coverage groups: employer plans, individual and marketplace plans, student plans, and people shopping for a plan. The current data covers only a first set of Los Angeles plans; widening it is ongoing work. `docs/PRODUCT.md` (mostly in Chinese) is the source of truth for the product, including the demo flow.
 
-The product is a chat-first matching agent. Each turn, the LLM picks questions from a question bank (a HINT injected into the prompt) and sends them as form cards in the chat. It then matches three sources:
+The product is a chat-first matching agent: it estimates what care costs, compares plans (the Arena), and recommends specific doctors. Each turn, the LLM picks questions from a question bank (a HINT injected into the prompt) and sends them as form cards in the chat. It then matches four sources:
 - the questionnaire answers, which include the user's weights for each factor;
 - the policy-information database: everything in plan PDFs except prices, so far UC SHIP and Covered California plans in Los Angeles;
-- the allowed-amount database: negotiated rates parsed from insurers' Transparency in Coverage MRFs, stored in SQLite.
+- the allowed-amount database: negotiated rates parsed from insurers' Transparency in Coverage MRFs, stored in SQLite;
+- doctor information: who and where (NPPES, by NPI) and how good (public quality data; planned).
+
+**Roadmap and pricing rule (2026-10-20, details in `docs/improvements.md`):** geographic doctor matching → doctor quality ("rate my doctor") → deeper computer search → login → long-term memory of personal information. Prices must never be a network median in the answer: if the user names a doctor, price that doctor; otherwise recommend specific doctors and price each. Python tools find candidates and compute; the agent judges and explains. The current median pricing (below) is an interim step until step 1 is done.
 
 Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names a plan or insurer that is not in the database, the agent says so; it does not guess. Premium subsidies are not computed.
 
@@ -19,7 +22,7 @@ The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the back
 
 There is no Supabase: both databases are read-only SQLite files (`db/README.md`). **To add an insurance plan, follow "Adding a plan" in `db/README.md`.**
 - **Policy database** `data/plans/policy.sqlite` (about 100 KB, in git): built from the extraction CSVs in `data/plans/extracted/` by `scripts/policy/build_seed.py`. Plan PDFs are extracted into those CSVs by `scripts/policy/extract_sbc.py` (LLM), or a person fills them from a checked search (the Perplexity prompt).
-- **Rate store** `rates.sqlite` (3.1 GB, not in git; env `RATES_DB`, default `data/mrf/rates.sqlite`, `/data/rates.sqlite` on Railway): every negotiated rate the MRF pipeline kept, per network, billing code and Los Angeles provider. The agent prices from it directly with `scripts/mrf/allowed.py`: per component, the median over every Los Angeles provider in the network, with p10–p90 over the same providers. Results are cached per day; `server.py` warms the cache in the background at startup (about 2–3 minutes, peak about 750 MB). Without the file, only flat copays are computed.
+- **Rate store** `rates.sqlite` (3.1 GB, not in git; env `RATES_DB`, default `data/mrf/rates.sqlite`, `/data/rates.sqlite` on Railway): every negotiated rate the MRF pipeline kept, per network, billing code and Los Angeles provider. The agent prices from it directly with `scripts/mrf/allowed.py`: per component, the median over every Los Angeles provider in the network, with p10–p90 over the same providers (interim; `allowed.component(..., npi=...)` already returns one provider's rate for doctor-level pricing). Results are cached per day; `server.py` warms the cache in the background at startup (about 2–3 minutes, peak about 750 MB). Without the file, only flat copays are computed.
 
 ## Deployment
 

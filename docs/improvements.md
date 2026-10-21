@@ -2,7 +2,7 @@
 
 记录于 2026-10-18，2026-10-20 更新。按优先级排列，每条写清楚现状、问题和建议做法。做完一条就把它挪到文末的"已完成"，或者直接删掉。
 
-现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 11 个 plan，价格库 `rates.sqlite`（3.1 GB）放在 Railway 磁盘卷的 `/data`，目前运行时不读它。2026-10-20 删掉了 legacy 模式和搜索 worker，现在只有一条路径。
+现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 11 个 plan，11 个都有带证据的网络对接（桥 1）。价格库 `rates.sqlite`（3.1 GB，Railway 磁盘卷 `/data`）运行时直接查，暂时按网络里所有洛杉矶医生的中位数算，按路线图第 1 步改成按具体医生算。2026-10-20 删掉了 legacy 模式、搜索 worker 和 CSV 价格汇总表，现在只有一条路径。相关 issue：#5（人和计划的年度匹配）、#6（保单 × 价格对接）。
 
 ---
 
@@ -10,8 +10,14 @@
 
 按顺序做：
 
-1. **按位置推荐医生（geographic matching）**：不再用网络中位数。用户指定了医生，就按这位医生的协商价算；没指定，就按用户的邮编和"愿意去多远"，找出计划网络里合适专科的候选医生，每位都按自己的协商价算出用户要付多少，由 agent 结合用户的全部信息推荐 1–5 位。HMO 计划要先选医疗集团，再选集团里的医生。Python 负责查找和算钱（harness 里的工具），agent 负责判断和解释。
-2. **医生水平（rate my doctor）**：先导入公开数据（CMS Care Compare：医生绩效分、医院星级），再用搜索查医生背景（职称、执业医院）。水平低的医生要如实告诉用户。具体做法再商量。
+1. **按位置推荐医生（geographic matching）**：不取中位数，只有两条路：用户指定了医生，就按这位医生的协商价算；没指定，就找出计划网络里合适专科的候选医生，每位都按自己的协商价算出用户要付多少，由 agent 结合用户的全部信息明确推荐 1–5 位。
+   - Python 负责查找和算钱（harness 里的工具），agent 负责判断和解释。
+   - 医生是谁、在哪：用价格库里的 NPI 查 NPPES（政府免费接口：姓名、地址、电话、专科、执照号）。注意价格库里的 `tin_business_name` 是收款方（税号登记名），不一定是看病的医生。
+   - 位置：问卷加一道"愿意去多远"的选择题。距离具体怎么算，以后再定。
+   - HMO：按每个计划自己的规则筛选（先选医疗集团，再选集团里的医生）。L.A. Care 的价格文件里网络名就是医疗集团。
+   - 急诊不做推荐。
+   - `allowed.component()` 已经支持按 NPI 取这位医生的价格（`provider_rate`）。
+2. **医生水平（rate my doctor）**：给每位医生建一份档案，每一项都有公开来源，agent 按用户在意的点比较。具体做法再商量。候选来源：加州医学委员会（处分记录，按执照号）、CMS Care Compare（MIPS 绩效分，不是每个医生都有，例如 NPI 1205190659 Jun Chung 就没有；医学院和毕业年份）、Medicare 服务量、CMS 医院星级、搜索（职称、执业医院）。查不到的项说"没有公开数据"，不能编。水平低的医生要如实告诉用户。
 3. **更深的 computer search**：用 Computer Use 查医生和医院的评价（例如 Google 评价）。注意网站条款对自动抓取的限制。
 4. **登录**
 5. **个人信息的长期记忆**：登录以后，记住用户的病情、常看的医生、计划等，下次不用再问。
@@ -25,6 +31,14 @@
 ### 线上服务对所有问题都报错
 
 2026-10-20 实测：线上对任何问题都返回 `AuthenticationError: 401 Invalid bearer token`。AMD 的 API key 已经失效。换成新的供应商以后，在 Railway 上把变量改成 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`（旧的 `AMD_*` 已经不读了）。
+
+### issue #6 剩下的（保单 × 价格对接）
+
+已完成：默认价格不再用 UCLA 价；区间算对；对接代码不再崩溃；桥 1 全部有证据。还剩：
+- **桥 2 没人审过**：`plan_db.SCENARIOS`（场景的每个部分走哪一行福利）和 `data/mrf/encounters.csv`（场景对应哪些收费代码，`verified_by` 全空）。需要懂医疗计费的人审一遍。
+- **急诊医院部分的价格**只来自 1–5 家机构；Health Net 和 UHC 没有。按具体医院查价以后会好一些，但要查清医院急诊实际按什么收费。
+- **缺价格的代码**：远程看诊 98005 在 Health Net 和 L.A. Care 没有价格；Health Net 缺 HIV 检测 86701。可以试替代代码（比如 99213 加远程修饰码）。
+- **自动检查**：同一代码在不同网络之间价格差太多就报警。
 
 ### 数据自动校验
 
@@ -49,11 +63,7 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 
 ### 2. 按具体医生查价
 
-**现状**：2026-10-20 起 `plan_db.py` 直接查 3.1 GB 的价格库（不再用 CSV 汇总表），每个部分取网络里所有洛杉矶医疗机构的中位数，附 p10–p90 区间。
-
-**做法**：
-- `estimate_cost` 增加一个可选参数 `provider_npi`。`allowed.component()` 已经支持 `npi`：传了就用这位医生的协商价（`provider_rate`），查不到再退回网络中位数。
-- 前端估价卡片标明价格来源：是这位医生的协商价，还是网络中位数。
+已并入上面路线图第 1 步。
 
 ### 3. 问卷改版
 
@@ -113,7 +123,7 @@ Arena 没有保费数据，所以只比较看病的花费。`data/policy_pdfs/C_
 
 - **服务器上的压缩包**：Railway 磁盘卷里还有 `/rates.sqlite.xz`（273 MB），已经没用了。按 Railway 的规定只能本人删除：`railway volume files --volume rates-data delete /rates.sqlite.xz`
 - **搜索**：旧的搜索 worker 已删除，新的搜索还没定，候选方向见 `PRODUCT.md` 的"搜索"一节。
-- **会话存在内存里**：`server.py` 的 `SESSIONS = {}` 永远不清理，重新部署就全部丢失，也不能开多个实例。至少要改成 SQLite 存储并设过期时间。
+- **会话存在内存里**：`server.py` 的 `SESSIONS = {}` 永远不清理，重新部署就全部丢失，也不能开多个实例。至少要改成 SQLite 存储并设过期时间。路线图第 4、5 步（登录、长期记忆）也需要先有持久化的存储。
 - **legacy 剩下的**：`scripts/policy/review_sheet.py`（和 `tests/test_review_sheet.py`）只处理已删除的 `import_policy.py` 产出的规则 JSON，可以删。`scripts/policy/import_plan_csv.py` 自己的输出（`policies/*.json`）也没人用了，只有 `build_seed.py` 还在用它的 CSV 辅助函数，可以把那几个函数挪进 `build_seed.py` 后删掉。前端仍支持确认卡片（`confirm`），后端已经不发了。
 - **`agent-api` 上用不到的变量**：`CORS_ORIGINS`。前后端已经同域，可以删掉。
 - **本地分支**：本地还有两个只在本机的分支（`mr-jude-justin/amd-hackathon-plan`、`mr-jude-justin/latest-version-status`），被 Conductor 工作区占用着，各有 27–29 个没合进 main 的提交。

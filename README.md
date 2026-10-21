@@ -10,7 +10,7 @@ Whether you get insurance through work, the marketplace or school, or are pickin
 
 ## What it does
 
-You chat with an advisor that knows your plan and the real prices in Los Angeles.
+You chat with an advisor that knows your plan and the real prices in Los Angeles. Next on the roadmap: recommending specific in-network doctors near you, priced doctor by doctor, with public quality data (`docs/improvements.md`).
 
 1. **Upload your plan.** Attach the PDF. The model reads the first page, and Python finds the plan in the plan database.
 2. **Answer a short questionnaire.** Instead of asking one question at a time, the agent picks questions from a fixed question bank and sends them as a form: your conditions, how often you see a doctor, your budget, what matters to you.
@@ -109,7 +109,7 @@ No test calls the LLM or the network.
 ## Limitations
 
 - **Coverage is narrow.** Prices exist for 19 common visits in Los Angeles. Surgery, hospital stays and prescription drug prices aren't in the database.
-- **A negotiated rate is an estimate.** Claim edits and bundling change what is finally paid. Prices are typical rates across a network, not a quote from a specific doctor.
+- **A negotiated rate is an estimate.** Claim edits and bundling change what is finally paid. For now prices are the median across a network's Los Angeles providers, not a quote from a specific doctor; doctor-level pricing is the next step.
 - **Few plans.** The plan database holds 11 Los Angeles plans. An uploaded plan that isn't in it can't be priced yet.
 - **No premium subsidies, out-of-pocket maximum, or balance billing** in the calculator yet.
 - It is not medical advice and doesn't guarantee coverage.
