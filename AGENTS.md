@@ -17,7 +17,7 @@ The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the back
 
 ## Data
 
-There is no Supabase: both databases are read-only SQLite files (`db/README.md`).
+There is no Supabase: both databases are read-only SQLite files (`db/README.md`). **To add an insurance plan, follow "Adding a plan" in `db/README.md`.**
 - **Policy database** `data/plans/policy.sqlite` (about 100 KB, in git): built from the extraction CSVs in `data/plans/extracted/` by `scripts/policy/build_seed.py`. Plan PDFs are extracted into those CSVs by `scripts/policy/extract_sbc.py` (LLM), or a person fills them from a checked search (the Perplexity prompt).
 - **Rate store** `rates.sqlite` (3.1 GB, not in git; env `RATES_DB`, default `data/mrf/rates.sqlite`, `/data/rates.sqlite` on Railway): every negotiated rate the MRF pipeline kept, per network, billing code and Los Angeles provider. The agent prices from it directly with `scripts/mrf/allowed.py`: per component, the median over every Los Angeles provider in the network, with p10–p90 over the same providers. Results are cached per day; `server.py` warms the cache in the background at startup (about 2–3 minutes, peak about 750 MB). Without the file, only flat copays are computed.
 

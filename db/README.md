@@ -58,6 +58,43 @@ such as Ashe Center, or out-of-network) has no allowed amount, so only flat copa
 Rows for plans that are not extracted yet wait in `data/plans/plan_networks.csv`; their `plan_id` is the one to use
 when extracting that plan.
 
+## Adding a plan
+
+Every step leaves evidence a person can check. A coding assistant may run the scripts but never types plan data.
+
+1. **Get the documents.** Download the SBC (and the EOC when the SBC leaves something out) from the insurer or
+   Covered California. Add a row to `data/plans/sources.csv`: URL, SHA-256, download date. PDFs stay in
+   `data/policy_pdfs/` (not in git).
+2. **Extract the benefits (Branch A).** `python scripts/policy/extract_sbc.py <pdf> <plan_id>` writes
+   `data/plans/extracted/<plan_id>/{plans,benefits}.csv`. A person checks them against the PDF and sets
+   `verified_by` in `sources.csv`.
+3. **Find the plan's official ID.** Individual and Covered California plans have a 14-character HIOS ID
+   (e.g. `92815CA001000` for L.A. Care Covered at product level); employer plans use the employer's EIN
+   (e.g. `943067788` for UC SHIP). It is rarely printed on the SBC; the insurer's TOC lists it with the plan name.
+4. **Find its price files and network (the bridge).** Stream the insurer's TOC and list its individual plans:
+   `python scripts/mrf/toc.py <toc_url> --match '/CA_' --plans-out data/mrf/discovery/<insurer>_ca_individual_plans.csv`
+   (Anthem: 11.4 GB, about 30 minutes at 6.5 MB/s). Find the plan by ID or name; its row lists the in-network
+   files. The network name comes from those files' `provider_references[].network_name`
+   (`scripts/mrf/probe_networks.py`). If several products share the files and the TOC can't tell which network
+   is yours, the link is not confirmed: check the insurer's provider directory or the EOC instead.
+   Lessons from Anthem (2026-10-20, `data/mrf/discovery/anthem_*`): its TOC attaches every product name to every
+   plan ID, so match by ID only; and its individual files hold about 40 networks (five EPO), so the TOC confirmed
+   the Silver 70 EPO's files but not its network. Gold 80 HMO's ID was not in the TOC at all.
+5. **Make sure the rate store has that network (Branch B).**
+   - Already in `rates.sqlite` (see `mrf_sources.plan_key`): nothing to do.
+   - Not there: add a profile to `data/plan_profiles.v1.json`, run the MRF pipeline on those files
+     (`scripts/mrf/README.md`; large files need the server, `scripts/mrf/server/README.md`), then upload the new
+     `rates.sqlite` to the Railway volume (below).
+6. **Record the link.** Add a row to `data/plans/plan_networks.csv`: `plan_id`, `network_tier`, `mrf_plan_key`,
+   `mrf_network`, `confirmed` (`yes` only when the evidence names the files and network) and `notes` (the
+   evidence: which document or TOC entry, which ID). Unconfirmed rows are never used for prices.
+7. **Build, check, ship.** `python scripts/policy/build_seed.py` rebuilds `policy.sqlite`; run
+   `python -m unittest discover tests`; price a few scenarios on the new plan (`PlanDB().estimate(...)`) and
+   compare with plans of the same metal tier (Covered California standard designs share copays); commit and deploy.
+
+If the network is already in the rate store (for example another metal tier of Health Net Ambetter), steps 5 and
+most of 4 are quick. Steps 3, 4 and 6 could become one script (plan name in, evidence-backed link out).
+
 ## Rates database on Railway
 
 The service has a volume mounted at `/data` (Hobby plan or above: the free/trial volume is 0.5 GB). Upload once,

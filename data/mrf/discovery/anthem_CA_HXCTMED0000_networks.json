@@ -1,0 +1,171 @@
+{
+ "version": "2.0.0",
+ "section_order": [
+  "provider_references"
+ ],
+ "provider_refs_seen": 38389,
+ "compressed_mb": 1317.0,
+ "seconds": 240.0,
+ "network_names": [
+  [
+   "CA PPO PRUDENT BUYER",
+   38341
+  ],
+  [
+   "CA PPO ADVANTAGE",
+   38327
+  ],
+  [
+   "CA PPO PRUDENT BUYER EXCLUDING SUTTER",
+   38314
+  ],
+  [
+   "CA WORKERS COMPENSATION",
+   35337
+  ],
+  [
+   "CA HMO CALIFORNIACARE IN",
+   24385
+  ],
+  [
+   "CA HMO CALIFORNIACARE LG",
+   24385
+  ],
+  [
+   "CA HMO DIGNITY HEALTH ADVANTAGE EXCLUDES SUTTER",
+   24321
+  ],
+  [
+   "CA HMO CALIFORNIACARE SG",
+   24230
+  ],
+  [
+   "CA HMO DIGNITY HEALTH ADVANTAGE",
+   24080
+  ],
+  [
+   "CA HMO PERS SELECT",
+   23693
+  ],
+  [
+   "CA HMO SELECT",
+   23596
+  ],
+  [
+   "CA HMO Priority Select",
+   23145
+  ],
+  [
+   "CA HMO ADVANTAGE",
+   22992
+  ],
+  [
+   "CA POS BLUE CROSS PLUS",
+   20915
+  ],
+  [
+   "CA EPO Pathway",
+   19306
+  ],
+  [
+   "CA HMO Pathway",
+   18925
+  ],
+  [
+   "CA HMO CC SPECIAL (CEDARS) CC17",
+   15787
+  ],
+  [
+   "CA HMO PRIORITY SELECT SG",
+   15544
+  ],
+  [
+   "CA EPO HIGH PERFORMANCE",
+   14826
+  ],
+  [
+   "CA PPO SELECT EXCLUDES SUTTER",
+   14802
+  ],
+  [
+   "CA PPO SELECT",
+   14404
+  ],
+  [
+   "CA HMO Vivity",
+   13843
+  ],
+  [
+   "CA HMO CALIFORNIACARE CC03",
+   10603
+  ],
+  [
+   "CA HMO ADVANTAGE PLUS CC55",
+   10515
+  ],
+  [
+   "CA HMO SELECT PLUS CC99",
+   10509
+  ],
+  [
+   "CA POS BLUE CARD CC32",
+   10443
+  ],
+  [
+   "CA HMO CALCARE CONVERSION",
+   9862
+  ],
+  [
+   "CA HMO ADVANTAGE TIER 1",
+   9132
+  ],
+  [
+   "CA HMO VIVITY CITY OF LA",
+   5087
+  ],
+  [
+   "CA EPO HIGH PERFORMANCE FALL-THRU MIX F",
+   4236
+  ],
+  [
+   "CA EPO USC TIER 1",
+   2326
+  ],
+  [
+   "CA HMO MEMORIALCARE",
+   2021
+  ],
+  [
+   "CA EPO BLUE CONNECTION",
+   1803
+  ],
+  [
+   "CA HMO ANCILLARY SPECIALTY CAPITATION",
+   1731
+  ],
+  [
+   "CA WORKERS COMP PERCENTAGE",
+   1729
+  ],
+  [
+   "CA WORKERS COMP WC06",
+   1531
+  ],
+  [
+   "CA HMO Chiropractic/Acupuncture Network",
+   1393
+  ],
+  [
+   "CA PPO MOTION PICTURE TIHN EMG3",
+   970
+  ],
+  [
+   "CA PPO ACO FLEX MIX F",
+   862
+  ],
+  [
+   "CA DIGNITY HEALTH ECHW",
+   862
+  ]
+ ]
+}
