@@ -11,6 +11,7 @@ Form cards pause the turn; the user's answers resume it. The dashboard report is
 import asyncio
 import json
 import os
+import threading
 import uuid
 
 from pathlib import Path
@@ -44,6 +45,8 @@ app.add_middleware(
 )
 client = make_client(timeout=300.0)  # a shared endpoint can be slow under load
 MODEL = llm_model()
+# Price every scenario component in the rate store once, in the background (a few minutes), so turns don't wait.
+threading.Thread(target=lambda: PlanDB().warm(), name="warm-rates", daemon=True).start()
 
 
 class EndTurn(Exception):
@@ -98,8 +101,10 @@ def estimate_card(result):
     prices = result.get("allowed_amount") or {}
     rows = []
     if prices.get("total") is not None:
+        spread = (f" (most between ${prices['low']:,.2f} and ${prices['high']:,.2f})"
+                  if prices.get("low") is not None and prices.get("high") is not None else "")
         rows.append({"label": "Allowed amount", "amount": prices["total"],
-                     "note": "Typical negotiated rate across the network",
+                     "note": "Median negotiated rate across Los Angeles providers in the network" + spread,
                      "source": {"kind": "mrf", "label": f"{prices.get('network')} price list, {prices.get('mrf_file_date')}"}})
     for line in result.get("lines") or []:
         rows.append({"label": line["benefit"], "amount": line["patient_cost"],

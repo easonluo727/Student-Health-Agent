@@ -12,10 +12,6 @@
 
 2026-10-20 实测：线上对任何问题都返回 `AuthenticationError: 401 Invalid bearer token`。AMD 的 API key 已经失效。换成新的供应商以后，在 Railway 上把变量改成 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`（旧的 `AMD_*` 已经不读了）。
 
-### "远程看诊"场景在 8 个计划上崩溃
-
-2026-10-20 把 11 个计划 × 17 个场景全部跑了一遍：140 个算出结果，39 个按设计要追问用户（选网络档位、报剩余自付额），**8 个崩溃**：Health Net 和 L.A. Care 的全部 8 个计划，一算 `telehealth_visit` 就抛 `ValueError`。原因是 `data/mrf/allowed_amounts.csv` 里这个场景的价格是空字符串，`plan_db.allowed_amounts()`（`float(row["allowed_amount"])`）没有处理。空值应该返回 `no_rates`，而不是抛异常。
-
 ### 数据自动校验
 
 Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完全一样，可以拿来自动交叉检查。2026-10-20 手工比了一次：大部分一致，不一致的集中在 L.A. Care Silver 70（见第 6 条，7 项被错标成要先过自付额）和 Anthem（同一服务多行，Anthem Gold 的 X 光有 22 行，其中 15 行算不了）。建议把这个比对写成 `build_seed.py` 的一步：不一致就打上 review_flags，没核对过的不给用户看。再准备一套固定问题和标准答案，每次改动后自动跑。
@@ -37,14 +33,13 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 **耗时**：标准 SBC 3–5 分钟，65 页以上的长保单会更久。
 **工作量**：约半天，主要花在长保单的测试上。
 
-### 2. 接上 3.1 GB 价格库，支持按具体医生查价
+### 2. 按具体医生查价
 
-**现状**：`plan_db.py` 读的是 `data/mrf/allowed_amounts.csv`。这是 `scripts/mrf/report.py` 从 3.1 GB 的库预先算好的汇总：每个网络 × 每个就诊场景一个典型协商价（UCLA Health 价或洛杉矶中位数），附 p10/p90 区间。线上卷里的 `rates.sqlite` 目前运行时没人读（以前只有已删除的 legacy pricing 技能用它）。
+**现状**：2026-10-20 起 `plan_db.py` 直接查 3.1 GB 的价格库（不再用 CSV 汇总表），每个部分取网络里所有洛杉矶医疗机构的中位数，附 p10–p90 区间。
 
 **做法**：
-- `estimate_cost` 增加一个可选参数 `provider_npi`。传了 NPI 时，用 `scripts/mrf/allowed.py` 的 `fetch_candidates` 在 `rates.sqlite` 里按 plan_key + 收费代码 + NPI 查真实协商价，查不到再退回汇总值。
+- `estimate_cost` 增加一个可选参数 `provider_npi`。`allowed.component()` 已经支持 `npi`：传了就用这位医生的协商价（`provider_rate`），查不到再退回网络中位数。
 - 前端估价卡片标明价格来源：是这位医生的协商价，还是网络中位数。
-- 回答里可以给出 p10–p90 区间，而不只是一个数。
 
 ### 3. 问卷改版
 

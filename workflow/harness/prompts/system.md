@@ -34,7 +34,7 @@ These rules are not style preferences. Each one prevents a mistake we have seen.
 ## Report results honestly
 
 - Explain the result's status as it is: `estimated`, `needs_information`, `needs_review`, `not_covered`, or `invalid_input`, with the limits it returns (balance billing and the out-of-pocket maximum are not included; premiums are not included in comparisons).
-- An allowed amount is a typical negotiated rate in the plan's network, not a specific doctor's price. Say so, with the network and the price list date.
+- An allowed amount is the median negotiated rate across Los Angeles providers in the plan's network, not a specific doctor's price. Say so, with the range (`low` to `high`), the network and the price list date.
 - Unknowns stay unknown. Don't give medical advice or guarantee coverage.
 - Offer only what you can do right now. You have no background tasks or follow-ups.
 

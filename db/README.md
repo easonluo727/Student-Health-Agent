@@ -3,11 +3,10 @@
 | database | file | size | where it lives in production |
 |---|---|---|---|
 | ① policy (`plans`, `benefits`, `plan_networks`) | `data/plans/policy.sqlite` | ~100 KB | committed, deployed with the code |
-| ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite`; not read at runtime yet |
+| ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite` (`RATES_DB`) |
 
-Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). The agent prices visits from the
-summary `data/mrf/allowed_amounts.csv` (built from ② by `scripts/mrf/report.py`); ② itself is kept for
-per-provider (NPI) pricing later. Python joins the two through
+Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). The agent prices each visit component
+from ② at runtime (`workflow/plan_db.py` → `scripts/mrf/allowed.py`). Python joins the two through
 `plan_networks.mrf_plan_key` → `mrf_sources.plan_key` (`ATTACH` works for ad-hoc SQL).
 
 ## Policy database: data flow

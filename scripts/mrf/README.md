@@ -5,9 +5,9 @@ Part of [Health Insurance Agent](../../README.md). The full-run runbook is in [`
 Builds the **allowed-amount database** from insurers' Transparency in Coverage in-network rate files (MRFs). It is a traditional data-engineering pipeline written in plain Python, and **it makes no LLM calls**. The cost calculator later multiplies plan cost-sharing by the single `allowed_amount` this pipeline produces.
 
 ```text
-insurer TOC / listing ──► file selection ──► streaming filter (2 passes) ──► SQLite shards ──► merge ──► rate selection ──► report + lookup
- (Anthem 11.4 GB TOC,     (/CA_* URLs,        pass 1: in_network, target      (resumable,       rates.sqlite   (POS, modifiers,      allowed_amounts.md/.csv
-  UHC blob API,            dedupe by URL)       codes only → needed group IDs   one per file)                  expiry, type, tiers)   scripts/mrf/lookup.py
+insurer TOC / listing ──► file selection ──► streaming filter (2 passes) ──► SQLite shards ──► merge ──► rate selection ──► lookup
+ (Anthem 11.4 GB TOC,     (/CA_* URLs,        pass 1: in_network, target      (resumable,       rates.sqlite   (POS, modifiers,      scripts/mrf/lookup.py 
+  UHC blob API,            dedupe by URL)       codes only → needed group IDs   one per file)                  expiry, type, tiers)   workflow/plan_db.py
   Cigna signed TOC)                             pass 2: provider_references,
                                                 needed ∩ network ∩ LA NPIs)
 ```
@@ -30,7 +30,6 @@ python scripts/mrf/build_npi_set.py --nppes-zip <NPPES_Data_Dissemination_*.zip>
 python scripts/mrf/build_manifest.py --month 2026-10 --out data/mrf/work/manifest.jsonl
 python scripts/mrf/run_all.py --manifest data/mrf/work/manifest.jsonl --workers 4
 python scripts/mrf/merge_shards.py --shards data/mrf/work/shards --out data/mrf/rates.sqlite
-python scripts/mrf/report.py --db data/mrf/rates.sqlite
 python scripts/mrf/lookup.py anthem_ca_prudent_buyer_ppo er_ankle_xray
 ```
 

@@ -27,7 +27,7 @@ closest ones as an approximation, clearly labelled.
 
 | Status | What to do |
 | --- | --- |
-| `estimated` | Give `patient_cost`, then the lines (which benefit, the copay or coinsurance, the allowed amount). Say the allowed amount is a typical negotiated rate in that network, and its date. |
+| `estimated` | Give `patient_cost`, then the lines (which benefit, the copay or coinsurance, the allowed amount). Say the allowed amount is the median negotiated rate across Los Angeles providers in that network, give its range (`low`–`high`) and its date. |
 | `needs_information` | Ask for exactly the `missing_fields` (a deductible question is sent as a form automatically). |
 | `needs_review` / `not_covered` | Say so plainly with the `message`, and cite the benefit's page. |
 
