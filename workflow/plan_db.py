@@ -159,6 +159,13 @@ class PlanDB:
 
         return min(rows, key=rank)
 
+    def rules(self, plan_id: str) -> list[dict]:
+        """Plan-wide rules that are not amounts (for example UC SHIP's Ashe Center referral requirement)."""
+        return [{"rule": r["service_as_printed"], "text": r["limits_conditions"] or r["quote"],
+                 "source_page": r["source_page"]}
+                for r in self.con.execute("SELECT * FROM benefits WHERE plan_id=? AND service='plan_level' "
+                                          "AND copay_usd IS NULL AND coinsurance_pct IS NULL", (plan_id,))]
+
     def deductible(self, plan_id: str, network: str = "in", tier: str | None = None) -> float | None:
         """The individual medical deductible of one tier, from its plan_level row."""
         rows = [dict(r) for r in self.con.execute(
@@ -268,7 +275,8 @@ class PlanDB:
                           "components": g["components"], "allowed_amount": allowed, "status": result["status"],
                           "patient_cost": result["patient_cost"], "message": result["message"],
                           "missing_fields": result["missing_fields"], "source_page": row["source_page"],
-                          "quote": row["quote"], "review_flags": row["review_flags"]})
+                          "quote": row["quote"], "limits": row["limits_conditions"],
+                          "review_flags": row["review_flags"]})
             if result["status"] == "not_covered":
                 return self._result("not_covered", f"{row['service_as_printed']} is not covered.", plan_id, scenario,
                                     label, network, tier, prices, lines)

@@ -31,6 +31,10 @@ closest ones as an approximation, clearly labelled.
 | `needs_information` | Ask for exactly the `missing_fields` (a deductible question is sent as a form automatically). |
 | `needs_review` / `not_covered` | Say so plainly with the `message`, and cite the benefit's page. |
 
+A line's `limits` and a plan's `rules` (in the plan list) are conditions the user must meet for the cost to hold,
+for example UC SHIP's rule that students need an Ashe Center referral except for urgent care, emergencies and
+LiveHealth Online. When one applies to what the user is about to do, say it before the number, with its page.
+
 ### Arena: compare plans (`compare_plans`)
 
 Use it when the user wants to choose between plans. Pick the scenarios that match the care the user expects (from
