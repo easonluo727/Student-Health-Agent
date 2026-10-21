@@ -79,7 +79,10 @@ Every step leaves evidence a person can check. A coding assistant may run the sc
    is yours, the link is not confirmed: check the insurer's provider directory or the EOC instead.
    Lessons from Anthem (2026-10-20, `data/mrf/discovery/anthem_*`): its TOC attaches every product name to every
    plan ID, so match by ID only; and its individual files hold about 40 networks (five EPO), so the TOC confirmed
-   the Silver 70 EPO's files but not its network. Gold 80 HMO's ID was not in the TOC at all.
+   the Silver 70 EPO's files but not its network. Gold 80 HMO's ID was not in the TOC at all. Both networks were
+   then confirmed from outside sources, recorded in `notes`: a provider's accepted-plan list (Sutter Health) and the
+   insurer's own provider news. Prefer the insurer's documents; a provider's list is acceptable when it names the
+   plan family and the network exactly.
 5. **Make sure the rate store has that network (Branch B).**
    - Already in `rates.sqlite` (see `mrf_sources.plan_key`): nothing to do.
    - Not there: add a profile to `data/plan_profiles.v1.json`, run the MRF pipeline on those files

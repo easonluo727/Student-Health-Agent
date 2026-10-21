@@ -94,10 +94,16 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         self.assertEqual((r["status"], r["patient_cost"]), ("estimated", 90))
 
     def test_unconfirmed_network_link_is_not_priced(self):
-        # anthem_silver70_epo_2026 -> CA EPO Pathway is inferred from the plan type only (confirmed = 0).
-        prices = self.db.allowed_amounts("anthem_silver70_epo_2026", None, "knee_mri")
+        policy = os.path.join(self.tmp, "policy.sqlite")
+        shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
+        with sqlite3.connect(policy) as con:
+            con.execute("UPDATE plan_networks SET confirmed = 0 WHERE plan_id = 'healthnet_bronze60_hmo_2026'")
+        con.close()
+        db = PlanDB(Path(policy), Path(self.tmp) / "rates.sqlite")
+        prices = db.allowed_amounts("healthnet_bronze60_hmo_2026", None, "knee_mri")
         self.assertEqual(prices["status"], "no_rates")
         self.assertIn("not confirmed", prices["message"])
+        self.assertIsNotNone(self.db.allowed_amounts("healthnet_bronze60_hmo_2026", None, "knee_mri")["total"])
 
     def test_tiered_plan_needs_a_tier_and_a_deductible_when_it_applies(self):
         r = self.db.estimate(UCSHIP, "knee_mri", "in", None)
