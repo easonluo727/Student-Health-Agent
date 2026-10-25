@@ -5,21 +5,21 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
   ArrowUp,
-  BarChart3,
+  Calculator,
+  MessageCircle,
   FileText,
+  FileUp,
+  LayoutDashboard,
   Loader2,
-  Monitor,
-  PanelRightClose,
-  PanelRightOpen,
+  MapPinned,
   Paperclip,
+  Scale,
   ShieldCheck,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ComputerPanel } from "@/components/computer/computer-panel"
-import { ArenaPanel } from "@/components/dashboard/arena-panel"
-import { HomeScreen } from "@/components/home/home-screen"
-import type { PlansState } from "@/components/home/plan-picker"
+import { SearchWindow } from "@/components/computer/search-window"
+import { Dashboard } from "@/components/dashboard/dashboard"
 import { initialState, reducer, type Action, type TimelineItem } from "@/lib/chat-state"
 import { IS_MOCK, listPlans, streamTurn, uploadFile } from "@/lib/client"
 import type { Attachment, Mode, Plan, ReplyTarget, TurnContext, TurnInput } from "@/lib/protocol"
@@ -29,6 +29,8 @@ import { EstimateCard } from "./estimate-card"
 import { FormCard } from "./form-card"
 import { ModePill } from "./mode-pill"
 import { SearchCard } from "./search-card"
+
+type PlansState = { status: "loading" } | { status: "ready"; plans: Plan[] } | { status: "error" }
 
 type PendingFile =
   | { status: "uploading"; name: string }
@@ -50,8 +52,9 @@ export function ChatApp() {
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null)
   const [context, setContext] = useState<TurnContext | null>(null)
   const [plansState, setPlansState] = useState<PlansState>({ status: "loading" })
-  const [panelTab, setPanelTab] = useState<"arena" | "computer">("arena")
-  const [panelOpen, setPanelOpen] = useState(true)
+  const [dashboardOpen, setDashboardOpen] = useState(true)
+  // Search windows the user closed (by search id); a new search opens its own window.
+  const [closedSearches, setClosedSearches] = useState<string[]>([])
   const [pendingFile, setPendingFile] = useState<PendingFile | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -76,14 +79,7 @@ export function ChatApp() {
           context: turnContext,
         })) {
           dispatch({ type: "server", event })
-          // Bring the panel that just got new content to the front.
-          if (event.event === "search_step" && event.data.screenshot) {
-            setPanelTab("computer")
-            setPanelOpen(true)
-          } else if (event.event === "report") {
-            setPanelTab("arena")
-            setPanelOpen(true)
-          }
+          if (event.event === "report") setDashboardOpen(true) // a new report comes to the front
         }
         dispatch({ type: "turn_finished" })
       } catch (error) {
@@ -99,7 +95,7 @@ export function ChatApp() {
   const attachments = pendingFile?.status === "ready" ? [pendingFile.attachment] : undefined
   const canSend = !state.busy && pendingFile?.status !== "uploading" && Boolean(draft.trim() || attachments)
 
-  // The home-screen actions pass their context directly: state updates land after this call.
+  // The welcome suggestions pass their context directly: state updates land after this call.
   const send = (text: string, turnContext: TurnContext | null = context) => {
     const fallback = turnContext?.mode === "calculate" ? "Here's my plan. What would care cost on it?" : "Here's my plan. What do you think?"
     const trimmed = text.trim() || (attachments ? fallback : "")
@@ -120,15 +116,6 @@ export function ChatApp() {
     setContext(turnContext)
     send(text, turnContext)
   }
-  const calculateOn = (plan: Plan) =>
-    start(`I want to know what care would cost on ${plan.name}.`, { mode: "calculate", plan_ids: [plan.plan_id] })
-  const review = (chosen: Plan[]) =>
-    start(
-      chosen.length === 1
-        ? `Is ${chosen[0].name} a good fit for me?`
-        : `Help me compare ${chosen.map((p) => p.name).join(" and ")}, and find the plan that fits me.`,
-      { mode: "review", plan_ids: chosen.map((p) => p.plan_id) },
-    )
   const example = (text: string, mode: Mode) =>
     start(text, mode === "review" ? { mode, plan_ids: plans.map((p) => p.plan_id) } : { mode })
   const uploadForCalculate = () => {
@@ -140,6 +127,10 @@ export function ChatApp() {
     if (!file) return
     if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
       setPendingFile({ status: "error", name: file.name, error: "Only PDF files can be attached." })
+      return
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setPendingFile({ status: "error", name: file.name, error: "PDF must be 25 MB or smaller." })
       return
     }
     setPendingFile({ status: "uploading", name: file.name })
@@ -171,17 +162,14 @@ export function ChatApp() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [lastItemKey])
 
-  // The latest search that has screenshots feeds the computer panel.
+  // The latest search with pages to show gets the floating window, until the user closes it.
   const search = state.items.findLast(
     (i): i is Extract<TimelineItem, { kind: "search" }> =>
-      i.kind === "search" && i.steps.some((s) => s.screenshot),
+      i.kind === "search" && (i.steps.some((s) => s.screenshot) || i.steps.some((s) => s.status === "running")),
   )
-  const hasPanel = Boolean(state.report || search)
-  const tab = panelTab === "computer" && search ? "computer" : state.report ? "arena" : "computer"
-  const openComputer = () => {
-    setPanelTab("computer")
-    setPanelOpen(true)
-  }
+  const showSearch = search && !closedSearches.includes(search.id) && search.steps.some((s) => s.screenshot)
+  const openComputer = () => setClosedSearches((ids) => ids.filter((id) => id !== search?.id))
+  const withDashboard = Boolean(state.report && dashboardOpen)
 
   const waiting = state.busy && !state.items.some((i) => i.kind === "assistant" && i.streaming)
   const isHome = state.items.length === 0
@@ -235,7 +223,7 @@ export function ChatApp() {
       )}
       <form
         className={cn(
-          "flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm transition-colors focus-within:border-foreground/40",
+          "flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm transition-colors focus-within:border-primary/50 focus-within:ring-3 focus-within:ring-primary/10",
           isHome && "p-3 shadow-md",
         )}
         onSubmit={(e) => {
@@ -289,99 +277,176 @@ export function ChatApp() {
     </div>
   )
 
+  const timeline = (
+    <div className={cn("space-y-4 py-6", withDashboard ? "px-4" : "mx-auto max-w-2xl px-4")}>
+      {state.items.map((item) => (
+        <TimelineRow key={item.id} item={item} busy={state.busy} run={run} onOpenComputer={openComputer} />
+      ))}
+      {waiting && <TypingDots />}
+      <div ref={bottomRef} />
+    </div>
+  )
+
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden">
-      <header className="relative z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/80 px-5 backdrop-blur">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <ShieldCheck className="size-4.5" strokeWidth={2.2} />
-        </div>
-        <div className="min-w-0 leading-tight">
-          <div className="truncate font-semibold tracking-tight">Health Insurance Agent</div>
-          <div className="text-[11px] text-muted-foreground">Calculate costs · Review plans</div>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {IS_MOCK && (
-            <span className="rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
-              Mock backend
-            </span>
-          )}
-        </div>
-      </header>
+    <div className="flex h-dvh overflow-hidden">
+      {/* The agent: always here. Full width before there is a report, a column beside the dashboard after. */}
+      <section
+        className={cn(
+          "flex min-w-0 flex-col bg-background",
+          withDashboard ? "w-[420px] shrink-0 border-r" : "flex-1",
+        )}
+      >
+        <header className="flex h-14 shrink-0 items-center gap-2.5 px-5">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <ShieldCheck className="size-4.5" strokeWidth={2.2} />
+          </div>
+          <div className="min-w-0 leading-tight">
+            <div className="truncate text-sm font-semibold tracking-tight">Health Insurance Agent</div>
+            {!withDashboard && <div className="text-[11px] text-muted-foreground">Costs, plans and doctors, priced by code</div>}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {IS_MOCK && (
+              <span className="rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                Mock backend
+              </span>
+            )}
+            {state.report && !dashboardOpen && (
+              <Button size="sm" variant="outline" onClick={() => setDashboardOpen(true)} className="gap-1.5">
+                <LayoutDashboard className="size-4" /> Open report
+              </Button>
+            )}
+          </div>
+        </header>
 
-      <div className="flex min-h-0 flex-1">
-        <main className={cn("flex min-w-0 flex-1 flex-col", hasPanel && panelOpen && "max-w-[52%]")}>
-          {isHome ? (
-            <div className="flex-1 overflow-y-auto">
-              <HomeScreen
-                plans={plansState}
-                busy={state.busy}
-                composer={composer}
-                onCalculatePlan={calculateOn}
-                onUpload={uploadForCalculate}
-                onReview={review}
-                onExample={example}
-              />
+        {isHome ? (
+          <div className="flex-1 overflow-y-auto">
+            <Welcome
+              composer={composer}
+              busy={state.busy}
+              onExample={example}
+              onUpload={uploadForCalculate}
+              plansReady={plansState.status === "ready"}
+              context={context}
+              onMode={(mode) =>
+                setContext(
+                  mode === "chat" ? null : mode === "review" ? { mode, plan_ids: plans.map((p) => p.plan_id) } : { mode },
+                )
+              }
+            />
+          </div>
+        ) : (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto">{timeline}</div>
+            <div className="px-4 pt-2 pb-3">
+              <div className={cn(!withDashboard && "mx-auto max-w-2xl")}>{composer}</div>
             </div>
-          ) : (
-            <>
-              <div className="flex-1 overflow-y-auto">
-                <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
-                  {state.items.map((item) => (
-                    <TimelineRow
-                      key={item.id}
-                      item={item}
-                      busy={state.busy}
-                      run={run}
-                      onOpenComputer={openComputer}
-                    />
-                  ))}
-                  {waiting && <TypingDots />}
-                  <div ref={bottomRef} />
-                </div>
-              </div>
-              <div className="border-t border-border bg-background/80 px-4 py-3 backdrop-blur">
-                <div className="mx-auto max-w-2xl">{composer}</div>
-              </div>
-            </>
-          )}
+          </>
+        )}
+      </section>
+
+      {withDashboard && state.report && (
+        <main className="min-w-0 flex-1 bg-muted/40">
+          <Dashboard report={state.report} onAsk={ask} onClose={() => setDashboardOpen(false)} />
         </main>
+      )}
 
-        {hasPanel && panelOpen && (
-          <aside className="flex min-w-0 flex-1 flex-col border-l border-border bg-card/60">
-            <div className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-2">
-              {state.report && (
-                <PanelTab active={tab === "arena"} onClick={() => setPanelTab("arena")}>
-                  <BarChart3 className="size-4" /> Arena
-                </PanelTab>
-              )}
-              {search && (
-                <PanelTab active={tab === "computer"} onClick={() => setPanelTab("computer")}>
-                  <Monitor className="size-4" /> Computer
-                </PanelTab>
-              )}
-              <button
-                onClick={() => setPanelOpen(false)}
-                className="ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-muted"
-                aria-label="Hide panel"
-              >
-                <PanelRightClose className="size-4" />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {tab === "arena" && state.report && <ArenaPanel report={state.report} onAsk={ask} />}
-              {tab === "computer" && search && <ComputerPanel key={search.id} steps={search.steps} />}
-            </div>
-          </aside>
-        )}
-        {hasPanel && !panelOpen && (
+      {showSearch && search && (
+        <SearchWindow
+          key={search.id}
+          steps={search.steps}
+          onClose={() => setClosedSearches((ids) => [...ids, search.id])}
+        />
+      )}
+    </div>
+  )
+}
+
+const SUGGESTIONS: { icon: React.ReactNode; text: string; mode: Mode }[] = [
+  { icon: <MapPinned className="size-4" />, text: "Where can I get a knee MRI near 90024, and what would I pay?", mode: "calculate" },
+  { icon: <Calculator className="size-4" />, text: "How much would an ER visit for a sprained ankle cost?", mode: "calculate" },
+  { icon: <Scale className="size-4" />, text: "Which plan is best if I see a specialist every month?", mode: "review" },
+]
+
+const MODES: { key: Mode | "chat"; label: string; hint: string; icon: React.ReactNode }[] = [
+  { key: "calculate", label: "Calculate", hint: "estimate my costs", icon: <Calculator className="size-4" /> },
+  { key: "review", label: "Review", hint: "find my best plan", icon: <Scale className="size-4" /> },
+  { key: "chat", label: "Just chat", hint: "ask anything", icon: <MessageCircle className="size-4" /> },
+]
+
+// The start screen: a clean conversation. No forms or pickers; the agent asks for what it needs. The mode applies
+// to the first message (Just chat sends no context), like the mode pill later on.
+function Welcome({
+  composer,
+  busy,
+  plansReady,
+  context,
+  onMode,
+  onExample,
+  onUpload,
+}: {
+  composer: React.ReactNode
+  busy: boolean
+  plansReady: boolean
+  context: TurnContext | null
+  onMode: (mode: Mode | "chat") => void
+  onExample: (text: string, mode: Mode) => void
+  onUpload: () => void
+}) {
+  const current = context?.mode ?? "chat"
+  return (
+    <div className="animate-fade-up mx-auto flex w-full max-w-2xl flex-col items-center px-4 pt-[16vh] pb-10">
+      <h1 className="text-center text-3xl leading-tight font-semibold tracking-tight">
+        What care are you trying to figure out?
+      </h1>
+      <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
+        Ask about a visit, a plan, or a doctor. Every number comes from a policy page or a real negotiated rate,
+        computed by code.
+      </p>
+      <div className="mt-8 mb-3 flex gap-1 rounded-xl border bg-card p-1 shadow-xs" role="radiogroup" aria-label="Mode">
+        {MODES.map((m) => (
           <button
-            onClick={() => setPanelOpen(true)}
-            className="flex w-10 shrink-0 flex-col items-center gap-2 border-l border-border bg-card/60 pt-3 text-muted-foreground hover:text-foreground"
-            aria-label="Show panel"
+            key={m.key}
+            type="button"
+            role="radio"
+            aria-checked={current === m.key}
+            disabled={busy || (m.key === "review" && !plansReady)}
+            onClick={() => onMode(m.key)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm transition-colors disabled:opacity-50",
+              current === m.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
           >
-            <PanelRightOpen className="size-4" />
+            {m.icon}
+            <span className="font-medium">{m.label}</span>
+            <span className={cn("text-xs", current === m.key ? "text-primary-foreground/75" : "text-muted-foreground/80")}>
+              {m.hint}
+            </span>
           </button>
-        )}
+        ))}
+      </div>
+      <div className="w-full">{composer}</div>
+      <div className="mt-5 flex w-full flex-wrap justify-center gap-2">
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s.text}
+            type="button"
+            disabled={busy || (s.mode === "review" && !plansReady)}
+            onClick={() => onExample(s.text, s.mode)}
+            className="inline-flex items-center gap-2 rounded-full border bg-card px-3.5 py-2 text-sm text-muted-foreground shadow-xs transition-colors hover:border-primary/40 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          >
+            <span className="text-primary">{s.icon}</span>
+            {s.text}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onUpload}
+          className="inline-flex items-center gap-2 rounded-full border bg-card px-3.5 py-2 text-sm text-muted-foreground shadow-xs transition-colors hover:border-primary/40 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+        >
+          <FileUp className="size-4 text-primary" />
+          Upload my plan PDF
+        </button>
       </div>
     </div>
   )
@@ -414,14 +479,14 @@ function TimelineRow({
               {file.name}
             </span>
           ))}
-          <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-4 py-2 text-sm text-primary-foreground">
+          <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-accent px-4 py-2 text-sm text-accent-foreground">
             {item.text}
           </div>
         </div>
       )
     case "assistant":
       return (
-        <div className="prose-chat rounded-2xl border border-border bg-card px-4 py-3 text-sm leading-relaxed">
+        <div className="prose-chat px-1 text-[15px] leading-relaxed">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
         </div>
       )
@@ -465,28 +530,6 @@ function TimelineRow({
         </div>
       )
   }
-}
-
-function PanelTab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors",
-        active ? "border border-border bg-background font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
-  )
 }
 
 function TypingDots() {

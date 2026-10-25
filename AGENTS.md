@@ -8,13 +8,13 @@ A health-insurance agent for everyone in the US, across all coverage groups: emp
 
 The product is a chat-first matching agent: it estimates what care costs, compares plans (the Arena), and recommends specific doctors. Each turn, the LLM picks questions from a question bank (a HINT injected into the prompt) and sends them as form cards in the chat. It then matches four sources:
 - the questionnaire answers, which include the user's weights for each factor;
-- the policy-information database: everything in plan PDFs except prices, so far UC SHIP and Covered California plans in Los Angeles;
+- the policy-information database: everything in plan PDFs except prices, so far UC SHIP and Covered California plans in Los Angeles, plus each plan's premium (list price, by age and rating region; UC SHIP by student level);
 - the allowed-amount database: negotiated rates parsed from insurers' Transparency in Coverage MRFs, stored in SQLite;
 - doctor information: who and where (NPPES, by NPI) and how good (public quality data; planned).
 
 **Roadmap and pricing rule (2026-10-20, details in `docs/improvements.md`):** geographic doctor matching → doctor quality ("rate my doctor") → deeper computer search → login → long-term memory of personal information. Prices must never be a network median in the answer: if the user names a doctor, price that doctor; otherwise recommend specific doctors and price each. Python tools find candidates and compute; the agent judges and explains. The current median pricing (below) is an interim step until step 1 is done.
 
-Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names a plan or insurer that is not in the database, the agent says so; it does not guess. Premium subsidies are not computed.
+Python computes all numbers and rankings. The LLM compares plans, decides, and writes the reply. When a user names a plan or insurer that is not in the database, the agent says so; it does not guess. Premium subsidies are not computed: the Arena ranks by a year's list premium plus the visits.
 
 The frontend is in `web/` (Next.js + Tailwind + shadcn/ui) and talks to the backend over the SSE protocol in `docs/frontend-protocol.md`. The agent service is `workflow/server.py` (`uvicorn server:app --port 8000` from `workflow/`; set `NEXT_PUBLIC_API_BASE=http://localhost:8000` in `web/.env.local`); it serves chat, form and estimate cards. The dashboard report is not wired yet; with `NEXT_PUBLIC_API_BASE` unset the frontend uses a built-in mock (`web/src/lib/mock-script.ts`, placeholder numbers only). The allowed-amount (price) database pipeline lives in `scripts/mrf/` (no LLM calls; see `scripts/mrf/README.md`); its outputs are in `data/mrf/`.
 
@@ -26,7 +26,7 @@ There is no Supabase: both databases are read-only SQLite files (`db/README.md`)
 
 ## Deployment
 
-One Railway service, `agent-api` (project `student-health-agent`, region iad, deployed from `main`, built by the root `Dockerfile`). The Dockerfile exports the frontend to static files (`STATIC_EXPORT=1`, `web/out`) and starts FastAPI, which serves the frontend at `/` and the API under `/api` on the same origin, so no CORS is needed. Public URL: https://agent-api-production-adc8.up.railway.app. The volume `rates-data` at `/data` holds `rates.sqlite` (uploaded with `railway volume files upload`; volumes need the Hobby plan or above). There is no Vercel.
+One Railway service, `agent-api` (project `student-health-agent`, region iad, deployed from `main` of `easonluo727/Student-Health-Agent`, built by the root `Dockerfile`). The Dockerfile exports the frontend to static files (`STATIC_EXPORT=1`, `web/out`) and starts FastAPI, which serves the frontend at `/` and the API under `/api` on the same origin, so no CORS is needed. Public URL: https://agent-api-production-adc8.up.railway.app. The volume `rates-data` at `/data` holds `rates.sqlite` (uploaded with `railway volume files upload`; volumes need the Hobby plan or above), plus the conversations (`sessions.sqlite`, `workflow/sessions.py`, kept a day) and uploaded PDFs (`uploads/`). There is no Vercel.
 
 ## LLM provider
 

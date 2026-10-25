@@ -11,7 +11,7 @@ Use this skill whenever you need to know something about the user. It sends a fo
 | --- | --- |
 | asks how insurance works, or what you can do | nothing, just answer |
 | wants their current plan evaluated | **B** (health and care use) and **C** (doctors and networks) |
-| asks for a plan recommendation | **A** (about you) and **E** (budget and priorities), plus **B** if you don't have it yet |
+| asks for a plan recommendation | **A** (about you), the **B** visit counts for the care they expect, and **E** (budget and priorities). The priority ratings rank the plans in Python, so ask all four together. |
 | asks what one visit will cost | only the **D** questions the calculator still needs |
 
 ### How to ask

@@ -7,6 +7,7 @@ Input, under <src>:
   sources.csv                                    one row per source document; a non-empty verified_by marks the
                                                  whole plan verified (rows can still opt out with verified=no)
   plan_networks.csv                              the bridge to the MRF rates; rows for plans not extracted yet wait
+  premiums.csv, age_curve.csv, rating_regions.csv  written by scripts/policy/extract_premiums.py from official PDFs
 Output: <out>, rebuilt from scratch each run (small, committed, deployed with the code).
 
 Normalizing: NOT FOUND / blank / "none" -> NULL; yes/no -> 1/0; a component other than
@@ -17,6 +18,7 @@ Bad rows are listed and skipped. A duplicate natural key skips the whole plan, s
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import re
 import sqlite3
@@ -24,7 +26,6 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from import_plan_csv import num, read, yes
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICES = {"primary_care_visit", "specialist_visit", "urgent_care", "emergency_room", "ambulance", "lab_tests",
@@ -50,6 +51,30 @@ BENEFIT_COLUMNS = ["benefit_id", "plan_id", "category", "section", "service", "s
                    "prior_auth", "covered", "limits_conditions", "quote", "source_url", "source_page", "verified",
                    "review_flags", "calculable"]
 NETWORK_COLUMNS = ["plan_id", "network_tier", "mrf_plan_key", "mrf_network", "notes", "confirmed"]
+PREMIUM_COLUMNS = ["plan_id", "rating_region", "age", "enrollee", "period", "amount_usd", "annual_usd", "basis",
+                   "source_url", "source_page", "quote", "notes"]
+AGE_COLUMNS = ["age", "factor", "source_url", "source_page", "quote"]
+REGION_COLUMNS = ["zip", "county", "rating_region", "source_url", "source_page"]
+
+
+def num(v, field):
+    v = (v or "").strip().replace("$", "").replace(",", "").replace("%", "")
+    if v.upper() in ("", "NOT FOUND", "N/A", "NONE"):
+        return None
+    x = float(v)
+    if x < 0 or (field.endswith("pct") and x > 100):
+        raise ValueError(f"{field}={v}")
+    return int(x) if x.is_integer() else x
+
+
+def yes(v):
+    v = (v or "").strip().lower()
+    return True if v in ("yes", "y", "true") else False if v in ("no", "n", "false") else None
+
+
+def read(path):
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        return [{k.strip(): (v or "").strip() for k, v in r.items()} for r in csv.DictReader(f)]
 
 
 def text(v):
@@ -175,6 +200,41 @@ def bridge(path, plans, benefits):
     return rows, problems, waiting
 
 
+def premiums(src, plans):
+    """Premium, age curve and rating region rows; a premium needs a built plan and its source."""
+    rows, problems, waiting = [], [], []
+    path = src / "premiums.csv"
+    for i, r in enumerate(read(path) if path.exists() else [], 2):
+        try:
+            row = {**{k: text(r.get(k)) for k in ("plan_id", "enrollee", "period", "basis", "source_url", "quote",
+                                                   "notes")},
+                   **{k: num(r.get(k), k) for k in ("rating_region", "age", "amount_usd", "annual_usd",
+                                                    "source_page")}}
+            if row["period"] not in ("month", "quarter"):
+                raise ValueError(f"period={row['period']}")
+            if row["amount_usd"] is None or row["annual_usd"] is None:
+                raise ValueError("amount_usd and annual_usd are required")
+            if not (row["source_url"] and row["quote"] and row["basis"]):
+                raise ValueError("source_url, quote and basis are required")
+        except ValueError as e:
+            problems.append(f"premiums.csv line {i}: {e}")
+            continue
+        if row["plan_id"] in plans:
+            rows.append(row)
+        else:
+            waiting.append(row["plan_id"])
+    ages = [{"age": num(r["age"], "age"), "factor": num(r["factor"], "factor"), "source_url": r["source_url"],
+             "source_page": num(r.get("source_page"), "source_page"), "quote": r["quote"]}
+            for r in (read(src / "age_curve.csv") if (src / "age_curve.csv").exists() else [])]
+    if ages and sorted(a["age"] for a in ages) != list(range(65)):
+        problems.append("age_curve.csv: need one factor for every age 0-64")
+        ages = []
+    zips = [{"zip": r["zip"], "county": r["county"], "rating_region": num(r["rating_region"], "rating_region"),
+             "source_url": r["source_url"], "source_page": num(r.get("source_page"), "source_page")}
+            for r in (read(src / "rating_regions.csv") if (src / "rating_regions.csv").exists() else [])]
+    return rows, ages, zips, problems, waiting
+
+
 def main(src, out):
     src, out = Path(src), Path(out)
     sources = {r["plan_id"]: r for r in read(src / "sources.csv")} if (src / "sources.csv").exists() else {}
@@ -190,6 +250,8 @@ def main(src, out):
                   + (f"; flags {dict(counts)}" if counts else ""))
     networks, errs, waiting = bridge(src / "plan_networks.csv", {p["plan_id"] for p in plans}, benefits)
     problems += errs
+    premium_rows, ages, zips, errs, premiums_waiting = premiums(src, {p["plan_id"] for p in plans})
+    problems += errs
     out.parent.mkdir(parents=True, exist_ok=True)
     out.unlink(missing_ok=True)
     with sqlite3.connect(out) as con:
@@ -197,10 +259,16 @@ def main(src, out):
         write(con, "plans", PLAN_COLUMNS, plans)
         write(con, "benefits", BENEFIT_COLUMNS, benefits)
         write(con, "plan_networks", NETWORK_COLUMNS, networks)
+        write(con, "premiums", PREMIUM_COLUMNS, premium_rows)
+        write(con, "age_curve", AGE_COLUMNS, ages)
+        write(con, "rating_regions", REGION_COLUMNS, zips)
     con.close()
-    print(f"{len(plans)} plans, {len(benefits)} benefit rows, {len(networks)} network links -> {out}")
+    print(f"{len(plans)} plans, {len(benefits)} benefit rows, {len(networks)} network links, "
+          f"{len(premium_rows)} premiums, {len(zips)} ZIP codes -> {out}")
     if waiting:
         print("plan_networks waiting for extraction:", ", ".join(sorted(set(waiting))))
+    if premiums_waiting:
+        print("premiums waiting for extraction:", ", ".join(sorted(set(premiums_waiting))))
     for p in problems:
         print("SKIPPED", p)
     return 1 if problems else 0
