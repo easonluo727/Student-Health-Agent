@@ -2,6 +2,7 @@
 import csv
 import hashlib
 import io
+import json
 import sqlite3
 import sys
 import tempfile
@@ -12,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "workflow"))
 
 from scripts.providers.build_directory import build
+from scripts.providers import build_from_api
 from scripts.providers.export_target_npis import export
 from scripts.providers.geocode_directory import enrich, parse_census_batch
 from scripts.providers.import_zip_centroids import import_centroids
@@ -195,7 +197,7 @@ class DirectoryBuildTests(unittest.TestCase):
         build(self.archive, self.targets, self.directory, "2026-10-12", "2026-10-26")
         gazetteer = Path(self.tmp.name) / "gazetteer.zip"
         with zipfile.ZipFile(gazetteer, "w") as zipped:
-            zipped.writestr("2026_Gazetteer_zcta.txt", "GEOID\tINTPTLAT\tINTPTLONG\n90024\t34.05\t-118.44\n")
+            zipped.writestr("2026_Gazetteer_zcta.txt", "GEOID\tINTPTLAT\tINTPTLONG          \n90024\t34.05\t-118.44          \n")
         result = import_centroids(self.directory, gazetteer,
                                   "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/test.zip", "2026")
         self.assertEqual(result["imported"], 1)
@@ -276,6 +278,87 @@ class DirectoryBuildTests(unittest.TestCase):
         absent = find(service, {**args, "scenario": "office_visit_new"})["providers"][0]["prices"]["test"]
         self.assertEqual(absent["rate_status"], "rate_unavailable")
         self.assertNotIn("patient_cost", absent)
+
+
+def api_result(npi, etype="NPI-1", **basic):
+    return {"number": npi, "enumeration_type": etype,
+            "basic": {"first_name": "Ada", "last_name": "Care", "credential": "MD", "status": "A",
+                      "last_updated": "2026-10-01", **basic},
+            "addresses": [
+                {"address_purpose": "MAILING", "address_1": "PO BOX 1", "city": "BEVERLY HILLS", "state": "CA",
+                 "postal_code": "902090001", "country_code": "US"},
+                {"address_purpose": "LOCATION", "address_1": "10 Main St", "address_2": "Suite 2",
+                 "city": "Los Angeles", "state": "CA", "postal_code": "900241234", "country_code": "US",
+                 "telephone_number": "310-555-0100"}],
+            "practiceLocations": [{"address_1": "40 Hill St", "city": "Beverly Hills", "state": "CA",
+                                   "postal_code": "90210", "country_code": "US"}],
+            "taxonomies": [{"code": "207R00000X", "primary": False}, {"code": "207Q00000X", "primary": True}]}
+
+
+class FakeResponse:
+    def __init__(self, status, payload=None):
+        self.status_code, self.text = status, json.dumps(payload or {})
+
+
+class FakeSession:
+    def __init__(self, replies):
+        self.replies, self.calls = list(replies), []
+
+    def get(self, url, params, timeout):
+        self.calls.append(params["number"])
+        return self.replies.pop(0)
+
+
+class ApiBuildTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.targets = self.root / "targets.csv"
+        self.targets.write_text(f"npi\n{N1}\n{N2}\n{ABSENT}\n")
+        self.cache = self.root / "cache.sqlite"
+
+    def test_record_uses_practice_locations_never_mailing(self):
+        provider, taxonomies, locations = build_from_api.record_rows(api_result(N1))
+        self.assertEqual(provider[:3], (N1, "1", "Ada Care"))
+        self.assertEqual(provider[7], "207Q00000X")
+        self.assertEqual(dict(taxonomies), {"207R00000X": 0, "207Q00000X": 1})
+        self.assertEqual([(l["location_type"], l["address_line_1"], l["zip5"]) for l in locations],
+                         [("primary", "10 Main St", "90024"), ("secondary", "40 Hill St", "90210")])
+
+    def test_fetch_backs_off_when_blocked_and_resumes(self):
+        sleeps = []
+        # Sorted targets: ABSENT, N1, N2. ABSENT is blocked once and left for the next run.
+        session = FakeSession([FakeResponse(403), FakeResponse(200, {"results": [api_result(N1)]})])
+        report = build_from_api.fetch(self.targets, self.cache, min_interval=0.2, limit=2,
+                                      session=session, sleep=sleeps.append)
+        self.assertEqual((report["blocked"], report["fetched"], report["remaining"]), (1, 1, 2))
+        self.assertIn(60.0, sleeps)
+        session = FakeSession([FakeResponse(200, {"results": []}),
+                               FakeResponse(200, {"results": [api_result(N2, "NPI-2", organization_name="Clinic")]})])
+        again = build_from_api.fetch(self.targets, self.cache, min_interval=0.2, session=session, sleep=sleeps.append)
+        self.assertEqual(session.calls, [ABSENT, N2])
+        self.assertEqual((again["already_cached"], again["remaining"]), (1, 0))
+        with self.assertRaises(ValueError):
+            build_from_api.fetch(self.targets, self.cache, min_interval=0.05)
+
+    def test_build_matches_the_bulk_schema_and_validates(self):
+        con = sqlite3.connect(self.cache)
+        con.execute("CREATE TABLE nppes_raw (npi TEXT PRIMARY KEY, fetched_at TEXT, body TEXT)")
+        con.execute("INSERT INTO nppes_raw VALUES (?,?,?)", (N1, "2026-10-26T00:00:00+00:00",
+                                                           json.dumps({"results": [api_result(N1)]})))
+        con.execute("INSERT INTO nppes_raw VALUES (?,?,?)", (ABSENT, "2026-10-26T00:00:00+00:00",
+                                                           json.dumps({"results": []})))
+        con.commit()
+        con.close()
+        out = self.root / "providers.sqlite"
+        meta = build_from_api.build(self.targets, out, self.cache)
+        self.assertEqual((meta["matched_providers"], meta["not_in_registry"], meta["not_fetched_yet"]), (1, 1, 1))
+        report = validate(str(out), str(self.targets))
+        self.assertTrue(report["valid"])
+        self.assertEqual(report["locations"], 2)
+        with self.assertRaises(FileExistsError):
+            build_from_api.build(self.targets, out, self.cache)
 
 
 if __name__ == "__main__":

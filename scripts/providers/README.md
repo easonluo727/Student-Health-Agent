@@ -19,6 +19,17 @@ python scripts/providers/validate_directory.py --db data/providers/providers.sql
 
 The schema is [`schema.sql`](schema.sql). Validation fails for SQLite integrity/foreign-key problems, invalid NPIs or coordinates, unexpected providers, or duplicate locations. Missing names, addresses, unmatched target NPIs and ungeocoded locations are reported, not invented.
 
+### When the bulk file is unavailable
+
+The NPPES download page was down for maintenance on 2026-10-26. `build_from_api.py` builds the same database from the NPPES registry API, one call per target NPI, cached in `data/providers/nppes_cache.sqlite` and resumable. Keep it slow: the API returned HTTP 403 after about 3,000 calls at ~48 calls/s. The default is 2 calls/s (about 9.5 hours for 68k NPIs); on 403/429 it waits, doubling the pause, and stops after five blocks in a row. `nppes_release_date` is empty and `fetched_from`/`fetched_to` record when the records were read.
+
+```bash
+python scripts/providers/build_from_api.py fetch --target-npis data/providers/target_npis.csv
+python scripts/providers/build_from_api.py build --target-npis data/providers/target_npis.csv --out data/providers/providers.sqlite
+```
+
+First real run (2026-10-26, 3,300 cached NPIs): 3,297 providers (2,757 individuals), 4,508 practice locations, 93% geocoded in 24 seconds with 4 batch requests; validation clean.
+
 ## Geocode enrichment
 
 The optional, resumable geocoder calls the [US Census Geocoding API](https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.html) for full US practice addresses at a configurable interval (default one request per second). Census address matches can be street-interpolated; a matched pin is not a surveyed entrance. A wrong state, ZIP, house number, implausible coordinate, or multiple/zero matches leaves coordinates null. Results are cached by normalized address. No paid API key is required. Review the Census service's current usage terms and local quota before a large run.

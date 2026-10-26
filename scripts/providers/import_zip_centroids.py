@@ -31,6 +31,8 @@ def import_centroids(db: str | Path, gazetteer_zip: str | Path, source_url: str,
             raise ValueError("No Gazetteer text member found")
         with archive.open(member) as handle:
             rows = csv.DictReader(io.TextIOWrapper(handle, encoding="utf-8-sig", newline=""), delimiter="\t")
+            # The real Census file pads the last heading (and each row's last field) with spaces.
+            rows.fieldnames = [name.strip() for name in rows.fieldnames or []]
             if not {"GEOID", "INTPTLAT", "INTPTLONG"}.issubset(rows.fieldnames or []):
                 raise ValueError("Gazetteer headings GEOID, INTPTLAT, INTPTLONG are required")
             for row in rows:
