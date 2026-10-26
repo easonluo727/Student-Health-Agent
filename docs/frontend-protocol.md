@@ -1,6 +1,6 @@
 # 前后端协议（v1，2026-10-16）
 
-前端（`web/`，Next.js）和 agent 服务（Python FastAPI）之间只有一个接口。前端的 TypeScript 类型在 `web/src/lib/protocol.ts`，改协议时两边一起改。
+前端（`web/`，Next.js）和 agent 服务（Python FastAPI）之间只有一个接口。前端的 TypeScript 类型在 `web/src/agent/protocol.ts`，改协议时两边一起改。
 
 交互模式参考 `docs/research/hark-interaction-patterns.md`：提问是有编号的结构化对象，答案按字段交回，dashboard 由后端整份推送。
 
@@ -45,9 +45,9 @@
 
 **后端必须把这些答案记为 `source: "user_form"`，数字直接交给 Python，不经过模型转述。**
 
-### 上传 PDF
+### 上传 PDF 或照片
 
-`POST {API_BASE}/upload`，`multipart/form-data`，字段 `session_id` 和 `file`（只收 PDF，最大 25 MB）。返回 `{ "file_id", "name", "size" }`。前端把 `file_id` 放进下一条 `message` 的 `attachments`。
+`POST {API_BASE}/upload`，`multipart/form-data`，字段 `session_id` 和 `file`（PDF，或 JPEG、PNG、WebP、HEIC 照片，最大 25 MB；后端按文件开头的字节判断类型）。返回 `{ "file_id", "name", "size", "content_type" }`。前端把 `file_id` 放进下一条 `message` 的 `attachments`。
 
 后端收到带附件的消息后，先读 PDF 再交给模型：用模型读第 1 页，只认出计划身份（计划名、保险公司、年份、网络、文件类型），再由 Python 在计划数据库 `data/plans/policy.sqlite` 里匹配。匹配上就告诉模型这个计划的 `plan_id`，算钱用的是数据库里的数字，不用上传文件里读到的数字；匹配不上就如实说明，不估算。读取进度用 `search_step` 事件发送，带 `kind: "document"`，截图是 PDF 页面。
 
@@ -65,6 +65,8 @@
 | `estimate` | `Estimate` | 对话里的费用结果：一个数字 + 计算过程表格 |
 | `search_step` | `{ search_id, step_id, status, text, url?, title?, screenshot?, kind? }` | 搜索进度：对话里显示一行文字（同一个 `step_id` 再次出现时更新这一行）；带 `screenshot` 时，右侧 “Computer” 面板显示这一步的网页截图 |
 | `report` | `{ report: Report }` | 打开或更新 dashboard 面板（整份替换） |
+| `email_draft` | `EmailDraft` | 邮件卡片（申诉信）：用户可以改收件人、主题和正文，点 "Send from Gmail" 才发送（后端待做，见下） |
+| `email_status` | `{ request_id, status, message?, sent_at? }` | 邮件发送状态：`sending`、`sent`、`failed` |
 | `error` | `{ message }` | 显示错误，用户可以重试 |
 | `done` | `{}` | 这一轮结束，输入框恢复可用 |
 
@@ -248,3 +250,13 @@
 - dashboard：收到 `report` 后页面分成两栏，左边是 agent 对话栏（420px），右边是 dashboard（只做桌面 web 端），可以关掉、再用"Open report"打开。点击对比表的某一行或 care 查询栏的某一项，输入框上方会出现“Asking about: …”，下一条消息带上 `reply_target`。
 - 搜索进度：在对话里显示为步骤列表，正在进行的步骤有加载动画。有截图时，右下角出现浮动小窗口，显示最新一页和当前步骤；搜索结束后自动缩成一行。点放大按钮打开完整的 “Computer” 视图：搜索进行中跟随最新一步；结束后显示所有截图的总览；点击某一张可停下来查看，点 “Back to live” / “Overview” 回到跟随。
 - 地图：Leaflet。默认底图是 Esri 浅灰底图加地名层，不需要 key；可以用 `NEXT_PUBLIC_MAP_TILES`、`NEXT_PUBLIC_MAP_LABELS`、`NEXT_PUBLIC_MAP_ATTRIBUTION` 换成别的。
+
+## Gmail 申诉邮件（2026-10-26，前端和 mock 已做，后端待做）
+
+agent 起草申诉邮件，从用户自己的 Gmail 发出。**用户不点 "Send from Gmail"，就永远不发。**
+
+- `GET {API_BASE}/integrations` → `{ "gmail": { "connected", "email", "connect_url" } }`。没连 Gmail 时，卡片上的按钮是 "Connect Gmail"，在弹窗里打开 `connect_url`（Gmail OAuth），弹窗关闭后前端重新请求这个接口。后端现在固定返回未连接。
+- `email_draft`：`{ request_id, title, from, to[], cc?, subject, body, attachments?, sources? }`。`from` 为 `null` 表示没连 Gmail。发出后这一轮结束（和问卷卡片一样）。
+- 用户的回答是新的 `input`：`{ "type": "email_response", "request_id", "action": "send" | "cancel", "draft"?: { to, cc?, subject, body } }`。`draft` 是用户改过的版本，后端按它发送。
+- 后端用每个用户自己的 OAuth token 调 Gmail API 发信，然后发 `email_status`。
+

@@ -104,6 +104,8 @@ def tool_output(call, result):
 def estimate_card(result):
     """One row per benefit the visit is paid under."""
     prices = result.get("allowed_amount") or {}
+    plan_name = next((p["name"] for p in available_plans() if p["plan_id"] == result.get("plan_id")),
+                     result.get("plan_id"))
     rows = []
     if prices.get("total") is not None:
         spread = (f" (most between ${prices['low']:,.2f} and ${prices['high']:,.2f})"
@@ -114,14 +116,14 @@ def estimate_card(result):
     for line in result.get("lines") or []:
         rows.append({"label": line["benefit"], "amount": line["patient_cost"],
                      "note": (line.get("quote") or "")[:120] or line["status"],
-                     "source": {"kind": "policy", "label": result["plan_id"], "page": line.get("source_page"),
+                     "source": {"kind": "policy", "label": plan_name, "page": line.get("source_page"),
                                 "quote": (line.get("quote") or "")[:300] or None}})
     cost = result.get("patient_cost")
     tier = result.get("network_tier")
     return {
         "estimate_id": f"est_{uuid.uuid4().hex[:8]}",
         "title": result.get("scenario_label") or "Estimate",
-        "plan_name": result.get("plan_id"),
+        "plan_name": plan_name,
         "status": result["status"],
         "patient_cost": {"mid": cost} if result["status"] == "estimated" and cost is not None else None,
         "rows": rows,
@@ -219,6 +221,12 @@ async def read_attachments(session, attachments):
         upload = session.uploads.get(attachment.get("file_id"))
         if upload is None:
             notes.append(f"[An attachment ({attachment.get('name')}) has expired; ask the user to upload it again.]")
+            continue
+        if upload.get("content_type", "application/pdf").startswith("image/"):
+            # Bill reading (roadmap step 2) isn't built: the model must not read amounts off the photo itself.
+            notes.append(f"[The user uploaded a photo, {upload['name']}. You can't read photos yet. Say so, and if it "
+                         "is a bill or EOB, ask for the service, the provider and the billed amount with the "
+                         "questionnaire.]")
             continue
         search_id = f"doc_{uuid.uuid4().hex[:8]}"
         result = None
@@ -319,23 +327,46 @@ async def plans():
              "plan_year": plan["plan_year"]} for plan in available_plans()]
 
 
+def sniff_upload(data):
+    """(content_type, suffix) from the file's first bytes, or None if it is not a PDF or a photo."""
+    if data.startswith(b"%PDF"):
+        return "application/pdf", ".pdf"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg", ".jpg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png", ".png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", ".webp"
+    if data[4:8] == b"ftyp" and data[8:12] in (b"heic", b"heix", b"mif1", b"msf1", b"heif", b"hevc"):
+        return "image/heic", ".heic"
+    return None
+
+
+@app.get("/integrations")
+async def integrations():
+    # Gmail sending (the appeal email) isn't built yet; the frontend shows "Connect Gmail" until it is.
+    return {"gmail": {"connected": False, "email": None, "connect_url": None}}
+
+
 @app.post("/upload")
 async def upload(session_id: str = Form(...), file: UploadFile = File(...)):
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, "The file is larger than 25 MB.")
-    if not data.startswith(b"%PDF"):
-        raise HTTPException(415, "Only PDF files can be uploaded.")
+    kind = sniff_upload(data)
+    if kind is None:
+        raise HTTPException(415, "Only PDF files and photos (JPEG, PNG, WebP, HEIC) can be uploaded.")
+    content_type, suffix = kind
     session = STORE.get(session_id)
     file_id = f"file_{uuid.uuid4().hex[:12]}"
     folder = upload_folder(UPLOAD_DIR, session_id)
     folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{file_id}.pdf"
+    path = folder / f"{file_id}{suffix}"
     path.write_bytes(data)
-    name = Path(file.filename or "plan.pdf").name
-    session.uploads[file_id] = {"path": path, "name": name}
+    name = Path(file.filename or f"upload{suffix}").name
+    session.uploads[file_id] = {"path": path, "name": name, "content_type": content_type}
     STORE.save(session_id, session)
-    return {"file_id": file_id, "name": name, "size": len(data)}
+    return {"file_id": file_id, "name": name, "size": len(data), "content_type": content_type}
 
 
 @app.post("/turn")
@@ -347,7 +378,8 @@ async def turn(request: TurnRequest):
 # One service for the whole product: the API under /api (the built frontend calls it on the same origin), and the
 # statically exported frontend (web/out, built by the Dockerfile) at /. Mounted last so the API routes win.
 for _path, _endpoint, _methods in (("/api/turn", turn, ["POST"]), ("/api/upload", upload, ["POST"]),
-                                   ("/api/plans", plans, ["GET"])):
+                                   ("/api/plans", plans, ["GET"]),
+                                   ("/api/integrations", integrations, ["GET"])):
     app.add_api_route(_path, _endpoint, methods=_methods)
 WEB_DIR = Path(os.environ.get("WEB_DIR", ROOT / "web" / "out"))
 if WEB_DIR.is_dir():
