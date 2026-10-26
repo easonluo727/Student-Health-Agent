@@ -55,44 +55,44 @@
   --animate-scanline: scanline 7s linear infinite;
 }
 
-/* Light paper theme: warm off-white surfaces + strict ink monochrome.
-   Semantic accents (emerald/amber) stay for status only. */
+/* Light clinical theme: white surfaces, cool slate ink, deep teal primary, mint for data.
+   Emerald / amber / red stay for status only. */
 :root {
-  --background: oklch(0.967 0.004 90);
-  --foreground: oklch(0.205 0.008 60);
+  --background: oklch(0.985 0.003 210);
+  --foreground: oklch(0.25 0.02 230);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0.008 60);
+  --card-foreground: oklch(0.25 0.02 230);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0.008 60);
-  --primary: oklch(0.205 0.008 60);
-  --primary-foreground: oklch(0.967 0.004 90);
-  --secondary: oklch(0.935 0.004 90);
-  --secondary-foreground: oklch(0.205 0.008 60);
-  --muted: oklch(0.94 0.004 90);
-  --muted-foreground: oklch(0.51 0.01 60);
-  --accent: oklch(0.935 0.004 90);
-  --accent-foreground: oklch(0.205 0.008 60);
-  --destructive: oklch(0.50 0.15 25);
-  --border: oklch(0.895 0.004 90);
-  --input: oklch(0.86 0.004 90);
-  --ring: oklch(0.205 0.008 60);
-  --brand: oklch(0.205 0.008 60);
-  --brand-foreground: oklch(0.967 0.004 90);
-  --glow: oklch(0.51 0.01 60);
-  --chart-1: oklch(0.205 0.008 60);
-  --chart-2: oklch(0.51 0.01 60);
-  --chart-3: oklch(0.68 0.008 60);
-  --chart-4: oklch(0.80 0.005 60);
-  --chart-5: oklch(0.89 0.004 90);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.967 0.004 90);
-  --sidebar-foreground: oklch(0.205 0.008 60);
-  --sidebar-primary: oklch(0.205 0.008 60);
-  --sidebar-primary-foreground: oklch(0.967 0.004 90);
-  --sidebar-accent: oklch(0.935 0.004 90);
-  --sidebar-accent-foreground: oklch(0.205 0.008 60);
-  --sidebar-border: oklch(0.895 0.004 90);
-  --sidebar-ring: oklch(0.205 0.008 60);
+  --popover-foreground: oklch(0.25 0.02 230);
+  --primary: oklch(0.43 0.075 192);
+  --primary-foreground: oklch(0.99 0.004 190);
+  --secondary: oklch(0.965 0.008 200);
+  --secondary-foreground: oklch(0.25 0.02 230);
+  --muted: oklch(0.966 0.006 210);
+  --muted-foreground: oklch(0.53 0.02 230);
+  --accent: oklch(0.955 0.028 178);
+  --accent-foreground: oklch(0.32 0.06 192);
+  --destructive: oklch(0.55 0.19 27);
+  --border: oklch(0.918 0.008 215);
+  --input: oklch(0.88 0.01 215);
+  --ring: oklch(0.55 0.09 190);
+  --brand: oklch(0.43 0.075 192);
+  --brand-foreground: oklch(0.99 0.004 190);
+  --glow: oklch(0.5 0.09 192);
+  --chart-1: oklch(0.72 0.1 178);
+  --chart-2: oklch(0.43 0.075 192);
+  --chart-3: oklch(0.83 0.06 178);
+  --chart-4: oklch(0.6 0.02 230);
+  --chart-5: oklch(0.92 0.03 178);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.99 0.002 210);
+  --sidebar-foreground: oklch(0.25 0.02 230);
+  --sidebar-primary: oklch(0.43 0.075 192);
+  --sidebar-primary-foreground: oklch(0.99 0.004 190);
+  --sidebar-accent: oklch(0.955 0.028 178);
+  --sidebar-accent-foreground: oklch(0.32 0.06 192);
+  --sidebar-border: oklch(0.918 0.008 215);
+  --sidebar-ring: oklch(0.55 0.09 190);
 }
 
 .dark {
@@ -138,37 +138,34 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Paper grain over the warm off-white base */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    background-attachment: fixed;
   }
   html {
     @apply font-sans;
     scrollbar-gutter: stable;
   }
   ::selection {
-    background: oklch(0.205 0.008 60);
-    color: oklch(0.967 0.004 90);
+    background: oklch(0.88 0.06 178);
+    color: oklch(0.25 0.02 230);
   }
 }
 
 /* Subtle hairline grid backdrop for the start screen */
 .bg-tech-grid {
   background-image:
-    linear-gradient(oklch(0.205 0.008 60 / 4%) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(0.205 0.008 60 / 4%) 1px, transparent 1px);
+    linear-gradient(oklch(0.43 0.075 192 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.43 0.075 192 / 5%) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
 }
 
 /* Ink headline text */
 .text-gradient-brand {
-  color: oklch(0.205 0.008 60);
+  color: var(--foreground);
 }
 
 /* Soft ink shadow for primary buttons */
 .shadow-brand-glow {
-  box-shadow: 0 1px 2px oklch(0.205 0.008 60 / 12%);
+  box-shadow: 0 1px 2px oklch(0.43 0.075 192 / 20%);
 }
 
 /* Keyframes */
@@ -198,4 +195,16 @@
 .prose-chat table { border-collapse: collapse; margin: 0.5em 0; font-size: 0.95em; }
 .prose-chat th, .prose-chat td { border: 1px solid var(--border); padding: 0.3em 0.6em; text-align: left; }
 .prose-chat th { background: var(--muted); }
-.prose-chat a { color: var(--glow); text-decoration: underline; }
+.prose-chat a { color: var(--primary); text-decoration: underline; }
+
+/* Leaflet price pins (care map) */
+.price-pin { background: none; border: none; }
+.price-pin > span {
+  display: inline-block; transform: translate(-50%, -100%); white-space: nowrap;
+  padding: 3px 7px; border-radius: 7px; font: 600 12px/1.2 var(--font-sans);
+  background: var(--card); color: var(--foreground); border: 1px solid var(--border);
+  box-shadow: 0 1px 3px oklch(0.25 0.02 230 / 18%);
+}
+.price-pin.is-recommended > span { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.price-pin.is-active > span { outline: 2px solid var(--ring); outline-offset: 1px; z-index: 1000; }
+.leaflet-container { font-family: var(--font-sans); background: var(--muted); }

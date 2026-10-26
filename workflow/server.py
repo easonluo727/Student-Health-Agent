@@ -5,13 +5,16 @@ The API is served at /turn, /upload, /plans and again under /api/; when web/out 
 frontend, built by the Dockerfile) it is served at /, so the deployed product is this one service.
 Protocol: docs/frontend-protocol.md. Everything the model sees comes from harness/
 (main prompt, skills, tools, hooks); this file only runs the loop and speaks SSE.
-Form cards pause the turn; the user's answers resume it. The dashboard report is not wired yet.
+Form cards pause the turn; the user's answers resume it. Conversations are kept in SQLite (sessions.py), so a
+redeploy doesn't lose them. Each finished compare_plans result is sent as the Arena report (arena_report.py).
 """
 
 import asyncio
 import json
 import os
+import re
 import threading
+import time
 import uuid
 
 from pathlib import Path
@@ -22,6 +25,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from arena_report import arena_report
 from llm_client import llm_model, load_env, make_client
 from harness import Harness
 from harness.hooks import MAX_REPLY_RETRIES
@@ -29,13 +33,17 @@ from harness.reader import db_catalog, read_plan_pdf
 from harness.skills.questionnaire.skill import answers_message, build_form
 from plan_db import PlanDB
 from provider_directory import ProviderDirectory
+from sessions import SessionStore, upload_folder
 
 load_env()
 ROOT = Path(__file__).resolve().parents[1]
 MAX_STEPS = 8
-UPLOAD_DIR = ROOT / "data" / "uploads"
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", ROOT / "data" / "uploads"))  # /data/uploads on Railway
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 ESTIMATE_STATUSES = {"estimated", "needs_information", "needs_review", "not_covered", "invalid_input"}
+# The user asks to compare or choose plans: the Arena, whatever mode the home screen set.
+COMPARE_INTENT = re.compile(r"\bcompar(?:e|ing|ison)\b|\bwhich plan\b|\bbest plan\b|\bchoose (?:a |between )?plans?\b"
+                            r"|对比|比较|哪个(?:保险|计划)", re.I)
 
 app = FastAPI()
 app.add_middleware(
@@ -48,23 +56,20 @@ client = make_client(timeout=300.0)  # a shared endpoint can be slow under load
 MODEL = llm_model()
 # Price every scenario component in the rate store once, in the background (a few minutes), so turns don't wait.
 threading.Thread(target=lambda: PlanDB().warm(), name="warm-rates", daemon=True).start()
+STORE = SessionStore(upload_dir=UPLOAD_DIR)
+
+
+def purge_forever():
+    while True:
+        STORE.purge()
+        time.sleep(3600)
+
+
+threading.Thread(target=purge_forever, name="purge-sessions", daemon=True).start()
 
 
 class EndTurn(Exception):
     """A card is waiting for the user; stop the loop until they answer."""
-
-
-class Session:
-    def __init__(self):
-        self.harness = Harness()
-        self.history = []
-        self.open_forms = {}  # request_id -> the form's question dicts
-        self.uploads = {}  # file_id -> {"path", "name"}
-        self.attachment_notes = []
-        self.context = None  # the last home-screen mode applied
-
-
-SESSIONS = {}
 
 
 class TurnRequest(BaseModel):
@@ -143,6 +148,8 @@ async def run_call(session, call):
 
     if call.name == "estimate_cost" and result.get("status") in ESTIMATE_STATUSES:
         yield sse("estimate", estimate_card(result))
+    if call.name == "compare_plans" and "plans" in result and not result.get("auto_ask"):
+        yield sse("report", {"report": arena_report(result)})
 
     if form := result.pop("form", None):  # the model asked with ask_questions
         session.history.append(tool_output(call, result))
@@ -245,19 +252,35 @@ def apply_context(session, context):
                 "haven't said, then use estimate_cost.]")
     if context.get("mode") == "review":
         return (f"[Mode: Arena. The user wants to compare and choose between: {names}. Ask about the care they "
-                "expect and their priorities with the questionnaire, then use compare_plans.]")
+                "expect, their priorities, and their age, ZIP and student level (premiums depend on them) with the "
+                "questionnaire, then use compare_plans.]")
     return None
 
 
 async def turn_events(request):
-    session = SESSIONS.setdefault(request.session_id, Session())
+    session = STORE.get(request.session_id)
+    try:
+        async for chunk in session_turn(session, request):
+            yield chunk
+    finally:  # also when the client goes away mid-stream
+        STORE.save(request.session_id, session)
+
+
+async def session_turn(session, request):
     hooks = session.harness.hooks
     data = request.input
     kind = data.get("type")
     try:
         if kind == "message":
             text = data.get("text", "").strip()
-            if note := apply_context(session, request.context):
+            note = apply_context(session, request.context)
+            if (session.context or {}).get("mode") != "review" and COMPARE_INTENT.search(text):
+                note = "\n".join(filter(None, [note, (
+                    "[Mode: Arena. The user asked to compare plans, so use compare_plans (not estimate_cost) over the "
+                    "plans they named, or every plan in the plan list if they named none. Ask with the questionnaire "
+                    "for what it needs first: the care they expect, their priorities, and their age, ZIP and student "
+                    "level.]")]))
+            if note:
                 text = f"{note}\n{text}"
             if request.reply_target:
                 text = f"(About: {request.reply_target.get('label')}) {text}"
@@ -273,7 +296,8 @@ async def turn_events(request):
                 answers = data.get("answers") or {}
                 hooks.on_form_answers(questions, answers)
                 session.history.append({"role": "user", "content": answers_message(questions, answers)})
-            else:
+            else:  # closing a form means "I don't know" to each question, so Python doesn't ask them again
+                hooks.on_form_answers(questions, {})
                 session.history.append({"role": "user", "content": (
                     "[The user closed the questionnaire without answering. Continue with what you have.]")})
         else:
@@ -341,14 +365,15 @@ async def upload(session_id: str = Form(...), file: UploadFile = File(...)):
         raise HTTPException(413, "The file is larger than 25 MB.")
     if not data.startswith(b"%PDF"):
         raise HTTPException(415, "Only PDF files can be uploaded.")
-    session = SESSIONS.setdefault(session_id, Session())
+    session = STORE.get(session_id)
     file_id = f"file_{uuid.uuid4().hex[:12]}"
-    folder = UPLOAD_DIR / "".join(c for c in session_id if c.isalnum() or c == "-")[:64]
+    folder = upload_folder(UPLOAD_DIR, session_id)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{file_id}.pdf"
     path.write_bytes(data)
     name = Path(file.filename or "plan.pdf").name
     session.uploads[file_id] = {"path": path, "name": name}
+    STORE.save(session_id, session)
     return {"file_id": file_id, "name": name, "size": len(data)}
 
 

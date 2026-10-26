@@ -15,7 +15,7 @@ from ...mcp import Tool, schema
 from .bank import BY_ID, GROUPS, QUESTIONS
 
 MAX_QUESTIONS = 8
-FORM_FIELDS = ("kind", "label", "help", "options", "unit", "min", "max", "scale_labels")
+FORM_FIELDS = ("kind", "heading", "label", "help", "options", "unit", "min", "max", "scale_labels")
 
 
 def bank_hint():

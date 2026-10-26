@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Award, Ban, MessageSquareText } from "lucide-react"
-import type { Report, ReplyTarget, Scenario } from "@/lib/protocol"
+import { Award, Ban, MessageSquareText, Scale } from "lucide-react"
+import type { Ranking, Report, ReplyTarget, Scenario } from "@/lib/protocol"
 import { SourceChip, costText, usd } from "@/components/chat/source-chip"
 import { IS_MOCK } from "@/lib/client"
 import { cn } from "@/lib/utils"
@@ -53,10 +53,13 @@ export function ArenaPanel({
         </section>
       )}
 
-      {/* 2. Scenario comparison */}
+      {/* 2. How the ranking was computed */}
+      {report.ranking && <RankingExplainer ranking={report.ranking} />}
+
+      {/* 3. Scenario comparison */}
       <ScenarioChart report={report} recommended={recommended} />
 
-      {/* 3. Comparison table */}
+      {/* 4. Comparison table */}
       <section>
         <h3 className="mb-1 text-sm font-semibold">Side by side</h3>
         <p className="mb-2 text-xs text-muted-foreground">
@@ -85,7 +88,9 @@ export function ArenaPanel({
                 <td className="px-3 py-2 text-muted-foreground">Annual premium</td>
                 {report.plans.map((plan) => (
                   <td key={plan.plan_id} className="px-3 py-2 tabular-nums">
-                    <span className="mr-1">{usd(plan.annual_premium)}</span>
+                    <span className="mr-1">
+                      {plan.annual_premium == null ? "—" : usd(plan.annual_premium)}
+                    </span>
                     {plan.source && <SourceChip source={plan.source} />}
                   </td>
                 ))}
@@ -113,10 +118,17 @@ export function ArenaPanel({
                     return (
                       <td key={plan.plan_id} className="px-3 py-2">
                         {cell ? (
-                          <span className="inline-flex flex-wrap items-center gap-1">
-                            {cell.text}
-                            {cell.source && <SourceChip source={cell.source} />}
-                          </span>
+                          <>
+                            <span className="inline-flex flex-wrap items-center gap-1">
+                              {cell.text}
+                              {cell.source && <SourceChip source={cell.source} />}
+                            </span>
+                            {cell.detail && (
+                              <span className="mt-0.5 block text-xs text-muted-foreground">
+                                {cell.detail}
+                              </span>
+                            )}
+                          </>
                         ) : (
                           "—"
                         )}
@@ -128,8 +140,46 @@ export function ArenaPanel({
             </tbody>
           </table>
         </div>
+        {report.note && <p className="mt-2 text-[11px] text-muted-foreground">{report.note}</p>}
       </section>
     </div>
+  )
+}
+
+// The ranking rule and each priority's weight, as Python applied them.
+function RankingExplainer({ ranking }: { ranking: Ranking }) {
+  return (
+    <section className="rounded-xl border p-4">
+      <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+        <Scale className="size-4" /> How this ranking works
+      </h3>
+      <p className="text-xs text-muted-foreground">{ranking.summary}</p>
+      {ranking.factors.length > 0 && (
+        <table className="mt-3 w-full text-sm">
+          <thead>
+            <tr className="border-b text-left text-xs text-muted-foreground">
+              <th className="py-1.5 font-medium">Priority</th>
+              <th className="py-1.5 font-medium">Your rating</th>
+              <th className="py-1.5 font-medium">Weight</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {ranking.factors.map((f) => (
+              <tr key={f.factor} className={cn(!f.used && "text-muted-foreground")}>
+                <td className="py-1.5 pr-3">
+                  {f.label}
+                  {f.reason && <span className="block text-xs">{f.reason}</span>}
+                </td>
+                <td className="py-1.5 pr-3 tabular-nums">
+                  {f.answer == null ? "Not rated (counts as 3)" : `${f.answer} / 5`}
+                </td>
+                <td className="py-1.5 tabular-nums">{f.weight}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   )
 }
 
@@ -154,7 +204,7 @@ function ScenarioChart({ report, recommended }: { report: Report; recommended?: 
     <section>
       <h3 className="mb-1 text-sm font-semibold">Total cost for a year</h3>
       <p className="mb-3 text-xs text-muted-foreground">
-        Premium plus what you&apos;d pay for care, capped at each plan&apos;s out-of-pocket max.
+        A whole year under each plan. Pick a tab to change the assumptions.
       </p>
       <div className="mb-3 flex gap-1 rounded-lg bg-muted p-1" role="tablist">
         {report.scenarios.map((s) => (
@@ -219,7 +269,9 @@ function ScenarioChart({ report, recommended }: { report: Report; recommended?: 
                 <div className="absolute right-0 top-full z-10 mt-1 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-md">
                   <div className="font-medium">{plan.name}</div>
                   <div className="tabular-nums text-muted-foreground">
-                    Premium {usd(plan.annual_premium)} · Care {usd(Math.max(0, cost.mid - plan.annual_premium))}
+                    {plan.annual_premium == null
+                      ? "Care only (premium not priced yet)"
+                      : `Premium ${usd(plan.annual_premium)} · Care ${usd(Math.max(0, cost.mid - plan.annual_premium))}`}
                   </div>
                   {hasRange && (
                     <div className="tabular-nums text-muted-foreground">

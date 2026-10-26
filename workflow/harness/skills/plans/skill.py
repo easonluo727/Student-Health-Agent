@@ -2,7 +2,10 @@
 
   list_plans      the plans in the database, with tiers, deductible and out-of-pocket max
   estimate_cost   PlanDB.estimate: plan + scenario + network (+ tier, remaining deductible) -> patient cost
-  compare_plans   PlanDB.compare: several plans x scenarios, deductible not met / met, ranked
+  compare_plans   PlanDB.compare: a year of care under several plans (each visit priced as often as the user expects
+                  it, the deductible used up across the year, capped at the out-of-pocket max) plus a year's premium,
+                  ranked by the user's rated priorities (plan_db.rank_plans). The premium inputs, visit counts,
+                  priorities and budget come from the questionnaire answers (hooks.py), never from the model
 
 The model chooses from fixed options (plan ids, scenario keys); every amount comes from the databases.
 """
@@ -71,13 +74,16 @@ def build(db: PlanDB):
         ),
         Tool(
             name="compare_plans",
-            description=("Arena: compare plans on the same scenarios (one occurrence each). Returns each plan's total "
-                         "with the deductible not met and already met, ranked."),
+            description=("Arena: compare a year under several plans. Pick the scenarios for the care the user expects; "
+                         "Python counts each as often as the user said (once if they gave no count), and returns each "
+                         "plan's care cost, premium, year total, rank and how the rank was computed. The user's "
+                         "answers (age, ZIP, student level, visit counts, priorities, budget) are filled in by Python."),
             parameters=schema(
                 plan_ids={"type": "array", "items": {"type": "string"}},
                 scenarios={"type": "array", "items": scenario_enum},
             ),
-            run=lambda args: db.compare(args["plan_ids"], args["scenarios"]),
+            run=lambda args: db.compare(args["plan_ids"], args["scenarios"], args.get("profile"), args.get("visits"),
+                                        args.get("preferences"), args.get("preferred_tiers")),
             validate=lambda args: _validate(db, args),
         ),
     ]

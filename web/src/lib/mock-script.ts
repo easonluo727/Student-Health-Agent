@@ -2,7 +2,8 @@
 // Every number here is a PLACEHOLDER for UI development, not plan data.
 // Real numbers come from the FastAPI service (Python calculator + catalogs).
 
-import type { Answer, Plan, Report, SearchSummary, ServerEvent, Source, TurnRequest } from "./protocol"
+import type { Answer, Plan, Provider, Report, ServerEvent, Source, TurnRequest } from "./protocol"
+import { MOCK_SHOT_A, MOCK_SHOT_B, MOCK_SHOT_C } from "./mock-shots"
 
 export type MockStep = ServerEvent | { pause: number }
 
@@ -233,6 +234,130 @@ const prefsForm: MockStep = {
 }
 
 
+// Placeholder places and prices for the care dashboard (names are made up; coordinates are real LA neighborhoods).
+const mockProvider = (
+  id: string,
+  name: string,
+  kind: Provider["kind"],
+  address: string,
+  lat: number,
+  lng: number,
+  miles: number,
+  allowed: number,
+  youPay: number,
+  extra: Partial<Provider> = {},
+): Provider => ({
+  provider_id: id,
+  name,
+  kind,
+  address,
+  lat,
+  lng,
+  distance_miles: miles,
+  in_network: true,
+  network_tier: "Network",
+  allowed_amount: allowed,
+  patient_cost: { mid: youPay },
+  price_vs_typical: allowed < 700 ? "lower" : allowed > 1100 ? "higher" : "typical",
+  quality: { score: 4.2, label: "4.2 · placeholder rating" },
+  source: mockRate,
+  ...extra,
+})
+
+const mockCareReport: Report = {
+  report_id: "care_mock",
+  title: "Knee MRI near Westwood",
+  recommendation: null,
+  care: {
+    query: {
+      service: "Knee MRI",
+      code: "73721",
+      description:
+        "An MRI of the knee without contrast, read by a radiologist. Used to check ligaments, cartilage and the meniscus after an injury.",
+      location: { label: "90024 · Westwood", zip: "90024", lat: 34.0635, lng: -118.4455 },
+      plan_id: "uc_ship_ucla_2026",
+      plan_label: "UC SHIP · Network tier",
+      max_miles: 25,
+    },
+    price: {
+      label: "Typical negotiated price for a knee MRI in your network (mock)",
+      midpoint: 890,
+      min: 410,
+      max: 2350,
+      bins: [410, 520, 630, 740, 850, 960, 1070, 1180, 1400, 1650, 1900, 2350].map((price, i) => ({
+        price,
+        count: [2, 5, 9, 14, 18, 15, 10, 7, 4, 2, 1, 1][i],
+      })),
+      source: mockRate,
+    },
+    note: "What you pay assumes your $400 deductible is already met (mock). Ask the agent to price it before the deductible.",
+    providers: [
+      mockProvider("m1", "Westwood Imaging Center", "imaging_center", "Westwood Blvd, Los Angeles", 34.0565, -118.4425, 0.6, 620, 124, {
+        recommended: true,
+        reason: "Lowest price within 2 miles, in network, open evenings. (Mock reason; the agent explains its pick.)",
+        quality: { score: 4.6, label: "4.6 · placeholder rating" },
+      }),
+      mockProvider("m2", "Sawtelle Diagnostic Radiology", "imaging_center", "Sawtelle Blvd, Los Angeles", 34.0395, -118.4425, 1.8, 560, 112, {
+        recommended: true,
+        reason: "Cheapest in network; a short drive from campus.",
+      }),
+      mockProvider("m3", "Campus Medical Plaza MRI", "hospital", "Le Conte Ave, Los Angeles", 34.0665, -118.4455, 0.3, 1480, 296, {
+        quality: { score: 4.8, label: "4.8 · placeholder rating" },
+      }),
+      mockProvider("m4", "Santa Monica Open MRI", "imaging_center", "Wilshire Blvd, Santa Monica", 34.0315, -118.4895, 3.4, 740, 148),
+      mockProvider("m5", "Culver City Imaging", "imaging_center", "Washington Blvd, Culver City", 34.0215, -118.3965, 4.1, 690, 138, {
+        quality: { score: null, label: "No public rating" },
+      }),
+      mockProvider("m6", "Beverly Hills Radiology Group", "imaging_center", "Wilshire Blvd, Beverly Hills", 34.0675, -118.3995, 2.6, 1320, 264),
+      mockProvider("m7", "Mid-City Medical Imaging", "imaging_center", "W Pico Blvd, Los Angeles", 34.0475, -118.3445, 6.3, 870, 174),
+      mockProvider("m8", "Downtown Orthopedic Imaging", "clinic", "S Figueroa St, Los Angeles", 34.0465, -118.2645, 10.8, 950, 190, {
+        in_network: null,
+        network_tier: null,
+        patient_cost: null,
+        price_vs_typical: null,
+      }),
+    ],
+  },
+  plans: [],
+  scenarios: [],
+  comparison: [],
+}
+
+function careSearch(): MockStep[] {
+  const searchId = nextId("search")
+  const step = (step_id: string, status: "running" | "done", text: string, url?: string, screenshot?: string): MockStep => ({
+    event: "search_step",
+    data: { search_id: searchId, step_id, status, text, url: url ?? null, title: screenshot ? text : null, screenshot: screenshot ?? null },
+  })
+  return [
+    ...say("Let me find places near 90024 that do a knee MRI in the UC SHIP network.\n\n"),
+    step("find", "running", "Finding in-network imaging centers within 25 miles…"),
+    { pause: 900 },
+    step("find", "done", "Found 8 places in the network", "https://example.com/directory?zip=90024", MOCK_SHOT_A),
+    step("price", "running", "Looking up each place's negotiated rate for 73721…"),
+    { pause: 900 },
+    step("price", "done", "Priced 7 of 8 from the rate database", "https://example.com/rates/73721", MOCK_SHOT_B),
+    step("rate", "running", "Checking public ratings…"),
+    { pause: 800 },
+    step("rate", "done", "Found ratings for 7 places", "https://example.com/ratings", MOCK_SHOT_C),
+  ]
+}
+
+function care(): MockStep[] {
+  return [
+    ...careSearch(),
+    { event: "report", data: { report: mockCareReport } },
+    { pause: 200 },
+    ...say(
+      "I found **8 places** within about 11 miles that do a knee MRI. Two stand out:\n\n" +
+        "- **Sawtelle Diagnostic Radiology**: you'd pay about **$112** (mock).\n" +
+        "- **Westwood Imaging Center**: about **$124**, and it's half a mile away.\n\n" +
+        "The hospital MRI on campus costs more than twice as much. The map and the full list are in the report; " +
+        "click a place to ask about it.",
+    ),
+  ]
+}
+
 const mockReport: Report = {
   report_id: "arena_mock",
   title: "Insurance Arena",
@@ -361,18 +486,32 @@ const mockReport: Report = {
 
 function search(insurer: string): MockStep[] {
   const searchId = nextId("search")
-  const step = (step_id: string, status: "running" | "done" | "failed", text: string, url?: string): MockStep => ({
+  const step = (
+    step_id: string,
+    status: "running" | "done" | "failed",
+    text: string,
+    url?: string,
+    screenshot?: string,
+  ): MockStep => ({
     event: "search_step",
-    data: { search_id: searchId, step_id, status, text, url: url ?? null },
+    data: {
+      search_id: searchId,
+      step_id,
+      status,
+      text,
+      url: url ?? null,
+      title: screenshot ? `${insurer} website` : null,
+      screenshot: screenshot ?? null,
+    },
   })
   return [
     ...searchIntro(insurer),
     step("find", "running", `Searching for ${insurer} individual plans in California…`),
     { pause: 900 },
-    step("find", "done", `Found ${insurer}'s plan finder page`, "https://example.com/plans"),
+    step("find", "done", `Found ${insurer}'s plan finder page`, "https://example.com/plans", MOCK_SHOT_A),
     step("open", "running", "Opening the plan page…"),
     { pause: 900 },
-    step("open", "done", "Opened the 2026 plan list (6 plans)", "https://example.com/plans/2026"),
+    step("open", "done", "Opened the 2026 plan list (6 plans)", "https://example.com/plans/2026", MOCK_SHOT_B),
     step("rank", "running", "Scoring links for a Summary of Benefits…"),
     { pause: 700 },
     step("rank", "done", "Picked “Silver PPO — Summary of Benefits and Coverage”"),
@@ -388,20 +527,31 @@ function search(insurer: string): MockStep[] {
   ]
 }
 
-// Reply for a live search, written from the worker's facts by template (no LLM).
-export function searchReply(summary: SearchSummary): MockStep[] {
-  const lines = [`**${summary.message}**`]
-  if (summary.facts.length) {
-    lines.push("", ...summary.facts.map((f) => `- ${f.label}: ${f.value}`))
-  }
-  const source = summary.pages.at(-1)
-  if (source) lines.push("", `Source: [${source.title || source.url}](${source.url})`)
-  if (summary.status === "found" || summary.facts.length) {
-    lines.push("", "These facts come from the insurer's website, so I use them to judge fit but not to compute costs.")
-  } else {
-    lines.push("", "You can check the insurer's site yourself, or ask about a plan that's in my database.")
-  }
-  return say(lines.join("\n"))
+// Placeholder "agent is reading the uploaded PDF" steps, so the document-reading
+// UI is reachable in the mock. The real backend sends real page screenshots.
+function readDocument(name: string): MockStep[] {
+  const searchId = nextId("doc")
+  const step = (step_id: string, status: "running" | "done", text: string, screenshot?: string): MockStep => ({
+    event: "search_step",
+    data: {
+      search_id: searchId,
+      kind: "document",
+      step_id,
+      status,
+      text,
+      url: null,
+      title: name,
+      screenshot: screenshot ?? null,
+    },
+  })
+  return [
+    step("p1", "running", "Reading page 1 — looking for plan identity…"),
+    { pause: 800 },
+    step("p1", "done", "Found plan name and insurer", MOCK_SHOT_B),
+    step("match", "running", "Matching against the plan library…"),
+    { pause: 700 },
+    step("match", "done", "Matched: UC SHIP 2026–27 (UCLA) in the library", MOCK_SHOT_C),
+  ]
 }
 
 export function searchIntro(insurer: string): MockStep[] {
@@ -459,12 +609,16 @@ export function scriptFor(request: TurnRequest): MockStep[] {
   if (input.type !== "message") return say("Okay.")
 
   const text = input.text
+  if (/^mock error$/i.test(text.trim())) {
+    return [{ event: "error", data: { message: "Mock error — this is what a backend failure looks like. You can retry your message." } }]
+  }
   if (request.reply_target) {
     return say(
       `**${request.reply_target.label}:** this row shows each plan's rule as written in its policy, ` +
         "with the page number on each cell. *(Mock explanation — the real agent explains the specific values.)*",
     )
   }
+  if (/\bmri\b|near (me|\d{5})|where can i/i.test(text)) return care()
   const insurer = searchTarget(request)
   if (insurer) return search(insurer)
   const isER = /\b(er|emergency|ankle|x-?ray)\b/i.test(text)
@@ -473,11 +627,17 @@ export function scriptFor(request: TurnRequest): MockStep[] {
     (id) => MOCK_PLANS.find((p) => p.plan_id === id)?.name ?? id,
   )
   if (mode === "calculate" && !isER) {
-    const plan = input.attachments?.length
-      ? `the plan in **${input.attachments[0].name}**, which matches UC SHIP 2026–27 (UCLA) in the library *(mock)*`
-      : planNames.length === 1
-        ? `**${planNames[0]}**`
-        : "your plan"
+    const attached = input.attachments?.length
+      ? [
+          ...readDocument(input.attachments[0].name),
+          ...say(
+            `I've read **${input.attachments[0].name}**. It matches UC SHIP 2026–27 (UCLA) in the library *(mock)*, so I'll price from the library's numbers, not the PDF. Which visit or service should I price?\n\n` +
+              "For example: *an ER visit for a sprained ankle*, *a specialist follow-up*, or *a therapy session*.",
+          ),
+        ]
+      : null
+    if (attached) return attached
+    const plan = planNames.length === 1 ? `**${planNames[0]}**` : "your plan"
     return say(
       `I'll price care on ${plan}. Which visit or service should I price?\n\n` +
         "For example: *an ER visit for a sprained ankle*, *a specialist follow-up*, or *a therapy session*.",

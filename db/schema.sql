@@ -60,3 +60,40 @@ CREATE TABLE plan_networks (
                                                   -- prices are only used for confirmed links
     PRIMARY KEY (plan_id, network_tier)
 );
+
+-- Premiums, parsed from official documents by scripts/policy/extract_premiums.py (data/plans/premiums.csv). Before
+-- any subsidy. Covered California publishes a single 25- and 40-year-old per rating region; other ages are scaled
+-- from the age-40 row on age_curve (plan_db.PlanDB.premium). UC SHIP is one price per enrollee group.
+CREATE TABLE premiums (
+    plan_id       TEXT NOT NULL REFERENCES plans(plan_id),
+    rating_region INTEGER,                        -- California rating region; NULL = the same everywhere
+    age           INTEGER,                        -- NULL = the same at every age
+    enrollee      TEXT,                           -- e.g. undergraduate / graduate; NULL = anyone
+    period        TEXT NOT NULL CHECK (period IN ('month', 'quarter')),
+    amount_usd    REAL NOT NULL CHECK (amount_usd >= 0),   -- per period, as printed
+    annual_usd    REAL NOT NULL CHECK (annual_usd >= 0),   -- one year of coverage
+    basis         TEXT NOT NULL,                  -- which document and its status (e.g. preliminary)
+    source_url    TEXT NOT NULL,
+    source_page   INTEGER,
+    quote         TEXT NOT NULL,                  -- the printed line(s) the amount comes from
+    notes         TEXT
+);
+CREATE INDEX ix_premiums_lookup ON premiums (plan_id, rating_region, age, enrollee);
+
+-- The federal default age curve (CMS), which applies in California: premium(age) = premium(40) * f(age) / f(40).
+CREATE TABLE age_curve (
+    age         INTEGER PRIMARY KEY CHECK (age BETWEEN 0 AND 64),   -- 64 = 64 and older
+    factor      REAL NOT NULL CHECK (factor > 0),
+    source_url  TEXT NOT NULL,
+    source_page INTEGER,
+    quote       TEXT NOT NULL
+);
+
+-- California rating region of each Los Angeles County ZIP code (regions 15 and 16, Health and Safety Code 1357.512).
+CREATE TABLE rating_regions (
+    zip           TEXT PRIMARY KEY,
+    county        TEXT NOT NULL,
+    rating_region INTEGER NOT NULL,
+    source_url    TEXT NOT NULL,
+    source_page   INTEGER
+);

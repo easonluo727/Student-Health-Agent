@@ -7,16 +7,41 @@
   check_reply       before a reply is shown; may reject it with feedback
 
 The amount, confirmation and reply checks are guards.ConversationGuard, unchanged. This file
-adds the questionnaire rules, and Python sending a form when a tool needs something from the user.
+adds the questionnaire rules, Python filling compare_plans' inputs from the answers (premium inputs: age, ZIP,
+student level; visit counts; priority ratings and the monthly budget), and Python sending a form when a tool needs
+something from the user.
 """
 
+import re
 from decimal import Decimal, InvalidOperation
 
 from guards import MAX_REPLY_RETRIES, ConversationGuard, numbers_in  # noqa: F401 (re-exported)
 
-from .skills.questionnaire.bank import BY_ID, CALCULATOR_FIELDS
+from .skills.questionnaire.bank import (BY_ID, CALCULATOR_FIELDS, PREMIUM_FIELDS, PROVIDER_TIERS, VISIT_FIELDS,
+                                       WEIGHT_FIELDS)
 from .skills.questionnaire.skill import MAX_QUESTIONS
 
+
+
+# "My deductible is met" states a remaining deductible of 0 without saying the number; "haven't met it" doesn't.
+DEDUCTIBLE_MET = re.compile(r"deductible(?:\s+is|\s+was|\s+has been|'s)?\s+(?:already\s+|all\s+)?(?:met|paid|reached|"
+                            r"done|satisfied)\b|\b(?:met|paid off|reached|hit|satisfied)\s+(?:my|the)\s+(?:\w+\s+)?"
+                            r"deductible", re.I)
+NEGATION = re.compile(r"\b(?:not|never|yet)\b|n't\b", re.I)
+# A claim about what other plans lack or what only one plan gives. The plan database records each plan's own
+# benefits, never who else can use a clinic, so such a claim is the model's memory (seen: "They don't give you the
+# Ashe Center", when every UCLA student can use it).
+EXCLUSIVE_CLAIM = re.compile(
+    r"\b(?:they|other plans?|the others?|those plans?|these plans?|none of the others?)\s+(?:don't|do not|doesn't|"
+    r"does not|won't|will not|can't|cannot)\s+(?:give|offer|include|have|let you|get you|cover)\b"
+    r"|\bonly\s+(?:UC SHIP|this plan|that plan|one plan)\s+(?:gives?|offers?|includes?|has|lets you|covers?)\b"
+    r"|\bexclusive (?:to|benefit|access)\b|\byou(?:'d| would| will)? lose (?:access to )?(?:the )?\w+ (?:Center|clinic)\b"
+    r"|(?:其他|别的|另外的)(?:保险|计划|plan)[^。！？\n]{0,15}(?:不能|无法|不给|没有|不包括|用不了)"
+    r"|只有[^。！？\n]{0,20}(?:才能|才可以|才有)", re.I)
+
+
+def deductible_met(text):
+    return any(not NEGATION.search(text[max(0, m.start() - 20):m.end() + 6]) for m in DEDUCTIBLE_MET.finditer(text))
 
 
 def _no_confirm(summary):
@@ -35,6 +60,8 @@ class Hooks:
     def on_user_message(self, text):
         self.guard.start_turn()
         self.guard.record_user(text)
+        if deductible_met(text):
+            self.guard.record_user("0")
         self.user_texts.append(text)
 
     def on_form_answers(self, questions, answers):
@@ -58,6 +85,14 @@ class Hooks:
         if name == "estimate_cost":  # the only amount the model passes is the remaining deductible
             return self.guard.pre_tool("calculate_estimate",
                                        {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
+        if name == "compare_plans":  # who the user is and how they use care: only answers they gave, never the model's
+            args["profile"] = {field: self.answers.get(qid) for field, qid in PREMIUM_FIELDS.items()}
+            args["visits"] = {scenario: self.answers[qid] for qid, scenario in VISIT_FIELDS.items()
+                              if self.answers.get(qid) is not None}
+            args["preferences"] = {"weights": {f: self.answers.get(qid) for f, qid in WEIGHT_FIELDS.items()},
+                                   "monthly_budget": self.answers.get("monthly_budget")}
+            args["preferred_tiers"] = [PROVIDER_TIERS[v] for v in self.answers.get("keep_providers") or []
+                                       if v in PROVIDER_TIERS]
         return None
 
     def post_tool(self, name, args, result):
@@ -73,6 +108,13 @@ class Hooks:
                 if ask:
                     result = {**result, "auto_ask": ask}
             return result
+        if name == "compare_plans":
+            # The premium inputs still missing, and how often the user expects each chosen visit.
+            ask = [PREMIUM_FIELDS[f] for f in result.get("missing_fields") or [] if f in PREMIUM_FIELDS]
+            ask += [qid for qid, scenario in VISIT_FIELDS.items() if scenario in args["scenarios"]]
+            ask = [qid for qid in ask if qid not in self.answers]
+            result = self.guard.post_tool(name, args, result, None)
+            return {**result, "auto_ask": ask} if ask else result
         return self.guard.post_tool(name, args, result, None)
 
     def _check_questions(self, args):
@@ -115,7 +157,12 @@ class Hooks:
     # Reply hook -----------------------------------------------------------
 
     def check_reply(self, text):
-        return self.guard.check_reply(text)
+        problems = [self.guard.check_reply(text)]
+        if claim := EXCLUSIVE_CLAIM.search(text):
+            problems.append(
+                f'Your reply claims what other plans lack or what only one plan gives ("{claim.group(0)}"). The plan '
+                "database doesn't record that. Remove the claim; compare only what the tool results show for each plan.")
+        return " ".join(filter(None, problems)) or None
 
     def fallback_reply(self):
         return self.guard.fallback_reply()

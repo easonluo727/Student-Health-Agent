@@ -111,5 +111,6 @@ No test calls the LLM or the network.
 - **Coverage is narrow.** Prices exist for 19 common visits in Los Angeles. Surgery, hospital stays and prescription drug prices aren't in the database.
 - **A negotiated rate is an estimate.** Claim edits and bundling change what is finally paid. For now prices are the median across a network's Los Angeles providers, not a quote from a specific doctor; doctor-level pricing is the next step.
 - **Few plans.** The plan database holds 11 Los Angeles plans. An uploaded plan that isn't in it can't be priced yet.
-- **No premium subsidies, out-of-pocket maximum, or balance billing** in the calculator yet.
+- **No premium subsidies, out-of-pocket maximum, or balance billing** in the calculator yet. Premiums are list prices
+  (Covered California 2026 preliminary rates for Los Angeles, UC SHIP at UCLA).
 - It is not medical advice and doesn't guarantee coverage.
