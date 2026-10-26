@@ -170,6 +170,15 @@ class AllowedAmountPipeline(unittest.TestCase):
         # 40 (no POS) and 44 (CSTM-00 = all POS) both apply at POS 20
         self.assertEqual((flu.allowed_amount, flu.allowed_amount_basis, flu.status), (42.0, "la_county_median", "estimated_rate"))
 
+    def test_strict_npi_never_falls_back_to_network_median(self):
+        present = allowed.component(self.con, "test_ppo", "99213", "professional", "11",
+                                    npi=LA_NPI2, as_of=AS_OF, strict_npi=True)
+        self.assertEqual((present.allowed_amount, present.allowed_amount_basis), (70.0, "provider_rate"))
+        missing = allowed.component(self.con, "test_ppo", "99213", "professional", "11",
+                                    npi=FAR_NPI, as_of=AS_OF, strict_npi=True)
+        self.assertEqual((missing.allowed_amount, missing.status), (None, "rate_unavailable"))
+        self.assertIsNone(missing.la_county_median)
+
     def test_tc_plus_26(self):
         r = allowed.component(self.con, "test_ppo", "73610", "professional", "23", "global_or_tc_plus_26", as_of=AS_OF)
         self.assertEqual((r.allowed_amount, r.allowed_amount_basis), (55.0, "la_county_median"))  # Westwood 30 + 20, LA 60

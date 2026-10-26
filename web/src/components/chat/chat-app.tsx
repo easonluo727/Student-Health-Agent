@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
+import Link from "next/link"
 import remarkGfm from "remark-gfm"
 import {
   ArrowUp,
@@ -300,6 +301,7 @@ export function ChatApp() {
           <div className="text-[11px] text-muted-foreground">Calculate costs · Review plans</div>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Link href="/providers" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted">Find providers</Link>
           {IS_MOCK && (
             <span className="rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
               Mock backend

@@ -1,5 +1,7 @@
 # 待改进清单
 
+2026-10-26（`feat/nppes-provider-directory-geolocation`）：已在功能分支实现独立 NPPES 目录的离线构建/校验、地址地理编码、严格按 NPI 的只读价格查询和最小 `/providers` 页面；仅用合成数据验证，尚未取得真实 NPPES V2 ZIP/完整价格库，也未部署。因此路线图第 1 步只完成基础数据路径，真实覆盖率、现网医生的保险参与资格、HMO 医疗集团筛选和 agent 推荐仍待做；不能把这项标为生产完成。
+
 记录于 2026-10-18，2026-10-20 更新。按优先级排列，每条写清楚现状、问题和建议做法。做完一条就把它挪到文末的"已完成"，或者直接删掉。
 
 现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 11 个 plan，11 个都有带证据的网络对接（桥 1）。价格库 `rates.sqlite`（3.1 GB，Railway 磁盘卷 `/data`）运行时直接查，暂时按网络里所有洛杉矶医生的中位数算，按路线图第 1 步改成按具体医生算。2026-10-20 删掉了 legacy 模式、搜索 worker 和 CSV 价格汇总表，现在只有一条路径。相关 issue：#5（人和计划的年度匹配）、#6（保单 × 价格对接）。

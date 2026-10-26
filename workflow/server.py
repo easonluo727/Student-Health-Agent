@@ -16,7 +16,7 @@ import uuid
 
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,6 +28,7 @@ from harness.hooks import MAX_REPLY_RETRIES
 from harness.reader import db_catalog, read_plan_pdf
 from harness.skills.questionnaire.skill import answers_message, build_form
 from plan_db import PlanDB
+from provider_directory import ProviderDirectory
 
 load_env()
 ROOT = Path(__file__).resolve().parents[1]
@@ -293,6 +294,44 @@ async def turn_events(request):
 async def plans():
     return [{"plan_id": plan["plan_id"], "name": plan["name"], "insurer": plan["insurer"],
              "plan_year": plan["plan_year"]} for plan in available_plans()]
+
+
+@app.get("/api/providers/options")
+async def provider_options():
+    """Read-only service and plan choices for the directory form."""
+    db = PlanDB()
+    try:
+        plans = db.plans()
+        confirmed = {}
+        for row in db.con.execute("SELECT plan_id, network_tier FROM plan_networks WHERE confirmed=1"):
+            confirmed.setdefault(row["plan_id"], []).append(row["network_tier"])
+        return {"scenarios": db.scenarios(), "plans": [
+            {"plan_id": p["plan_id"], "name": p["plan_name"],
+             "confirmed_tiers": confirmed.get(p["plan_id"], [])} for p in plans]}
+    finally:
+        db.con.close()
+
+
+@app.get("/api/providers/search")
+async def provider_search(latitude: float | None = None, longitude: float | None = None,
+                          zip_code: str | None = None, radius_miles: float = 10,
+                          scenario: str | None = None, cpt: str | None = None,
+                          taxonomy: str | None = None, plan_ids: list[str] = Query(default=[]),
+                          plan_tiers: list[str] = Query(default=[]),
+                          remaining_deductible: float | None = None,
+                          limit: int = 20, offset: int = 0, sort: str = "nearest"):
+    """Search actual NPPES practice locations; every price is strictly NPI-specific."""
+    try:
+        tiers = dict(item.split("|", 1) for item in plan_tiers)
+        if len(tiers) != len(plan_tiers):
+            raise ValueError("Duplicate plan tier")
+        return await asyncio.to_thread(
+            ProviderDirectory().search, latitude=latitude, longitude=longitude,
+            zip_code=zip_code, radius_miles=radius_miles, scenario=scenario,
+            cpt=cpt, taxonomy=taxonomy, plan_ids=plan_ids, plan_tiers=tiers,
+            remaining_deductible=remaining_deductible, limit=limit, offset=offset, sort=sort)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
 
 
 @app.post("/upload")

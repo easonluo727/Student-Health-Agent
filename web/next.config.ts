@@ -6,11 +6,12 @@ const staticExport = process.env.STATIC_EXPORT === "1";
 
 const nextConfig: NextConfig = {
   ...(staticExport
-    ? { output: "export", pageExtensions: ["tsx"], images: { unoptimized: true } }
+    ? { output: "export", pageExtensions: ["tsx", "jsx"], images: { unoptimized: true }, trailingSlash: true }
     : { cacheComponents: true, partialPrefetching: true }),
   turbopack: {
     rules: {
       "*.css": {
+        condition: { not: "foreign" },
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
