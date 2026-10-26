@@ -1,0 +1,106 @@
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import type { Answer, Attachment, EmailDraftEdit, Integrations, Plan, ReplyTarget, ServerEvent, TurnContext, TurnInput } from "./protocol";
+import type { AgentTransport } from "./transport";
+import { agentReducer, initialState, type LocalAttachment } from "./store";
+
+export function newSessionId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = (Math.random() * 16) | 0; return (c === "x" ? r : (r & 0x3) | 0x8).toString(16); });
+}
+
+export type ChatMode = "chat" | TurnContext["mode"];
+
+export function useAgent(transport: AgentTransport) {
+  const [state, dispatch] = useReducer(agentReducer, undefined, () => initialState(newSessionId()));
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [integrations, setIntegrations] = useState<Integrations | null>(null);
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
+  const [mode, setMode] = useState<ChatMode>("chat");
+  const [planIds, setPlanIds] = useState<string[]>([]);
+  const abort = useRef<AbortController | null>(null);
+  const sessionRef = useRef(state.sessionId);
+  useEffect(() => { sessionRef.current = state.sessionId; }, [state.sessionId]);
+
+  useEffect(() => { transport.getPlans().then(setPlans).catch(() => setPlans([])); }, [transport]);
+  const refreshIntegrations = useCallback(async () => {
+    try { const i = await transport.getIntegrations(); setIntegrations(i); return i; } catch { return null; }
+  }, [transport]);
+  useEffect(() => {
+    let live = true;
+    transport.getIntegrations().then(i => { if (live) setIntegrations(i); }).catch(() => {});
+    return () => { live = false; };
+  }, [transport]);
+  useEffect(() => () => abort.current?.abort(), []);
+
+  const run = useCallback(async (input: TurnInput, target?: ReplyTarget | null) => {
+    abort.current?.abort();
+    const ctrl = new AbortController();
+    abort.current = ctrl;
+    dispatch({ type: "busy", busy: true });
+    const context: TurnContext | undefined = mode === "chat" ? undefined : planIds.length ? { mode, plan_ids: planIds } : { mode };
+    try {
+      for await (const event of transport.turn({ session_id: sessionRef.current, input, ...(target ? { reply_target: target } : {}), ...(context ? { context } : {}) }, ctrl.signal)) {
+        if (ctrl.signal.aborted) break;
+        dispatch({ type: "server", event });
+      }
+    } catch (e) {
+      if (!ctrl.signal.aborted) dispatch({ type: "local_error", message: e instanceof Error ? e.message : "The agent could not be reached." });
+    } finally {
+      if (abort.current === ctrl) { abort.current = null; dispatch({ type: "busy", busy: false }); }
+    }
+  }, [transport, mode, planIds]);
+
+  const sendMessage = useCallback((text: string, attachments: LocalAttachment[] = []) => {
+    const target = replyTarget;
+    dispatch({ type: "user", item: { kind: "user", id: `u-${Date.now()}`, text, attachments, replyTarget: target ?? undefined } });
+    setReplyTarget(null);
+    const atts: Attachment[] = attachments.map(a => ({ file_id: a.file_id, name: a.name }));
+    return run(atts.length ? { type: "message", text, attachments: atts } : { type: "message", text }, target);
+  }, [run, replyTarget]);
+
+  const submitForm = useCallback((requestId: string, answers: Record<string, Answer>, summary: string) => {
+    dispatch({ type: "form", requestId, state: "submitted", summary });
+    dispatch({ type: "user", item: { kind: "user", id: `u-${Date.now()}`, text: summary, attachments: [] } });
+    return run({ type: "form_response", request_id: requestId, answers });
+  }, [run]);
+  const dismissForm = useCallback((requestId: string) => {
+    dispatch({ type: "form", requestId, state: "dismissed" });
+    return run({ type: "form_dismiss", request_id: requestId });
+  }, [run]);
+  const respondConfirm = useCallback((requestId: string, confirmed: boolean, correction?: string) => {
+    dispatch({ type: "confirm", requestId, state: confirmed ? "confirmed" : "corrected", correction });
+    return run(!confirmed && correction ? { type: "confirm_response", request_id: requestId, confirmed, correction } : { type: "confirm_response", request_id: requestId, confirmed });
+  }, [run]);
+  const sendEmail = useCallback((requestId: string, draft: EmailDraftEdit) => {
+    dispatch({ type: "email", requestId, draft, status: { request_id: requestId, status: "sending" } });
+    return run({ type: "email_response", request_id: requestId, action: "send", draft });
+  }, [run]);
+  const cancelEmail = useCallback((requestId: string) => {
+    dispatch({ type: "email", requestId, state: "cancelled" });
+    return run({ type: "email_response", request_id: requestId, action: "cancel" });
+  }, [run]);
+  const upload = useCallback((file: File) => transport.upload(sessionRef.current, file), [transport]);
+
+  const stop = useCallback(() => { abort.current?.abort(); abort.current = null; dispatch({ type: "busy", busy: false }); }, []);
+  const newChat = useCallback(() => { stop(); setReplyTarget(null); dispatch({ type: "reset", sessionId: newSessionId() }); }, [stop]);
+
+  /** Dev/mock only: replay recorded events into a fresh conversation without a network call. */
+  const replay = useCallback((events: ServerEvent[], opts: { userText?: string | undefined; attachments?: LocalAttachment[] | undefined; busy?: boolean | undefined; view?: string | undefined } = {}) => {
+    stop();
+    setReplyTarget(null);
+    dispatch({ type: "reset", sessionId: newSessionId() });
+    if (opts.userText) dispatch({ type: "user", item: { kind: "user", id: "u-replay", text: opts.userText, attachments: opts.attachments ?? [] } });
+    for (const event of events) dispatch({ type: "server", event });
+    if (opts.busy) dispatch({ type: "busy", busy: true });
+    if (opts.view) dispatch({ type: "canvas", open: true, view: opts.view });
+  }, [stop]);
+
+  return useMemo(() => ({
+    state, plans, integrations, replyTarget, mode, planIds,
+    setReplyTarget, setMode, setPlanIds, refreshIntegrations,
+    setCanvas: (open?: boolean, view?: string) => dispatch({ type: "canvas", open, view }),
+    sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay,
+  }), [state, plans, integrations, replyTarget, mode, planIds, refreshIntegrations, sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay]);
+}
+
+export type Agent = ReturnType<typeof useAgent>;

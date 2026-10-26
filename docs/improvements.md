@@ -66,6 +66,12 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 **耗时**：标准 SBC 3–5 分钟，65 页以上的长保单会更久。
 **工作量**：约半天，主要花在长保单的测试上。
 
+### 1.6 账单照片和 Gmail 申诉信（2026-10-26）
+
+- **前端和 mock 已做**（Lovable 项目 "Health Coverage Hub"，见 `web/README.md`）：上传照片、账单审核页、可编辑的邮件卡片、"Send from Gmail"。协议见 `docs/frontend-protocol.md` 最后一节。
+- **后端**：`/upload` 已收照片，但模型还读不了照片，现在会如实说读不了，并用问卷问服务、医生和账单金额。待做：多模态逐行读账单（路线图 B），`draft_email` 工具和 `email_draft` / `email_status` 事件，Gmail OAuth（每个用户自己的 token）和 `/integrations` 的真实状态。
+- **对比页的默认数字**：计划卡片显示滑块选中的场景，默认是中间那个（`healthy`，只含保费），不是 `expected`。要改的话在 Lovable 里改。
+
 ### 2. 按具体医生查价
 
 已并入上面路线图第 1 步。

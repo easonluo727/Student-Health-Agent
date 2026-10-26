@@ -266,6 +266,17 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         self.assertEqual({s["key"] for s in report["scenarios"]}, {"expected", "healthy", "worst"})
         self.assertEqual(report["recommendation"]["plan_id"], next(e["plan_id"] for e in r["plans"] if e["rank"] == 1))
 
+    def test_the_arena_report_works_when_one_premium_is_unknown(self):
+        # UC SHIP's premium needs the student level; the user said "I don't know" but rated their priorities.
+        from arena_report import arena_report
+        r = self.db.compare([UCSHIP, "healthnet_silver70_hmo_2026"], ["office_visit_established"],
+                            {"age": 24, "zip": "90024", "student_level": None}, {"office_visit_established": 3},
+                            {"weights": {"premium": 4, "visit_costs": 3, "worst_case": 4}})
+        report = arena_report(r)
+        self.assertIsNotNone(report["recommendation"])
+        self.assertFalse(any("Year total" in reason and "None" in reason
+                             for reason in report["recommendation"]["reasons"]))
+
     def test_unknown_inputs(self):
         self.assertEqual(self.db.estimate("nope", "knee_mri")["status"], "invalid_input")
         self.assertEqual(self.db.estimate(UCSHIP, "nope")["status"], "invalid_input")

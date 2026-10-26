@@ -28,7 +28,7 @@ class Session:
         self.harness = Harness()
         self.history = []
         self.open_forms = {}  # request_id -> the form's question dicts
-        self.uploads = {}  # file_id -> {"path", "name"}
+        self.uploads = {}  # file_id -> {"path", "name", "content_type"}
         self.attachment_notes = []
         self.context = None  # the last home-screen mode applied
 
@@ -43,7 +43,7 @@ def dump(session):
     return {
         "history": [_plain(item) for item in session.history],
         "open_forms": session.open_forms,
-        "uploads": {fid: {"path": str(u["path"]), "name": u["name"]} for fid, u in session.uploads.items()},
+        "uploads": {fid: {**u, "path": str(u["path"])} for fid, u in session.uploads.items()},
         "attachment_notes": session.attachment_notes,
         "context": session.context,
         "hooks": {"user_texts": hooks.user_texts, "answers": hooks.answers},
@@ -57,7 +57,7 @@ def load(state):
     session = Session()
     session.history = state["history"]
     session.open_forms = state["open_forms"]
-    session.uploads = {fid: {"path": Path(u["path"]), "name": u["name"]} for fid, u in state["uploads"].items()}
+    session.uploads = {fid: {**u, "path": Path(u["path"])} for fid, u in state["uploads"].items()}
     session.attachment_notes = state["attachment_notes"]
     session.context = state["context"]
     hooks, guard = session.harness.hooks, session.harness.hooks.guard

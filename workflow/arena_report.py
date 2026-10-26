@@ -137,8 +137,10 @@ def arena_report(result):
         else:
             headline = f"{top['plan_name']} has the lowest year total: {_usd(top['year_total'])}."
             reasons = []
-        reasons.append(f"Year total {_usd(top['year_total'])} = premium {_usd(top['premium']['annual'])} + your care "
-                       f"{_usd(top['care']['total'])}.")
+        # A weighted ranking can skip the premium (e.g. UC SHIP without the student level), so the year total may be unknown.
+        if None not in (top.get("year_total"), top["premium"].get("annual"), top["care"].get("total")):
+            reasons.append(f"Year total {_usd(top['year_total'])} = premium {_usd(top['premium']['annual'])} + your care "
+                           f"{_usd(top['care']['total'])}.")
         if (top.get("budget") or {}).get("over"):
             reasons.append("Every plan's premium is over your monthly budget.")
         recommendation = {
