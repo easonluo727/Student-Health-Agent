@@ -18,6 +18,7 @@ from scripts.providers.import_zip_centroids import import_centroids
 from scripts.providers.validate_directory import validate
 from scripts.mrf.mrf_rate_store import SCHEMA as RATE_SCHEMA
 from provider_directory import ProviderDirectory
+from harness.skills.providers.skill import find  # noqa: E402
 
 N1, N2, N3, ABSENT = "1234567893", "1999999984", "1000000004", "1000000012"
 
@@ -166,7 +167,7 @@ class DirectoryBuildTests(unittest.TestCase):
             import_centroids(self.rates, gazetteer,
                              "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/test.zip", "2026")
 
-    def test_read_only_search_strict_rates_distance_and_unknowns(self):
+    def _service(self):
         build(self.archive, self.targets, self.directory, "2026-10-12", "2026-10-26")
         with sqlite3.connect(self.directory) as con:
             con.execute("INSERT INTO zip_centroids VALUES ('90024',34.0500,-118.4400,'2026','https://www2.census.gov/geo/example')")
@@ -200,6 +201,11 @@ class DirectoryBuildTests(unittest.TestCase):
                         "negotiated_type,expiration_date,billing_class,service_codes,modifiers) "
                         "VALUES (1,'99213','group',100,'negotiated','9999-12-31','professional','11','')")
         service = ProviderDirectory(self.directory, policy, price_store)
+        return service, policy, price_store
+
+    def test_read_only_search_strict_rates_distance_and_unknowns(self):
+        service, policy, price_store = self._service()
+        root = Path(self.tmp.name)
         search = dict(zip_code="90024", radius_miles=10, scenario="office_visit_established", plan_ids=["test"])
         result = service.search(**search)
         self.assertEqual(result["total"], 2)
@@ -216,6 +222,21 @@ class DirectoryBuildTests(unittest.TestCase):
         self.assertEqual(multi["providers"][0]["prices"]["test"]["estimate_status"], "billing_provider_mismatch")
         self.assertEqual(ProviderDirectory(root / "absent.sqlite", policy, price_store).search(**search)["status"],
                          "directory_unavailable")
+
+    def test_find_providers_tool_passes_choices_and_keeps_strict_prices(self):
+        service, _, _ = self._service()
+        args = {"zip_code": "90024", "scenario": "office_visit_established", "specialty": "family_medicine",
+                "radius_miles": 10, "plan_ids": ["test"], "plan_tiers": [], "remaining_deductible": 0,
+                "sort": "nearest", "limit": 5}
+        result = find(service, args)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual([p["npi"] for p in result["providers"]], [N1, N1])
+        self.assertEqual(result["providers"][0]["prices"]["test"]["patient_cost"], 20)
+        self.assertNotIn("provenance", result["providers"][0]["prices"]["test"])
+        self.assertEqual(find(service, {**args, "specialty": "dermatology"})["providers"], [])
+        absent = find(service, {**args, "scenario": "office_visit_new"})["providers"][0]["prices"]["test"]
+        self.assertEqual(absent["rate_status"], "rate_unavailable")
+        self.assertNotIn("patient_cost", absent)
 
 
 if __name__ == "__main__":

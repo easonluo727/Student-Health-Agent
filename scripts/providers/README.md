@@ -41,11 +41,9 @@ ZCTA representative points are approximate user positions **only**; they never b
 
 ## Read-only serving
 
-Set `PROVIDERS_DB` to the validated local path (production default `/data/providers.sqlite`). `GET /api/providers/options` lists services and confirmed plan tiers; `GET /api/providers/search` accepts `zip_code` or `latitude`/`longitude`, scenario/CPT, radius, optional repeated `plan_ids` and `plan_tiers=plan_id|tier`, and remaining deductible. The UI is `/providers`. A missing DB returns `directory_unavailable` without changing the chat estimator. Direct CPT without scenario billing context returns locations but no price. Multi-bill encounters do not turn one NPI's rate into a whole-visit cost.
+Set `PROVIDERS_DB` to the validated local path (production default `/data/providers.sqlite`). The agent reaches the directory through the `find_providers` tool (`workflow/harness/skills/providers/`), which calls `ProviderDirectory.search` with the user's ZIP, a scenario, an optional specialty (a NUCC taxonomy code or prefix), the plans to price, the radius and the user-stated remaining deductible; the agent decides when to call it and how to show the result (2026-10-26: no fixed page, see "前端形式" in `docs/PRODUCT.md`). A missing DB returns `directory_unavailable` without changing the chat estimator. Direct CPT without scenario billing context returns locations but no price. Multi-bill encounters do not turn one NPI's rate into a whole-visit cost.
 
 For rates, the service requires an existing confirmed plan-to-MRF bridge and uses `strict_npi=True`. Missing NPI-specific rates stay unavailable; network medians are never substituted. Network membership, coverage and a given NPI-level rate's applicability at each listed location remain unverified. Negotiated rates are not guaranteed allowed or paid amounts. Patient cost is computed only from a matched, calculable benefit and required user inputs.
-
-The local map uses Leaflet and `tile.openstreetmap.org` with visible attribution. Before any public deployment, review the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/) for identifiable requests, attribution, caching, and traffic limits; use an appropriate alternative tile service if expected traffic exceeds community-server capacity. Do not bulk-download or prefetch tiles.
 
 ## Deployment runbook — do not execute without user approval
 

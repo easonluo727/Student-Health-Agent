@@ -82,7 +82,9 @@ class Hooks:
     def pre_tool(self, name, args):
         if name == "ask_questions":
             return self._check_questions(args)
-        if name == "estimate_cost":  # the only amount the model passes is the remaining deductible
+        if name in ("estimate_cost", "find_providers"):  # the only amount the model passes is the remaining deductible
+            if name == "find_providers" and self.answers.get("zip"):  # the ZIP the user gave in the form wins
+                args["zip_code"] = str(self.answers["zip"])
             return self.guard.pre_tool("calculate_estimate",
                                        {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
         if name == "compare_plans":  # who the user is and how they use care: only answers they gave, never the model's
