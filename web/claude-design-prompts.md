@@ -45,7 +45,7 @@ Every step is the agent's choice: it may answer in one sentence, ask questions, 
 Two more desktop screens with the same components.
 
 1. Bill review: the user uploaded a photo of a medical bill (thumbnail in their message). The canvas shows the bill corrected: header (provider, date, plan); 4 lines with code, description, billed amount, negotiated rate and what the user should owe; one line overcharged (billed amount struck through, "Should be $X under your plan"); one line "No negotiated rate on file". Footer: "You may have been overcharged $Y" and a "Draft appeal letter" button, with the fine print "Negotiated rates are published by your insurer; the final claim may differ."
-2. Step detail for a web search: the user clicked a step line "Searched the web for Oscar Bronze plan documents". The canvas shows the search query, 3 pages visited as rows (favicon, title, URL), the screenshot of one page, and the quoted passage highlighted in pale mint, with a close button to return to the page.
+2. Step detail for a web search: the user clicked a step line "Searched the web for Oscar Bronze plan documents". The canvas shows what was searched, 3 sources as rows (favicon, title, URL) each with the short excerpt the agent read, and the sentences of the answer each source supports highlighted in pale mint, with a close button to return to the page. No screenshots.
 ```
 
 ---

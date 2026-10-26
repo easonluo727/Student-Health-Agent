@@ -146,7 +146,8 @@ Arena 对比        →     附近网络内的具体医生，    →   拍下账
 
 ## 5. 风险和要先确认的事
 
-1. **API 兼容性（第一天就要查）**：`workflow/server.py:174` 用的是 OpenAI 的 **Responses API**。要确认 Meta Model API 支持 `/responses`；不支持的话，在 `llm_client.py` 里写一个转成 `chat.completions` 的适配层，或者用 Modal / Baseten 跑开源权重模型的 vLLM（vLLM 支持 `/v1/responses`）。
+1. **API 兼容性（2026-10-26 查了文档，已解决）**：Meta Model API（https://dev.meta.ai/docs）原生支持 **Responses API**，`server.py` 不用改，只换环境变量：`LLM_BASE_URL=https://api.meta.ai/v1`、`LLM_API_KEY=<MODEL_API_KEY>`、`LLM_MODEL=muse-spark-1.3`（复杂任务可换 `muse-wonder-1.0`）。上下文 1M token，支持并行工具调用和流式工具参数。拿到 key 后实测一次。
+1b. **网页搜索用 Meta 自带的 `web_search` 工具（文档：https://dev.meta.ai/docs/search-grounding）**：在 Responses API 的 `tools` 里加 `{"type": "web_search"}`，可以和我们自己的函数工具一起用（我们的工具名不能用 `browser.search`、`browser.open`、`browser.find`）。**搜不搜由模型决定**，正好符合"每一步都是 agent 的选择"。加 `include: ["web_search_call.results"]` 能拿到每个来源的标题、链接和摘录（模型看到的文字），回答里有 `url_citation` 标出哪句话来自哪个链接；可以传 `user_location`（洛杉矶）。不用自己接 Tavily 之类的搜索服务。**不做网页截图**（2026-10-26 定）。限制：多步、多来源的复杂研究不太可靠，要拆成小问题；只给摘录不给全文，要核对整段原文得自己再抓网页；文档没写返回结果里有没有搜索词，拿到 key 后确认。另外文档里还有 Computer use（路线图第 3 步可能用得上）。
 2. **模型能力**：Muse Spark、Muse Wonder 各自擅长什么，要等开幕资料或 workshop 确认，本文没有核实。要测的有：工具调用稳不稳、看图读账单准不准。
 3. **健康数据隐私**：demo 和测试只用编出来的账单。真实用户上传的账单含个人健康信息，正式上线前要想清楚存哪里、存多久（现在对话保存一天）。
 4. **正式规则**：开赛时发布。要看：能不能用比赛前就写好的代码（多数黑客松要求说明哪些是比赛期间做的）、提交要什么（视频、仓库、线上地址）、是否必须用 Meta 模型做主模型。

@@ -254,7 +254,7 @@ The look pairs a clear mint `{colors.primary}` (`#8fdcc8`) action accent with a 
 - A single mint accent, used as a fill only. No second accent.
 - Numbers lead: the answer to "how much" is the largest thing on a card, in `display-md` (Inter Tight 900), followed by a receipt-style breakdown.
 - Sources are always visible as `source-chip`s next to the numbers they support.
-- The agent's work is visible: tool calls appear as live `step-line`s, then fold into "What I did"; any step can be opened to see the process (search queries, pages visited, screenshots).
+- The agent's work is visible: tool calls appear as live `step-line`s, then fold into "What I did"; any step can be opened to see the process (what was searched, sources, excerpts).
 - `{rounded.xl}` 24 px is the card and button radius.
 - A full semantic palette (positive, warning, negative) for status only.
 
@@ -366,9 +366,9 @@ White cards on the paper canvas are the main depth cue.
 
 ### Step detail (opening a step)
 - Clicking a `step-line` (or a step inside "What I did") opens its detail in the canvas, replacing the page until closed.
-- **Web search**: the query, then each page visited as a row (favicon, title, URL in `caption`), its screenshot (`{rounded.lg}`, 1 px `{colors.line}`), and the exact passage quoted, highlighted with `{colors.primary-pale}`.
+- **Web search**: the search, then each source the model saw as a row (favicon, title, URL in `caption`) with the excerpt it read, and the sentences of the answer each source supports, highlighted with `{colors.primary-pale}`. No screenshots.
 - **Database / calculator**: what was looked up, the inputs, the result, and the policy quote or rate source it used.
-- Built from the existing `search_step` events (they already carry screenshots) and `web/src/components/computer/`.
+- Built from the existing `search_step` events and `web/src/components/computer/`; search data comes from Meta's built-in `web_search` tool (sources and citations).
 
 ### Source chip
 - `source-chip`. Text says where the number came from: "SBC p.3", "Negotiated rate · Anthem", "Your answer". Click opens the source (PDF page or explanation) in a `modal-card`.
