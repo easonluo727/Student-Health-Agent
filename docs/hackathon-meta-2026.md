@@ -87,7 +87,7 @@ Arena 对比        →     附近网络内的具体医生，    →   拍下账
 
 **可行，但只适合一个窄任务，而且要先有评测集。**
 
-- **Muse Spark 等 API 模型大概率不能微调**（开幕后确认）。能训练的是 Meta 的开源权重模型，在 Modal、Fireworks 或 Baseten 上做 LoRA。8B 级别的模型训几个小时，大约花 $10–30，额度够用。
+- **要训练的模型：Muse Glimmer**（2026-10-26 查文档：https://dev.meta.ai/docs/muse-glimmer）。Meta 的开源权重模型，30B 参数，能读文字和图片，从 Muse Spark 蒸馏而来，Apache 2.0 许可。官方的训练文档（https://dev.meta.ai/docs/muse-glimmer/post-training）推荐先用 SFT（给"输入 → 正确输出"的例子），工具是 Axolotl 或 TRL，第一次实验用 QLoRA（显存最省）。30B 用 QLoRA 大约需要一张 80 GB 的 GPU（A100 / H100），在 Modal 上训几个小时约 $10–40。Fireworks、Unsloth 是它的发布合作方，可能有更省事的托管训练，要确认。Muse Spark 本身走 API，不能训练。
 - **训练什么**：
   - **保单抽取（SBC → 行）不适合**：现在 9 个计划共 818 行，`verified` 一列全是空的。项目规则禁止用没人工核对过的抽取结果训练；就算全部核对完，9 份文档也太少。
   - **账单 / EOB 抽取（建议）**：用程序生成样例账单（随机医生、编号、金额，渲染成 PDF 或图片），**标签在生成时就已知，是准确的**，不需要人工核对，想要几千张都可以。任务很窄：读出每一行的编号和金额，输出 JSON。
