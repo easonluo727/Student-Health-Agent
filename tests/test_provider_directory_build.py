@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "workflow"))
 
 from scripts.providers.build_directory import build
 from scripts.providers.export_target_npis import export
-from scripts.providers.geocode_directory import enrich
+from scripts.providers.geocode_directory import enrich, parse_census_batch
 from scripts.providers.import_zip_centroids import import_centroids
 from scripts.providers.validate_directory import validate
 from scripts.mrf.mrf_rate_store import SCHEMA as RATE_SCHEMA
@@ -151,6 +151,45 @@ class DirectoryBuildTests(unittest.TestCase):
         with sqlite3.connect(self.directory) as con:
             self.assertEqual(con.execute("SELECT COUNT(*) FROM provider_locations WHERE geocode_status='matched'").fetchone()[0], 4)
             self.assertIsNone(con.execute("SELECT latitude FROM provider_locations WHERE npi=?", (N2,)).fetchone()[0])
+
+    def test_batch_geocoding_checks_each_match_like_single_requests(self):
+        loc = {"address_line_1": "4101 TORRANCE BLVD", "city": "TORRANCE", "state": "CA", "zip5": "90503"}
+        text = (
+            '"0","4101 TORRANCE BLVD, TORRANCE, CA, 90503","Match","Exact",'
+            '"4101 TORRANCE BLVD, TORRANCE, CA, 90503","-118.355802843091,33.837624445372","657168765","R"\n'
+            '"1","4101 TORRANCE BLVD, TORRANCE, CA, 90503","Match","Non_Exact",'
+            '"4101 TORRANCE BLVD, TORRANCE, CA, 90505","-118.35,33.83","1","R"\n'
+            '"2","4101 TORRANCE BLVD, TORRANCE, CA, 90503","Match","Exact",'
+            '"4103 TORRANCE BLVD, TORRANCE, CA, 90503","-118.35,33.83","1","R"\n'
+            '"3","X","Tie"\n'
+            '"4","X","No_Match"\n'
+        )
+        out = parse_census_batch(text, {str(i): loc for i in range(6)})
+        self.assertEqual(out["0"]["status"], "matched")
+        self.assertAlmostEqual(out["0"]["latitude"], 33.837624, places=5)
+        self.assertEqual(out["1"]["status"], "ambiguous")  # different ZIP
+        self.assertEqual(out["2"]["status"], "ambiguous")  # different house number
+        self.assertEqual(out["3"]["status"], "ambiguous")  # tie
+        self.assertEqual(out["4"]["status"], "failed")
+        self.assertEqual(out["5"]["status"], "failed")  # missing from the reply
+
+    def test_batch_geocoding_sends_each_address_once_and_records_every_location(self):
+        build(self.archive, self.targets, self.directory, "2026-10-12", "2026-10-26")
+        batches = []
+
+        def fake_batch(rows):
+            batches.append([row["address_line_1"] for row in rows])
+            return {row["address_key"]: ({"status": "ambiguous"} if row["address_line_1"] == "20 Oak Ave" else
+                                         {"status": "matched", "latitude": 34.05, "longitude": -118.45,
+                                          "precision": "street_interpolated", "source": "fixture"}) for row in rows}
+
+        report = enrich(self.directory, limit=20, resume=True, min_interval=0, batch_size=2, batch_geocoder=fake_batch)
+        self.assertEqual(sum(len(b) for b in batches), 5)
+        self.assertTrue(all(len(b) <= 2 for b in batches))
+        self.assertEqual(report["requests"], len(batches))
+        with sqlite3.connect(self.directory) as con:
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM provider_locations WHERE geocode_status='matched'").fetchone()[0], 4)
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM provider_locations WHERE geocode_status='pending'").fetchone()[0], 0)
 
     def test_census_zip_reference_is_separate_from_provider_coordinates(self):
         build(self.archive, self.targets, self.directory, "2026-10-12", "2026-10-26")

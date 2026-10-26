@@ -28,7 +28,7 @@ python scripts/providers/geocode_directory.py --db data/providers/providers.sqli
 python scripts/providers/geocode_directory.py --db data/providers/providers.sqlite --resume --limit 100 --min-interval 1
 ```
 
-Repeat `--resume` in bounded batches. `--retry-failed` explicitly retries failed rows. Network errors record failure; the build itself works offline. To support approximate **user** ZIP position, obtain the year-appropriate ZCTA Gazetteer ZIP from the [Census Gazetteer page](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html), then run:
+Addresses go to the Census **batch** geocoder by default (`--batch-size 1000`, up to 10,000 per request), so tens of thousands of addresses take minutes; each match gets the same checks as a single request. `--batch-size 0` sends one request per address. Repeat `--resume` in bounded batches. `--retry-failed` explicitly retries failed rows. Network errors record failure; the build itself works offline. To support approximate **user** ZIP position, obtain the year-appropriate ZCTA Gazetteer ZIP from the [Census Gazetteer page](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html), then run:
 
 ```bash
 python scripts/providers/import_zip_centroids.py --db data/providers/providers.sqlite \
