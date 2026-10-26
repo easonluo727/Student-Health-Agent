@@ -99,6 +99,7 @@
 - `kind`：`single`（单选）、`multi`（多选）、`number`（数字）、`text`（填空）、`weight`（权重）。
 - `single` 和 `multi` 必须带 `options: [{ value, label }]`。选项由后端根据数据生成，例如网络层级来自计划 JSON。
 - `weight` 是 1–5 的刻度，`scale_labels: ["Don't care", "Very important"]`。
+- `heading`（可选）：一组题共用的题干，前端只在这一组的第一题上方显示一次。目前用于优先级打分题："What matters most to you?"。
 - `prefill`：用户之前说过的信息。前端预先填好，并标明“From your message, please confirm”。
 - **每道题前端都会自动加一个“I don't know”选项**，后端不用自己加。
 
@@ -180,22 +181,70 @@
   ],
   "comparison": [
     {
-      "key": "deductible",
-      "label": "Deductible",
-      "highlight": false,
-      "cells": { "uc_ship": { "text": "$0", "source": { ... } } }
+      "key": "visit.office_visit_established",
+      "label": "10 x Primary care visit (established patient)",
+      "highlight": true,
+      "cells": { "uc_ship": { "text": "$250.00", "detail": "10 x $25.00 = $250.00. Primary care visit: $25.00 copay, deductible doesn't apply", "source": { ... } } }
     }
-  ]
+  ],
+  "ranking": {
+    "method": "weighted_score",
+    "summary": "Score out of 100 = the weighted average of each priority's points. ...",
+    "factors": [
+      { "factor": "premium", "label": "A low premium", "answer": 4, "weight": 3, "used": true, "reason": null }
+    ]
+  },
+  "note": "Care = each visit priced in turn over the year ..."
 }
 ```
 
-- `scenarios[].costs` 是**年度总花费**（年保费 + 预期自付，受 OOP max 封顶），由 Python 计算。场景至少有：`healthy`（健康年）、`expected`（用户的预期使用）、`worst`（意外大病）。
-- `comparison` 中 `highlight: true` 的行和用户的病情相关，前端会高亮。
-- 不使用综合评分。
+- 后端在每次 `compare_plans` 算完（不缺输入）后发送，由 `workflow/arena_report.py` 从 `plan_db.compare` 的结果生成，没有 LLM 参与。
+### Care（dashboard 的"附近的医生和机构"部分，接口已留好，后端待接）
+
+`report.care` 可以不传。有它时 dashboard 显示"Care near you"标签页：顶部是查询栏，下面是筛选、价格分布、地点列表和地图。没有计划对比时 `plans`、`scenarios`、`comparison` 传空数组即可。对应路线图第 1 步（按位置推荐具体医生），所有数字由 Python 算。
+
+```json
+{
+  "query": {
+    "service": "Knee MRI", "code": "73721", "description": "...",
+    "location": { "label": "90024 · Westwood", "zip": "90024", "lat": 34.0635, "lng": -118.4455 },
+    "plan_id": "anthem_ppo_ucship_ucla_2026_27", "plan_label": "UC SHIP · Network tier", "max_miles": 25
+  },
+  "price": {
+    "label": "Typical negotiated price in your network", "midpoint": 890, "min": 410, "max": 2350,
+    "bins": [{ "price": 410, "count": 2 }, { "price": 520, "count": 5 }],
+    "source": { "kind": "mrf", "label": "..." }
+  },
+  "providers": [
+    {
+      "provider_id": "1234567890", "name": "...", "kind": "imaging_center", "specialty": null,
+      "address": "...", "lat": 34.05, "lng": -118.44, "distance_miles": 0.6,
+      "in_network": true, "network_tier": "Network",
+      "allowed_amount": 620, "patient_cost": { "mid": 124 }, "price_vs_typical": "lower",
+      "quality": { "score": 4.6, "label": "4.6 · CMS star rating", "source": { ... } },
+      "recommended": true, "reason": "为什么推荐（agent 写）", "source": { ... }
+    }
+  ],
+  "note": "What you pay assumes your deductible is met"
+}
+```
+
+- `provider_id` 用 NPI。`kind`：`doctor`、`hospital`、`clinic`、`imaging_center`、`lab`、`urgent_care`、`other`。
+- `in_network: null` 表示不知道；`patient_cost: null` 表示算不出，前端显示"Price unknown"，地图标签显示"—"（不拿协商价充当用户要付的钱）。
+- `quality.score` 是 0–5，没有公开评分时为 `null`，`label` 写"No public rating"。
+- `recommended: true` 的地点显示"Agent pick"徽章，地图上高亮。前端默认按后端给的顺序显示，用户可以切换排序（价格、距离、评分）和筛选（距离、评分、只看网络内），这些只改变显示，不改变数字。
+- 查询栏只读：用户点某一项，输入框上方出现"Asking about: …"，下一条消息带 `reply_target`，`ref` 是 `care.query.service`、`care.query.location`、`care.query.plan`；点地点卡片上的"Ask"时 `ref` 是 `care.provider.<provider_id>`。
+
+- `scenarios[].costs` 是**年度总花费**，由 Python 计算：`expected` = 年保费 + 按用户填的次数逐次计价的看病花费（deductible 全年累计，受 OOP max 封顶）；`healthy` = 只有年保费；`worst` = 年保费 + OOP max。缺保费输入时只有一个 `expected`，只含看病花费。
+- `plans[].annual_premium` 可以是 `null`（保费还算不出来）。
+- `comparison` 的每格可以带 `detail`：这个数是怎么算出来的（次数 × 单次费用、用了哪条福利规则、allowed amount 来源）。`source` 指向保单页码和原文。`highlight: true` 的行是用户自己填了次数的就诊。
+- `ranking`：排名方式，由 `plan_db.rank_plans` 计算（2026-10-24 起取代"不使用综合评分"）。用户给优先级打了分时 `method` = `weighted_score`：每个优先级上最好的计划 100 分、最差的 0 分，按金额线性插值；权重 = 打分 − 1（1 = 不在乎 = 0），没打分的按 3 算；总分是加权平均。`year_total`：没打分，按年保费 + 看病花费排。`visits_only`：缺保费输入，只按看病花费排，不作推荐。超出月预算的计划排在预算内的计划之后。`factors[].used` 为 false 的优先级不计分，`reason` 说明原因（例如"保留医生"暂时无法核对网络）。
 
 ## 前端的固定行为
 
 - 问卷卡片：提交时卡片进入“提交中”状态，按钮全部禁用；提交失败时错误显示在卡片上，可以重试；提交后卡片折叠成一行摘要。
 - 确认卡片：“Looks right” 或 “Something's off”（附一句说明）。只在 agent 有猜测时出现，见上文。
-- dashboard：在对话右侧（只做桌面 web 端）。点击对比表的某一行，输入框上方会出现“Asking about: …”，下一条消息带上 `reply_target`。
-- 搜索进度：在对话里显示为步骤列表，正在进行的步骤有加载动画。有截图时，右侧面板自动切到 “Computer”：搜索进行中跟随最新一步；结束后显示所有截图的总览；点击某一张可停下来查看，点 “Back to live” / “Overview” 回到跟随。
+- 首页：干净的对话页，输入框上方是模式切换（Calculate / Review / Just chat，Just chat 不带 `context`），下面是几条建议问题。
+- dashboard：收到 `report` 后页面分成两栏，左边是 agent 对话栏（420px），右边是 dashboard（只做桌面 web 端），可以关掉、再用"Open report"打开。点击对比表的某一行或 care 查询栏的某一项，输入框上方会出现“Asking about: …”，下一条消息带上 `reply_target`。
+- 搜索进度：在对话里显示为步骤列表，正在进行的步骤有加载动画。有截图时，右下角出现浮动小窗口，显示最新一页和当前步骤；搜索结束后自动缩成一行。点放大按钮打开完整的 “Computer” 视图：搜索进行中跟随最新一步；结束后显示所有截图的总览；点击某一张可停下来查看，点 “Back to live” / “Overview” 回到跟随。
+- 地图：Leaflet。默认底图是 Esri 浅灰底图加地名层，不需要 key；可以用 `NEXT_PUBLIC_MAP_TILES`、`NEXT_PUBLIC_MAP_LABELS`、`NEXT_PUBLIC_MAP_ATTRIBUTION` 换成别的。

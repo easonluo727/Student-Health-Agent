@@ -25,3 +25,8 @@ data/uploads/
 # Local design assets (not published)
 decks/
 docs/AMD-brand-guidelines.pdf
+# Conversation state (workflow/sessions.py)
+data/sessions.sqlite*
+
+# teammate feedback deck, summarized in docs/feedback-2026-10-24.md
+Untitled presentation.pdf

@@ -15,19 +15,23 @@ GROUPS = {
 }
 
 WEIGHT_LABELS = ["Don't care", "Very important"]
+# Shown once above the weight questions in a form.
+WEIGHT_HEADING = "What matters most to you?"
 
 
 def _visits(qid, label, encounter, when):
     return {
         "id": qid, "group": "B", "kind": "number", "label": label, "unit": "per year", "min": 0, "max": 50,
-        "maps_to": f"price DB encounter `{encounter}` x expected visits", "when": when,
+        "maps_to": f"compare_plans: encounter `{encounter}` priced this many times a year", "when": when,
+        "encounter": encounter,
     }
 
 
 def _weight(qid, label, when):
     return {
-        "id": qid, "group": "E", "kind": "weight", "label": label, "scale_labels": WEIGHT_LABELS,
-        "maps_to": "ranking weight", "when": when,
+        "id": qid, "group": "E", "kind": "weight", "heading": WEIGHT_HEADING, "label": label,
+        "scale_labels": WEIGHT_LABELS, "maps_to": "compare_plans ranking: weight = rating - 1 (plan_db.rank_plans)",
+        "when": when,
     }
 
 
@@ -38,6 +42,14 @@ QUESTIONS = [
     {"id": "zip", "group": "A", "kind": "text", "label": "What's your ZIP code?",
      "help": "Premiums and nearby doctors depend on where you live.",
      "maps_to": "premium rating region; nearby providers", "when": "comparing or recommending plans"},
+    {"id": "student_level", "group": "A", "kind": "single", "label": "Are you an undergraduate or a graduate student?",
+     "help": "UC SHIP costs more for graduate students.",
+     "options": [
+         {"value": "undergraduate", "label": "Undergraduate"},
+         {"value": "graduate", "label": "Graduate"},
+         {"value": "not_student", "label": "Not a student"},
+     ],
+     "maps_to": "UC SHIP premium (by student level)", "when": "comparing or recommending plans"},
     {"id": "current_coverage", "group": "A", "kind": "single", "label": "What coverage do you have now?",
      "options": [
          {"value": "uc_ship", "label": "UC SHIP"},
@@ -87,7 +99,7 @@ QUESTIONS = [
      "when": "recommending a plan, or the user asks about a bad year"},
 
     # C. Doctors and networks
-    {"id": "keep_providers", "group": "C", "kind": "single", "label": "Is there a doctor or hospital you want to keep?",
+    {"id": "keep_providers", "group": "C", "kind": "multi", "label": "Is there a doctor or hospital you want to keep?",
      "options": [
          {"value": "ucla_health", "label": "UCLA Health"},
          {"value": "ashe", "label": "Ashe Student Health Center"},
@@ -123,7 +135,7 @@ QUESTIONS = [
     # E. Budget and priorities
     {"id": "monthly_budget", "group": "E", "kind": "number",
      "label": "What's the most you'd pay each month for insurance?", "unit": "USD per month", "min": 0, "max": 3000,
-     "maps_to": "filter and rank plans by premium", "when": "recommending a plan"},
+     "maps_to": "compare_plans ranking: plans over budget rank last (plan_db.rank_plans)", "when": "recommending a plan"},
     _weight("weight_premium", "A low monthly premium", "recommending a plan"),
     _weight("weight_visit_costs", "Low costs when you see a doctor", "recommending a plan"),
     _weight("weight_worst_case", "Protection in a bad year (a low out-of-pocket max)", "recommending a plan"),
@@ -134,3 +146,13 @@ BY_ID = {q["id"]: q for q in QUESTIONS}
 
 # Calculator fields that Python asks for itself when calculate_estimate reports them missing.
 CALCULATOR_FIELDS = {"allowed_amount": "allowed_amount", "remaining_deductible": "remaining_deductible"}
+# Premium inputs: PlanDB.premium field -> question-bank id. Python fills them from the answers and asks for the rest.
+PREMIUM_FIELDS = {"age": "age", "zip": "zip", "student_level": "student_level"}
+# Visit counts: question-bank id -> scenario. Python passes the answers to compare_plans as times a year.
+VISIT_FIELDS = {q["id"]: q["encounter"] for q in QUESTIONS if "encounter" in q}
+# keep_providers option -> the plan tier that place is (UC SHIP's Ashe Center tier). compare_plans prices visits there
+# first. A place with no tier of its own (UCLA Health is an ordinary in-network provider) is not listed.
+PROVIDER_TIERS = {"ashe": "Ashe Center"}
+# Ranking weights: plan_db.FACTORS key -> question-bank id. Python passes the answers to compare_plans.
+WEIGHT_FIELDS = {"premium": "weight_premium", "visit_costs": "weight_visit_costs", "worst_case": "weight_worst_case",
+                 "keep_doctors": "weight_keep_doctors"}

@@ -16,7 +16,7 @@ HEAD = ("plan_id,section,service,service_as_printed,component,network,network_ti
 OFFICE = "If you visit a health care provider's office or clinic"
 
 
-def run(benefits, plan=PLAN, sources=None, networks=None):
+def run(benefits, plan=PLAN, sources=None, networks=None, premiums=None):
     """Build from one plan folder; return (exit code, plans, benefits keyed by name+network, plan_networks)."""
     src = Path(tempfile.mkdtemp())
     (src / "extracted" / "p").mkdir(parents=True)
@@ -26,12 +26,15 @@ def run(benefits, plan=PLAN, sources=None, networks=None):
         (src / "sources.csv").write_text(sources)
     if networks:
         (src / "plan_networks.csv").write_text(networks)
+    if premiums:
+        (src / "premiums.csv").write_text(premiums)
     with redirect_stdout(io.StringIO()):
         code = build_seed.main(src, src / "policy.sqlite")
     con = sqlite3.connect(src / "policy.sqlite")
     con.row_factory = sqlite3.Row
     plans, rows, links = ([dict(r) for r in con.execute(f"SELECT * FROM {t}")]
                           for t in ("plans", "benefits", "plan_networks"))
+    run.premiums = [dict(r) for r in con.execute("SELECT * FROM premiums")]
     con.close()
     return code, plans, {r["service_as_printed"] + r["network"]: r for r in rows}, links
 
@@ -87,6 +90,15 @@ class BuildSeed(unittest.TestCase):
                                          "later_plan,,lacare_covered,,\n")
         self.assertEqual(code, 1)
         self.assertEqual([(r["network_tier"], r["mrf_plan_key"]) for r in links], [("UC Family", "anthem_ppo")])
+
+    def test_premiums_need_a_source_and_a_built_plan(self):
+        head = "plan_id,rating_region,age,enrollee,period,amount_usd,annual_usd,basis,source_url,source_page,quote\n"
+        code, _, _, _ = run(f"p,{OFFICE},xray,Test,,in,,10,,no,,yes,,x,yes\n", premiums=head
+                            + "p,16,40,,month,$367,4404,booklet,https://x,25,L.A. Care HMO* $321 - $367\n"
+                            + "p,15,40,,month,347,4164,booklet,https://x,23,\n"
+                            + "later_plan,,,,quarter,10,30,cal,https://x,1,q\n")
+        self.assertEqual(code, 1)  # the row without a quote
+        self.assertEqual([(r["rating_region"], r["amount_usd"]) for r in run.premiums], [(16, 367)])
 
     def test_bad_rows_skipped_and_duplicates_skip_the_plan(self):
         code, _, rows, _ = run(f"p,{OFFICE},dental,Teeth,,in,,0,,no,,yes,,x,yes\n"

@@ -112,8 +112,13 @@ export function FormCard({
       </div>
 
       <fieldset disabled={locked} className="space-y-5 px-4 py-4">
-        {form.questions.map((q) => (
-          <QuestionField key={q.field} question={q} answer={answers[q.field]} onChange={(a) => set(q.field, a)} />
+        {form.questions.map((q, i) => (
+          <div key={q.field} className="space-y-3">
+            {q.heading && q.heading !== form.questions[i - 1]?.heading && (
+              <div className={cn("text-sm font-semibold", i > 0 && "border-t pt-4")}>{q.heading}</div>
+            )}
+            <QuestionField question={q} answer={answers[q.field]} onChange={(a) => set(q.field, a)} />
+          </div>
         ))}
       </fieldset>
 

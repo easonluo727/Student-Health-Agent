@@ -2,7 +2,7 @@
 
 | database | file | size | where it lives in production |
 |---|---|---|---|
-| ① policy (`plans`, `benefits`, `plan_networks`) | `data/plans/policy.sqlite` | ~100 KB | committed, deployed with the code |
+| ① policy (`plans`, `benefits`, `plan_networks`, `premiums`, `age_curve`, `rating_regions`) | `data/plans/policy.sqlite` | ~100 KB | committed, deployed with the code |
 | ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite` (`RATES_DB`) |
 
 Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). The agent prices each visit component
@@ -97,6 +97,24 @@ Every step leaves evidence a person can check. A coding assistant may run the sc
 
 If the network is already in the rate store (for example another metal tier of Health Net Ambetter), steps 5 and
 most of 4 are quick. Steps 3, 4 and 6 could become one script (plan name in, evidence-backed link out).
+
+## Premiums
+
+`premiums` holds each plan's list price before any subsidy, parsed by `scripts/policy/extract_premiums.py` from the
+official PDFs (downloaded to `data/policy_pdfs/premiums/`, SHA-256 checked; the URLs are in the script). Each row
+keeps its page and the printed line it came from. No one types a premium.
+
+- **Covered California** (`CCA_26_QHP_Plan_Rates_by_County.pdf`, rates as of 2025-08-01, preliminary): monthly
+  premium for a single 25- and 40-year-old per rating region. `PLAN_ROWS` in the script says which booklet line and
+  metal column price each plan; a plan the booklet has no Los Angeles price for gets no rows and is not ranked.
+- **Other ages** are scaled from the age-40 row on `age_curve`, the CMS federal default age curve (California has no
+  curve of its own). Checked against the printed age-25 rates: within $1 a month.
+- **Rating region** comes from the ZIP code: `rating_regions` lists every Los Angeles County ZIP (Covered California's
+  ZIP list; regions 15 and 16 are fixed by Health and Safety Code 1357.512). Other counties are not loaded yet.
+- **UC SHIP** (UCLA's 2026-27 calendar): one price per quarter by student level; a year is Fall + Winter + Spring.
+
+To add a plan's premium: add its line to `PLAN_ROWS` (or a parser for a new document), rerun
+`extract_premiums.py`, then `build_seed.py`.
 
 ## Rates database on Railway
 

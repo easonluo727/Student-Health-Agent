@@ -2,11 +2,19 @@
 
 记录于 2026-10-18，2026-10-20 更新。按优先级排列，每条写清楚现状、问题和建议做法。做完一条就把它挪到文末的"已完成"，或者直接删掉。
 
-现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 11 个 plan，11 个都有带证据的网络对接（桥 1）。价格库 `rates.sqlite`（3.1 GB，Railway 磁盘卷 `/data`）运行时直接查，暂时按网络里所有洛杉矶医生的中位数算，按路线图第 1 步改成按具体医生算。2026-10-20 删掉了 legacy 模式、搜索 worker 和 CSV 价格汇总表，现在只有一条路径。相关 issue：#5（人和计划的年度匹配）、#6（保单 × 价格对接）。
+现状概要：产品只部署成 Railway 上的一个服务 `agent-api`（https://agent-api-production-adc8.up.railway.app），从 `main` 分支自动部署。功能一（一次看病的自付金额，`estimate_cost`）和功能二（Arena 对比，`compare_plans`）都已做完。保单库 `data/plans/policy.sqlite` 有 9 个 plan（2026-10-24 删掉了洛杉矶买不到的 2 个），都有带证据的网络对接（桥 1）。价格库 `rates.sqlite`（3.1 GB，Railway 磁盘卷 `/data`）运行时直接查，暂时按网络里所有洛杉矶医生的中位数算，按路线图第 1 步改成按具体医生算。2026-10-20 删掉了 legacy 模式、搜索 worker 和 CSV 价格汇总表，现在只有一条路径。相关 issue：#5（人和计划的年度匹配）、#6（保单 × 价格对接）。
 
 ---
 
-## 路线图（2026-10-20 定）
+## 路线图（2026-10-20 定，2026-10-26 更新）
+
+**2026-10-26 到 11-04 是 Meta 黑客松**，这段时间的范围、分工表和日程以 `docs/hackathon-meta-2026.md` 为准。黑客松要做的，按顺序：
+- **A. 按医生定价**：下面第 1 步。Arena 也改成按医生算，去掉中位数。
+- **B. 账单审核**（新加，见下面第 1.5 步）。
+- **C. 补全费用计算**：只补 demo 用到的缺口（P2 第 5 条）；急诊、HPV、生孩子先不做。
+- **D. 前端去 AI 化**，加上医生卡和账单审核结果卡。
+- 有余力再做：E. 找保单的搜索（P1 第 1 条），F. 微调一个读账单的开源小模型。
+- 还要做：第 1 天把模型换成 Meta Model API（先确认支持 `server.py` 用的 Responses API），最后一天录 demo 视频和提交。
 
 按顺序做：
 
@@ -17,20 +25,17 @@
    - HMO：按每个计划自己的规则筛选（先选医疗集团，再选集团里的医生）。L.A. Care 的价格文件里网络名就是医疗集团。
    - 急诊不做推荐。
    - `allowed.component()` 已经支持按 NPI 取这位医生的价格（`provider_rate`）。
+1.5. **账单审核（看病后）**：用户上传账单或 EOB，多模态模型只抽取每一行（医生、日期、收费编号、金额，JSON schema 约束），Python 用第 1 步的按 NPI 查价和计算器逐行核对，标出多收、差价、重复收费、急诊按网外收费；agent 解释并起草申诉信。价格库里没有的编号或医生如实标"没有数据"。产品说明见 `PRODUCT.md` 的"账单审核"。测试用程序生成的样例账单，答案已知，同时也是微调的评测集。
 2. **医生水平（rate my doctor）**：给每位医生建一份档案，每一项都有公开来源，agent 按用户在意的点比较。具体做法再商量。候选来源：加州医学委员会（处分记录，按执照号）、CMS Care Compare（MIPS 绩效分，不是每个医生都有，例如 NPI 1205190659 Jun Chung 就没有；医学院和毕业年份）、Medicare 服务量、CMS 医院星级、搜索（职称、执业医院）。查不到的项说"没有公开数据"，不能编。水平低的医生要如实告诉用户。
 3. **更深的 computer search**：用 Computer Use 查医生和医院的评价（例如 Google 评价）。注意网站条款对自动抓取的限制。
 4. **登录**
 5. **个人信息的长期记忆**：登录以后，记住用户的病情、常看的医生、计划等，下次不用再问。
 
-前提：桥 1（计划对网络）必须先全部确认。2026-10-20 已完成：11 个计划都有证据（`data/plans/plan_networks.csv` 的 `notes`）。以后加计划按 `db/README.md` 的"Adding a plan"。
+前提：桥 1（计划对网络）必须先全部确认。2026-10-20 已完成：当时的 11 个计划都有证据（`data/plans/plan_networks.csv` 的 `notes`）。以后加计划按 `db/README.md` 的"Adding a plan"。
 
 ---
 
 ## P0：现在就坏的
-
-### 线上服务对所有问题都报错
-
-2026-10-20 实测：线上对任何问题都返回 `AuthenticationError: 401 Invalid bearer token`。AMD 的 API key 已经失效。换成新的供应商以后，在 Railway 上把变量改成 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`（旧的 `AMD_*` 已经不读了）。
 
 ### issue #6（保单 × 价格对接）的状态
 
@@ -67,13 +72,12 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 
 ### 3. 问卷改版
 
-用户提过要改，内容还没讨论。现状：`harness/skills/questionnaire/bank.py` 还是旧的题库，Arena 已经能用上里面的权重题（保费、看病成本、坏年份保障）。
-**要对齐的地方**：每道题的 `maps_to` 应该对应到新的输入，也就是 `estimate_cost` 的场景、档位、剩余自付额，以及 `compare_plans` 的场景组合。可以考虑加一道"一年里预计会用到哪些医疗服务、各几次"的题，直接生成 Arena 用的场景列表。
+2026-10-24 按队友反馈（`docs/feedback-2026-10-24.md`）改了一轮：就诊次数题由 Python 传给 `compare_plans` 按次计价；四道优先级打分题由 `plan_db.rank_plans` 按公式排名，并加了题干 "What matters most to you?"；预算题让超预算的计划排在后面；"想保留的医生或医院"改成多选。
+还没做的：`keep_providers` 的选项写死了 UCLA 的两家机构，不适合全美用户；"保留医生"这个优先级暂时不计分（没有医生在不在网络的数据，等路线图第 1 步）；`network_types_ok` 收集了但没用来筛选。
 
 ### 4. 对话速度
 
-**现状**：一轮对话 25 秒到 4 分钟，主要是模型开着思考模式（`server.py` 的 `agent_loop` 用的是 responses API）。抽取那边关掉思考后快了十倍以上。
-**做法**：拿几组固定问题，对比开和关思考时的回答质量和用时，再决定 agent 主循环要不要关。也可以只在第一步（理解问题、选工具）开思考，后面写回复时关掉。
+2026-10-24 换成 Kimi（`kimi-for-coding`）后实测：简单的问价一轮 5–12 秒（以前 25 秒到 4 分钟），带问卷的 Arena 一轮大约 30–60 秒。暂时不用再调。
 
 ---
 
@@ -115,19 +119,36 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 
 ### 9. 保费
 
-Arena 没有保费数据，所以只比较看病的花费。`data/policy_pdfs/C_coveredca_rates.pdf` 是 Covered CA 2026 的保费表，可以抽成 SQL 表，按年龄和地区查保费，让 Arena 给出"保费 + 预计看病花费"的年度总成本。
+2026-10-24 接入：`scripts/policy/extract_premiums.py` 从官方 PDF 解析出 `data/plans/premiums.csv`、`age_curve.csv`、`rating_regions.csv`，`build_seed.py` 建进 `policy.sqlite`。Arena 现在按"一年保费 + 看病花费"（`year_total`）排名；用户给优先级打了分时按加权分排名（2026-10-24，见 `docs/feedback-2026-10-24.md`）。年龄、ZIP、本科/研究生由 Python 从问卷答案里填，缺了就自动发表单。还没做的：
+- **补贴**：保费是补贴前的标价，没算 Covered CA 的保费税收抵免（APTC）。低收入的学生拿到补贴后，Covered CA 的计划可能便宜很多，这时排名会变。要算的话需要家庭收入和人数这两道题，加上第二便宜 Silver 计划（benchmark）的保费。
+- **初步费率**：费率册是 2025-08-01 的初步版。Shop & Compare 上的最终价可能有几块钱的差别，找到最终版的公开文件就换掉。
+- **2027 年**：2027 年的开放注册从 2026-11-01 开始，到时候计划和保费都要换成 2027 年的。
+- **洛杉矶买不到的计划（2026-10-24 已删）**：费率册的洛杉矶页面没有 Anthem EPO，也没有 Health Net HMO 的 Bronze，所以 Anthem Silver 70 EPO 和 Health Net Bronze 60 HMO 已经从数据库删掉了，抽取的 CSV 和网络对接的证据都还在 git 历史里。注意 `sbc-2026-bundle-manifest.csv` 里写着 Ambetter HMO 覆盖洛杉矶县，但那说的是这个产品线，不是 Bronze 这一档。以后要支持洛杉矶以外的地区，可以从历史里把它们恢复回来。
+- **UC SHIP 的其他项目**：只收了 UCLA 按季度注册的本科生和研究生。法学院、医学院和暑期项目的保费不一样（日历上都有），还没收。
+- **年龄换算**：除了 25 岁和 40 岁，其他年龄都是用 40 岁的价格按 CMS 联邦默认年龄曲线换算的。用 25 岁的实际价格校验过，最多差 $0.72。
 
 ---
 
 ## P4：工程和运维
 
-- **服务器上的压缩包**：Railway 磁盘卷里还有 `/rates.sqlite.xz`（273 MB），已经没用了。按 Railway 的规定只能本人删除：`railway volume files --volume rates-data delete /rates.sqlite.xz`
+2026-10-24 做完：会话存进 SQLite（`workflow/sessions.py`，Railway 上在卷里 `/data/sessions.sqlite`，上传的 PDF 在 `/data/uploads`）。重新部署也不丢对话，保留 24 小时（`SESSION_TTL`），过期的连同上传文件每小时清理一次。删掉了 `review_sheet.py`、`import_plan_csv.py` 和它们的测试。Railway 上不用的变量都删了。"免赔额已经付完"现在算作用户说了 0。
+
+还剩：
+- **服务器上的压缩包**：Railway 磁盘卷里还有 `/rates.sqlite.xz`（273 MB），已经没用了。只能本人删除：`railway volume files --volume rates-data delete /rates.sqlite.xz`
+- **换 key**：Kimi key 在聊天里发过，旧的 AMD key 也在命令输出里完整显示过一次。要换成新 key，然后改 Railway 上的 `LLM_API_KEY`。
+- **前端的确认卡片**（`confirm`）：后端已经不发了，前端还支持，可以删。`web/` 现在有别人在改，等那边提交了再动。
+- **多实例**：会话已经能多个实例共用，但 SQLite 文件在一个卷上，Railway 的卷只能挂一个服务实例，真要扩容得换成 Postgres 之类。现在一个实例够用。
 - **搜索**：旧的搜索 worker 已删除，新的搜索还没定，候选方向见 `PRODUCT.md` 的"搜索"一节。
-- **会话存在内存里**：`server.py` 的 `SESSIONS = {}` 永远不清理，重新部署就全部丢失，也不能开多个实例。至少要改成 SQLite 存储并设过期时间。路线图第 4、5 步（登录、长期记忆）也需要先有持久化的存储。
-- **legacy 剩下的**：`scripts/policy/review_sheet.py`（和 `tests/test_review_sheet.py`）只处理已删除的 `import_policy.py` 产出的规则 JSON，可以删。`scripts/policy/import_plan_csv.py` 自己的输出（`policies/*.json`）也没人用了，只有 `build_seed.py` 还在用它的 CSV 辅助函数，可以把那几个函数挪进 `build_seed.py` 后删掉。前端仍支持确认卡片（`confirm`），后端已经不发了。
-- **`agent-api` 上用不到的变量**：`CORS_ORIGINS`。前后端已经同域，可以删掉。
 - **本地分支**：本地还有两个只在本机的分支（`mr-jude-justin/amd-hackathon-plan`、`mr-jude-justin/latest-version-status`），被 Conductor 工作区占用着，各有 27–29 个没合进 main 的提交。
 - **之前用 AMD 接口（Qwen）抽取时踩过的坑**，换供应商后可能还会遇到：
   - 开着思考模式时，一页福利表要十几分钟，一定要用 chat API 关掉思考（Qwen 是 `LLM_EXTRA_BODY={"chat_template_kwargs": {"enable_thinking": false}}`）；
   - 并发请求太多会返回 429，所以一次只抽一个 plan，并带退避重试；
   - 温度为 0 时偶尔陷入重复输出的死循环，所以要设 `max_tokens`，并在重试时调高温度。
+
+## 前端改版后测出的问题（2026-10-24）
+
+- **Python 自动发的表单不预填**：用户在聊天里说了"22 岁、本科生、90024"，`compare_plans` 缺这三项时自动发表单（`server.py` 的 `auto_ask` → `build_form`），但表单是空的，用户得重新填一遍。应该用问卷已有的 `_stated_value` 检查，把用户说过的值预填上。
+
+## 数据阶段要看的回复问题
+
+- 2026-10-24 实测：Kimi 在 Arena 的回复里说了"L.A. Care 的网络里 UCLA 的医生有限"，这句话没有数据支持。要么在提示里禁止对网络大小下判断，要么等路线图第 1 步有了医生数据再说。
