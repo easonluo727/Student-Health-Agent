@@ -153,6 +153,7 @@ class PlanDbOnFixtureRates(unittest.TestCase):
 class PlanDbWithoutRateStore(unittest.TestCase):
     def test_flat_copays_still_work(self):
         db = PlanDB(rates_path=Path("/nonexistent/rates.sqlite"))
+        db.warm()  # startup remains available when the optional rate store is absent
         self.assertEqual(db.estimate("healthnet_silver70_hmo_2026", "specialist_followup")["patient_cost"], 90)
         self.assertEqual(db.allowed_amounts("healthnet_silver70_hmo_2026", None, "knee_mri")["status"], "no_rates")
 
