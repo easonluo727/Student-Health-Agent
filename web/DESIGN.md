@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: health-insurance-agent
-description: Design system for the health-insurance agent page — the only page in the product. One conversation column on a warm paper canvas; the agent's results arrive as rounded white cards with a heavy near-black display number, a clear mint action accent and receipt-style breakdowns. Reads like a calm consumer-finance tool, not an AI tool. Spacing, type scale and component patterns adapted from VoltAgent/awesome-design-md (MIT); brand names, proprietary fonts and brand colours replaced.
+description: Design system for the health-insurance agent page — the only page in the product. A conversation on the left and, when the agent decides a page is needed, an agent-built canvas on the right, on a warm paper background; results are rounded white cards with a heavy near-black display number, a clear mint action accent and receipt-style breakdowns. Reads like a calm consumer-finance tool, not an AI tool. Spacing, type scale and component patterns adapted from VoltAgent/awesome-design-md (MIT); brand names, proprietary fonts and brand colours replaced.
 
 colors:
   primary: "#8fdcc8"
@@ -89,8 +89,9 @@ spacing:
 
 layout:
   chat-column: 720px
-  chat-card-expanded: 880px
   header-height: 56px
+  chat-column-with-canvas: 440px
+  canvas-min: 720px
 
 components:
   # ─── Page chrome ───
@@ -244,16 +245,16 @@ components:
 
 ## Overview
 
-The product has **one page: the agent chat**. There is no landing page, no sidebar, no dashboard panel, no tabs and no feature menu. The user talks to the agent; the agent asks questions, looks things up, computes and answers. Everything the agent produces arrives as a **card inside the chat**. Every number on screen comes from Python, so the design always shows where a number came from.
+The product has **one page: the agent chat**. There is no landing page, no sidebar menu, no fixed dashboard, no tabs and no feature menu. The user talks to the agent; the agent chooses what to do each turn — reply in a sentence, ask questions, call harness tools (database, calculator, web search), or **build a page for this user in a canvas on the right**, like Muse AI; every user's page is different. Every number on screen comes from Python, so the design always shows where a number came from.
 
 The look pairs a clear mint `{colors.primary}` (`#8fdcc8`) action accent with a warm paper canvas `{colors.canvas-soft}` (`#f1efe9`) and a near-black ink `{colors.ink}` (`#12191a`). It reads like a calm consumer-finance tool: generous whitespace, large rounded white cards, and one heavy display number per card. The chat chrome stays plain so the cards carry the identity.
 
 **Key Characteristics:**
-- One column, `{layout.chat-column}` 720 px, centred. Cards sit in the flow of the conversation.
+- Chat alone: one column, `{layout.chat-column}` 720 px, centred. With a page open: chat `{layout.chat-column-with-canvas}` 440 px on the left, canvas fills the rest on the right.
 - A single mint accent, used as a fill only. No second accent.
 - Numbers lead: the answer to "how much" is the largest thing on a card, in `display-md` (Inter Tight 900), followed by a receipt-style breakdown.
 - Sources are always visible as `source-chip`s next to the numbers they support.
-- The agent's work is visible: tool calls appear as live `step-line`s, then fold into "What I did".
+- The agent's work is visible: tool calls appear as live `step-line`s, then fold into "What I did"; any step can be opened to see the process (search queries, pages visited, screenshots).
 - `{rounded.xl}` 24 px is the card and button radius.
 - A full semantic palette (positive, warning, negative) for status only.
 
@@ -317,7 +318,9 @@ Every money figure uses tabular numerals (`font-feature-settings: "tnum"`) so co
 
 ### Page structure
 - **Header**: `app-header`, 56 px, product name on the left and "New chat" on the right. Nothing else.
-- **Conversation**: one column, `{layout.chat-column}` 720 px, centred on `{colors.canvas-soft}`. Cards are full column width. A card may expand in place to `{layout.chat-card-expanded}` 880 px (for example the plan comparison); it never opens a side panel or a new page.
+- **Conversation**: one column, `{layout.chat-column}` 720 px, centred on `{colors.canvas-soft}`. Question and confirm cards are full column width.
+- **Canvas (agent-built page)**: opens on the right only when the agent builds a page, after its tool calls are done. Chat shrinks to `{layout.chat-column-with-canvas}` 440 px; the canvas takes the rest (at least `{layout.canvas-min}` 720 px), white `{colors.canvas}` with a 1 px `{colors.line}` left edge, its own scroll, and a slim top bar: page title, page switcher when there is more than one page, close button. Closing leaves an "Open page" `button-secondary` in the chat turn that made it.
+- **Page generation**: the page appears section by section as the agent writes it; a section that is still being written shows a `{colors.canvas-soft}` placeholder block of the right height, never a spinner. When a page fails the number check and is rewritten, the canvas keeps the last good version until the new one is ready.
 - **Composer**: pinned to the bottom, 720 px, `{rounded.xl}`, 1 px `{colors.line}` border, soft shadow `0 1px 2px rgba(18,25,26,.06)`. Attach button (plan PDF, bill photo) on the left as `button-icon-circular`; `composer-send` on the right.
 - **Empty state (first visit / new chat)**: the composer centred vertically in the column, one `display-xs` sentence above it ("Ask what care will cost, which plan fits you, or drop in a bill."), and 3 example prompts as text buttons below. Nothing else.
 - Desktop web only (≥ 1024 px). No mobile layout.
@@ -361,8 +364,20 @@ White cards on the paper canvas are the main depth cue.
 - When the turn finishes, the lines fold into a single row "What I did · 4 steps" (`caption`, `{colors.mute}`), expandable. Expanded steps show their sources.
 - Driven by the existing `search_step` events (`docs/frontend-protocol.md`).
 
+### Step detail (opening a step)
+- Clicking a `step-line` (or a step inside "What I did") opens its detail in the canvas, replacing the page until closed.
+- **Web search**: the query, then each page visited as a row (favicon, title, URL in `caption`), its screenshot (`{rounded.lg}`, 1 px `{colors.line}`), and the exact passage quoted, highlighted with `{colors.primary-pale}`.
+- **Database / calculator**: what was looked up, the inputs, the result, and the policy quote or rate source it used.
+- Built from the existing `search_step` events (they already carry screenshots) and `web/src/components/computer/`.
+
 ### Source chip
 - `source-chip`. Text says where the number came from: "SBC p.3", "Negotiated rate · Anthem", "Your answer". Click opens the source (PDF page or explanation) in a `modal-card`.
+
+### Agent-built pages
+- The agent decides what goes on the page for this user. The cards below are **examples to compose from, not fixed templates**; the agent picks, orders and combines them, and may add a chart or table when the question calls for it (for example yearly cost against number of specialist visits).
+- A page starts with a one-sentence answer in `body-md-strong`, then the sections. Use the same tokens, cards, badges, tables and source chips as everywhere else; no custom colours or fonts.
+- Charts: `{colors.ink}` for the recommended or user's own option, `{colors.mute}` for the others, `{colors.line}` gridlines, values labelled directly rather than via a legend where possible.
+- Every number on the page must come from that turn's tool data; Python rejects the page otherwise. Search-sourced facts carry a source chip linking to the page.
 
 ### Form card (questions)
 - `chat-card`. Title in `body-md-strong`, one line why the agent is asking in `body-sm` `{colors.body}`.
@@ -378,7 +393,7 @@ White cards on the paper canvas are the main depth cue.
 ### Plan comparison card (Arena)
 - First line: the recommendation in one sentence, `body-md-strong`.
 - Then 2–4 plans as rows (not columns): insurer logo, plan name, `chat-card-total` year total, a one-line reason, status badge. The recommended plan has a 2 px `{colors.ink}` left border and a `badge-positive` "Best fit".
-- "Show full comparison" expands the card in place to 880 px with the scenario `data-table`; rows relevant to the user's conditions use `row-relevant`.
+- Below the rows, the scenario `data-table`; rows relevant to the user's conditions use `row-relevant`.
 - Excluded plans listed at the bottom in `body-sm` `{colors.mute}` with the reason.
 - No composite scores ("8.5/10"). Show money and risk.
 
@@ -410,7 +425,7 @@ White cards on the paper canvas are the main depth cue.
 - `badge-positive` "In network", "Best fit"; `badge-warning` "Estimate range", "Needs review", "No data"; `badge-negative` "Overcharged", "Not covered", "Out of network".
 
 ### Overlays
-- `modal-card` for source details and long text (the appeal letter preview). `toast` for "Copied". Nothing else floats.
+- `modal-card` for source details and long text (the appeal letter preview). `toast` for "Copied". Nothing else floats; the canvas is a panel, not an overlay.
 
 ## Motion
 - Cards fade and rise 8 px over 200 ms when they arrive. Step lines appear instantly.
@@ -431,7 +446,7 @@ White cards on the paper canvas are the main depth cue.
 - Keep agent prose short; let the card carry the numbers.
 
 ### Don't
-- Don't add a landing page, sidebar, dashboard panel, tabs or feature menu. Everything is in the chat.
+- Don't add a landing page, sidebar menu, fixed dashboard, tabs or feature menu. The only panel is the canvas, and only the agent opens it.
 - Don't use the AI-template look: centred hero headline, monospace or all-caps eyebrows, gradients, glow, sparkle icons, robot avatars.
 - Don't introduce a second accent colour.
 - Don't use mint as text or thin lines on white; it is a fill colour.
