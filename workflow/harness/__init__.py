@@ -16,6 +16,7 @@ from plan_db import PlanDB
 from . import mcp
 from .hooks import Hooks
 from .skills.plans import skill as plans_skill
+from .skills.providers import skill as providers_skill
 from .skills.questionnaire import skill as questionnaire
 
 PROMPT_PATH = Path(__file__).with_name("prompts") / "system.md"
@@ -24,7 +25,7 @@ PROMPT_PATH = Path(__file__).with_name("prompts") / "system.md"
 class Harness:
     def __init__(self):
         self.db = PlanDB()
-        self.skills = [questionnaire.build(), plans_skill.build(self.db)]
+        self.skills = [questionnaire.build(), plans_skill.build(self.db), providers_skill.build(self.db)]
         self.tools = mcp.ToolRegistry([tool for skill in self.skills for tool in skill.tools])
         self.hooks = Hooks()
         plan_context = ("```json\n" + "\n".join(json.dumps(p, ensure_ascii=False)

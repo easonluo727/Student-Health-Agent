@@ -13,6 +13,8 @@ Per provider (NPI), for one billing code / billing class / place of service:
 Across providers, `allowed_amount` is chosen in priority order:
   provider_rate (only when an NPI is requested) -> la_county_median (every Los Angeles provider in the
   network) -> empty with status rate_unavailable.
+The opt-in `strict_npi=True` mode reads only the requested NPI and never takes the network-median fallback;
+the legacy estimator keeps its existing behavior.
 p10 / median / p90 are always over the same providers as the chosen value. The UCLA Health and Westwood-area
 medians are still reported for reference but are never the default (they sit near the top of most networks).
 No value is ever invented: every number is a median of real per-provider negotiated rates.
@@ -94,8 +96,8 @@ def ucla_health_tins(con: sqlite3.Connection) -> frozenset[str]:
         return frozenset()
 
 
-@functools.lru_cache(maxsize=1)  # one network/code can be 800k pairs; callers cache results
-def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_class: str) -> tuple[Candidate, ...]:
+def _fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_class: str,
+                      npi: str | None = None) -> tuple[Candidate, ...]:
     """All (provider, price) pairs for one plan/code/class. A provider counts as UCLA Health
     (Tier A only) if its NPI is a UCLA organization NPI, its TIN *is* a UCLA organization NPI
     (Anthem reports TINs as organization NPIs), or its TIN business name names UCLA/Regents."""
@@ -108,6 +110,10 @@ def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_
     JOIN provider_members m ON m.source_id = r.source_id AND m.provider_group_id = r.provider_group_id
     WHERE s.plan_key = ? AND r.billing_code = ? AND r.billing_class IN (?, 'both') AND m.npi IS NOT NULL
     """
+    params = [plan_key, code, billing_class]
+    if npi is not None:
+        q += " AND m.npi = ?"
+        params.append(npi)
     ucla_tins = ucla_health_tins(con)
     out = []
     # A large network has ~800k pairs that repeat a handful of strings (URL, POS lists); share one object per value.
@@ -115,13 +121,18 @@ def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_
     split = lambda text: shared.setdefault(("split", text), tuple(x for x in (text or "").split(",") if x))  # noqa: E731
     keep = lambda value: shared.setdefault(value, value)  # noqa: E731
     is_ucla: dict = {}
-    for npi, tier, ucla_org, bname, tin, rate, ntype, exp, sc, mods, fdate, url in con.execute(q, (plan_key, code, billing_class)):
+    for member_npi, tier, ucla_org, bname, tin, rate, ntype, exp, sc, mods, fdate, url in con.execute(q, params):
         key = (ucla_org, tin, bname)
         if key not in is_ucla:
             is_ucla[key] = bool(ucla_org or (tin in ucla_tins) or UCLA_PATTERN.search(bname or ""))
-        out.append(Candidate(npi, keep(tier or "B"), is_ucla[key] and tier == "A", rate, keep((ntype or "").lower()),
+        out.append(Candidate(member_npi, keep(tier or "B"), is_ucla[key] and tier == "A", rate, keep((ntype or "").lower()),
                              keep(exp or "9999-12-31"), split(sc), split(mods), keep(fdate or ""), keep(url)))
     return tuple(out)
+
+
+@functools.lru_cache(maxsize=1)  # one network/code can be 800k pairs; callers cache results
+def fetch_candidates(con: sqlite3.Connection, plan_key: str, code: str, billing_class: str) -> tuple[Candidate, ...]:
+    return _fetch_candidates(con, plan_key, code, billing_class)
 
 
 def _pick(cands: list[Candidate], pos: str | None) -> float | None:
@@ -177,9 +188,13 @@ def per_provider(cands: list[Candidate], pos: str | None, modifier_rule: str, as
 
 
 def component(con, plan_key: str, code: str, billing_class: str, pos: str | None,
-              modifier_rule: str = "global", npi: str | None = None, as_of: str | None = None) -> ComponentResult:
+              modifier_rule: str = "global", npi: str | None = None, as_of: str | None = None,
+              strict_npi: bool = False) -> ComponentResult:
+    if strict_npi and not npi:
+        raise ValueError("strict_npi requires an NPI")
     as_of = as_of or dt.date.today().isoformat()
-    cands = fetch_candidates(con, plan_key, code, billing_class)
+    cands = _fetch_candidates(con, plan_key, code, billing_class, npi) if strict_npi else fetch_candidates(
+        con, plan_key, code, billing_class)
     prov, n_excl, mix = per_provider(cands, pos, modifier_rule, as_of)
     ucla = sorted(v[0] for v in prov.values() if v[2])
     tier_a = sorted(v[0] for v in prov.values() if v[1] == "A")
@@ -195,7 +210,8 @@ def component(con, plan_key: str, code: str, billing_class: str, pos: str | None
     choices = []
     if npi and npi in prov:
         choices.append(("provider_rate", [prov[npi][0]]))
-    choices.append(("la_county_median", la))
+    if not strict_npi:
+        choices.append(("la_county_median", la))
     for basis, vals in choices:
         if vals:
             res.allowed_amount = _r(statistics.median(vals))

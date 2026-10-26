@@ -1,9 +1,12 @@
-# Databases (SQLite, read-only)
+# Databases (SQLite, read-only at runtime)
 
 | database | file | size | where it lives in production |
 |---|---|---|---|
 | ① policy (`plans`, `benefits`, `plan_networks`, `premiums`, `age_curve`, `rating_regions`) | `data/plans/policy.sqlite` | ~100 KB | committed, deployed with the code |
 | ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite` (`RATES_DB`) |
+| ③ NPPES provider directory | `data/providers/providers.sqlite` (built offline, not committed) | varies | same Railway volume, `/data/providers.sqlite` (`PROVIDERS_DB`), only after approval |
+
+The directory is an independently built database; it never modifies ① or ②. Its schema, build and validation procedure are in [`scripts/providers/README.md`](../scripts/providers/README.md). The agent's `find_providers` tool uses NPPES identity/practice locations and strict NPI-specific rates. A confirmed plan-to-network bridge does not verify a provider's current participation, and a negotiated rate is not a guaranteed paid amount.
 
 Schemas: `schema.sql` (policy) and `scripts/mrf/mrf_rate_store.py` (rates). The agent prices each visit component
 from ② at runtime (`workflow/plan_db.py` → `scripts/mrf/allowed.py`). Python joins the two through

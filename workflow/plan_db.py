@@ -116,6 +116,8 @@ class PlanDB:
 
     def warm(self) -> None:
         """Price every component of every scenario in every linked network, so requests don't wait."""
+        if self.rates_path is None:
+            return
         for (plan_key,) in self.con.execute("SELECT DISTINCT mrf_plan_key FROM plan_networks"):
             for scenario in SCENARIOS:
                 for row in _encounters().get(scenario, ("", []))[1]:

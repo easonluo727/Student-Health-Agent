@@ -83,7 +83,7 @@ class Prompt(unittest.TestCase):
 
     def test_tools(self):
         names = [t["name"] for t in harness().tools.definitions()]
-        self.assertEqual(names, ["ask_questions", "list_plans", "estimate_cost", "compare_plans"])
+        self.assertEqual(names, ["ask_questions", "list_plans", "estimate_cost", "compare_plans", "find_providers"])
 
 
 class QuestionnaireHooks(unittest.TestCase):
