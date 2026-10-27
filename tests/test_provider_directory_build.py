@@ -282,6 +282,20 @@ class DirectoryBuildTests(unittest.TestCase):
         self.assertEqual(absent["rate_status"], "rate_unavailable")
         self.assertNotIn("patient_cost", absent)
 
+    def test_primary_care_excludes_subspecialists_and_nobody_in_training_is_listed(self):
+        service, policy, price_store = self._service()
+        db = PlanDB(policy, price_store)
+        with sqlite3.connect(self.directory) as con:  # N1 also lists pulmonology
+            con.execute("INSERT INTO provider_taxonomies VALUES (?, '207RP1001X', 0)", (N1,))
+        primary = estimate_nearby(db, service, "test", "office_visit_established", "in", None, 0, "90024", PRIMARY_CARE)
+        self.assertNotIn("doctors", primary)  # a pulmonologist is not a primary care doctor
+        lung = estimate_nearby(db, service, "test", "office_visit_established", "in", None, 0, "90024", ("207RP1001X",))
+        self.assertEqual(lung["doctor"]["npi"], N1)
+        with sqlite3.connect(self.directory) as con:
+            con.execute("INSERT INTO provider_taxonomies VALUES (?, '390200000X', 0)", (N1,))
+        lung = estimate_nearby(db, service, "test", "office_visit_established", "in", None, 0, "90024", ("207RP1001X",))
+        self.assertNotIn("doctors", lung)
+
     def test_an_unknown_specialty_is_refused(self):
         from provider_directory import check_specialty
         check_specialty({"specialty": None})

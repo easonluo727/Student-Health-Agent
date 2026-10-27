@@ -39,8 +39,11 @@ SPECIALTIES = {
     "clinical_social_worker": "1041C0700X",
     "physical_therapist": "2251",
 }
-# A primary care doctor: family medicine, internal medicine, general practice.
+# A primary care doctor: family medicine, internal medicine, general practice. A primary care search keeps only doctors
+# who list nothing else: 38% of these doctors also list a subspecialty (cardiology, pulmonology...), hospital medicine
+# (208M00000X, no outpatients) or training (2026-10-27 directory), and an insurer likely counts them as specialists.
 PRIMARY_CARE = ("207Q", "207R00000X", "208D")
+IN_TRAINING = "390200000X"  # NUCC "Student in an Organized Health Care Education/Training Program": never recommended
 
 
 def check_specialty(args: dict) -> None:
@@ -221,11 +224,17 @@ class ProviderDirectory:
                 "FROM provider_locations l JOIN providers p ON p.npi=l.npi "
                 "WHERE p.nppes_status='active' AND p.entity_type='1'")
         params: list = []
+        base += " AND NOT EXISTS (SELECT 1 FROM provider_taxonomies t WHERE t.npi=p.npi AND t.taxonomy_code=?)"
+        params.append(IN_TRAINING)
         prefixes = (taxonomy,) if isinstance(taxonomy, str) else tuple(taxonomy or ())
         if prefixes:
             base += (" AND EXISTS (SELECT 1 FROM provider_taxonomies t WHERE t.npi=p.npi AND ("
                      + " OR ".join(["t.taxonomy_code LIKE ?"] * len(prefixes)) + "))")
             params += [prefix + "%" for prefix in prefixes]
+        if prefixes and all(prefix in PRIMARY_CARE for prefix in prefixes):  # see PRIMARY_CARE
+            base += (" AND NOT EXISTS (SELECT 1 FROM provider_taxonomies t WHERE t.npi=p.npi AND NOT ("
+                     + " OR ".join(["t.taxonomy_code LIKE ?"] * len(PRIMARY_CARE)) + "))")
+            params += [prefix + "%" for prefix in PRIMARY_CARE]
         found: dict[int, dict] = {}
         truncated = False
         if lat is not None:
