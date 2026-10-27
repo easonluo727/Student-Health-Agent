@@ -44,6 +44,13 @@ def fallback_models():
     return [m.strip() for m in os.environ.get("LLM_FALLBACK_MODELS", "").split(",") if m.strip()]
 
 
+def model_unavailable(error) -> bool:
+    """Meta's 404 for a model it serves: code model_not_found, or (seen from Railway, 2026-10-27) only the message
+    "The requested model was not found." with no code."""
+    text = f"{error} {getattr(error, 'body', '')}".lower()
+    return "model_not_found" in text or "model was not found" in text
+
+
 def make_client(timeout=90.0, max_retries=3):
     load_env()
     missing = [name for name in REQUIRED if not os.environ.get(name)]
@@ -68,7 +75,7 @@ def make_client(timeout=90.0, max_retries=3):
                     return super().request(cast_to, options.model_copy(update={"json_data": {**body, "model": model}}),
                                            **kwargs)
                 except NotFoundError as error:
-                    if "model_not_found" not in str(error) or attempt == 2 * len(chain) - 1:
+                    if not model_unavailable(error) or attempt == 2 * len(chain) - 1:
                         raise
 
     return Client(
