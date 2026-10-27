@@ -146,7 +146,7 @@ Arena 对比        →     附近网络内的具体医生，    →   拍下账
 
 ## 5. 风险和要先确认的事
 
-1. **API 兼容性（2026-10-26 查了文档，已解决）**：Meta Model API（https://dev.meta.ai/docs）原生支持 **Responses API**，`server.py` 不用改，只换环境变量：`LLM_BASE_URL=https://api.meta.ai/v1`、`LLM_API_KEY=<MODEL_API_KEY>`、`LLM_MODEL=muse-spark-1.3`（复杂任务可换 `muse-wonder-1.0`）。上下文 1M token，支持并行工具调用和流式工具参数。拿到 key 后实测一次。
+1. **API 兼容性（2026-10-26 查了文档，已解决）**：Meta Model API（https://dev.meta.ai/docs）原生支持 **Responses API**，`server.py` 不用改，只换环境变量：`LLM_BASE_URL=https://api.meta.ai/v1`、`LLM_API_KEY=<MODEL_API_KEY>`、`LLM_MODEL=muse-spark-1.3`（复杂任务可换 `muse-wonder-1.0`）。上下文 1M token，支持并行工具调用和流式工具参数。2026-10-26 实测：文字、工具调用、流式都通；但 Meta 会偶尔对它确实提供的模型回 404 `model_not_found`（`muse-spark-1.3` 简单请求约 1/6，线上 Railway 一轮对话 6 次错 5 次；`muse-spark-1.2` 带工具的 agent 请求也会出），同一请求重试就好。`llm_client.py` 已对这种 404 自动重试（最多 3 次）；线上暂用 `muse-spark-1.2`。
 1b. **网页搜索用 Meta 自带的 `web_search` 工具（文档：https://dev.meta.ai/docs/search-grounding）**：在 Responses API 的 `tools` 里加 `{"type": "web_search"}`，可以和我们自己的函数工具一起用（我们的工具名不能用 `browser.search`、`browser.open`、`browser.find`）。**搜不搜由模型决定**，正好符合"每一步都是 agent 的选择"。加 `include: ["web_search_call.results"]` 能拿到每个来源的标题、链接和摘录（模型看到的文字），回答里有 `url_citation` 标出哪句话来自哪个链接；可以传 `user_location`（洛杉矶）。不用自己接 Tavily 之类的搜索服务。**不做网页截图**（2026-10-26 定）。限制：多步、多来源的复杂研究不太可靠，要拆成小问题；只给摘录不给全文，要核对整段原文得自己再抓网页；文档没写返回结果里有没有搜索词，拿到 key 后确认。另外文档里还有 Computer use（路线图第 3 步可能用得上）。
 2. **模型能力**：Muse Spark、Muse Wonder 各自擅长什么，要等开幕资料或 workshop 确认，本文没有核实。要测的有：工具调用稳不稳、看图读账单准不准。
 3. **健康数据隐私**：demo 和测试只用编出来的账单。真实用户上传的账单含个人健康信息，正式上线前要想清楚存哪里、存多久（现在对话保存一天）。
