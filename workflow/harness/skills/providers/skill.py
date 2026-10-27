@@ -10,28 +10,10 @@ The model chooses from fixed options (scenario, specialty, plan ids) and passes 
 from pathlib import Path
 
 from plan_db import PlanDB
-from provider_directory import ProviderDirectory
+from provider_directory import SPECIALTIES, ProviderDirectory, check_specialty
 
 from .. import Skill, read_skill_md
 from ...mcp import Tool, schema
-
-# NUCC Health Care Provider Taxonomy codes (nucc.org); a code ending in X is exact, a shorter one is a prefix that
-# includes the subspecialties.
-SPECIALTIES = {
-    "family_medicine": "207Q",
-    "internal_medicine": "207R00000X",
-    "pediatrics": "2080",
-    "obstetrics_gynecology": "207V",
-    "dermatology": "207N",
-    "psychiatry": "2084P0800X",
-    "allergy_immunology": "207K",
-    "pulmonology": "207RP1001X",
-    "cardiology": "207RC0000X",
-    "orthopaedic_surgery": "207X",
-    "psychologist": "103T",
-    "clinical_social_worker": "1041C0700X",
-    "physical_therapist": "2251",
-}
 
 KEEP = ("npi", "name", "primary_taxonomy", "address", "phone", "distance_miles", "latitude", "longitude",
         "geocode_precision", "map_destination")
@@ -41,6 +23,7 @@ KEEP_PRICE = ("estimate_status", "rate_status", "negotiated_rate", "patient_cost
 
 def _validate(db, args):
     plans = {p["plan_id"] for p in db.plans()}
+    check_specialty(args)
     if not (len(args["zip_code"]) == 5 and args["zip_code"].isdigit()):
         raise ValueError("zip_code must be the user's five-digit ZIP.")
     if len(args["plan_ids"]) > 4:

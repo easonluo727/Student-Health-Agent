@@ -86,6 +86,18 @@ class Prompt(unittest.TestCase):
         self.assertEqual(names, ["ask_questions", "list_plans", "estimate_cost", "compare_plans", "find_providers"])
 
 
+class ToolArguments(unittest.TestCase):
+    def test_a_written_out_null_is_null_only_where_null_is_allowed(self):
+        h = harness()
+        args = {"plan_id": "lacare_silver70_hmo_2026", "scenario": "specialist_followup", "network": "in",
+                "network_tier": "null", "remaining_deductible": None, "zip_code": "NULL", "specialty": "null"}
+        parsed, error = h.tools.parse("estimate_cost", json.dumps(args))
+        self.assertIsNone(error)
+        self.assertEqual((parsed["network_tier"], parsed["zip_code"], parsed["specialty"]), (None, None, None))
+        parsed, error = h.tools.parse("estimate_cost", json.dumps({**args, "scenario": "null"}))
+        self.assertEqual(parsed["scenario"], "null")  # not nullable: left as written
+
+
 class QuestionnaireHooks(unittest.TestCase):
     def test_prefill_only_what_the_user_said(self):
         h = harness()
@@ -163,14 +175,14 @@ class QuestionnaireHooks(unittest.TestCase):
         h = harness()
         h.hooks.on_user_message("Compare UC SHIP and L.A. Care Bronze for me. I'm 22.")
         plans = ["anthem_ppo_ucship_ucla_2026_27", "lacare_bronze60_hmo_2026"]
-        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"])
+        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"], specialty=None)
         # Said in chat is not enough: a form, with how often they expect the chosen visit.
         self.assertEqual(out["auto_ask"], ["age", "student_level", "zip", "primary_care_visits"])
         h.hooks.on_form_answers(form_questions(["age", "zip", "student_level", "primary_care_visits"]), {
             "age": {"value": 22, "unknown": False}, "zip": {"value": "90024", "unknown": False},
             "student_level": {"value": "undergraduate", "unknown": False},
             "primary_care_visits": {"value": 10, "unknown": False}})
-        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"])
+        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"], specialty=None)
         self.assertNotIn("auto_ask", out)
         self.assertEqual(out["ranked_by"], "year_total")
         self.assertEqual({e["plan_id"]: e["premium"]["annual"] for e in out["plans"]},
@@ -211,7 +223,7 @@ class QuestionnaireHooks(unittest.TestCase):
     def test_unknown_premium_inputs_are_not_asked_again(self):
         h = harness()
         h.hooks.on_form_answers(form_questions(["age"]), {"age": {"value": None, "unknown": True}})
-        out = call(h, "compare_plans", plan_ids=["lacare_bronze60_hmo_2026"], scenarios=["office_visit_established"])
+        out = call(h, "compare_plans", plan_ids=["lacare_bronze60_hmo_2026"], scenarios=["office_visit_established"], specialty=None)
         self.assertEqual(out["auto_ask"], ["zip", "primary_care_visits"])
 
 

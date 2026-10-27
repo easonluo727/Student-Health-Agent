@@ -41,7 +41,8 @@ QUESTIONS = [
      "maps_to": "premium tables (priced by age)", "when": "comparing or recommending plans"},
     {"id": "zip", "group": "A", "kind": "text", "label": "What's your ZIP code?",
      "help": "Premiums and nearby doctors depend on where you live.",
-     "maps_to": "premium rating region; nearby providers", "when": "comparing or recommending plans"},
+     "maps_to": "premium rating region; nearby providers; the doctors an office or specialist visit is priced at",
+     "when": "comparing or recommending plans, or pricing an office or specialist visit"},
     {"id": "student_level", "group": "A", "kind": "single", "label": "Are you an undergraduate or a graduate student?",
      "help": "UC SHIP costs more for graduate students.",
      "options": [

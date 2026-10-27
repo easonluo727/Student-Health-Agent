@@ -19,7 +19,8 @@ from scripts.providers.geocode_directory import enrich, parse_census_batch
 from scripts.providers.import_zip_centroids import import_centroids
 from scripts.providers.validate_directory import validate
 from scripts.mrf.mrf_rate_store import SCHEMA as RATE_SCHEMA
-from provider_directory import ProviderDirectory
+from plan_db import PlanDB
+from provider_directory import PRIMARY_CARE, ProviderDirectory, doctor_finder, estimate_nearby
 from harness.skills.providers.skill import find  # noqa: E402
 
 N1, N2, N3, ABSENT = "1234567893", "1999999984", "1000000004", "1000000012"
@@ -222,15 +223,17 @@ class DirectoryBuildTests(unittest.TestCase):
         policy = root / "policy.sqlite"
         with sqlite3.connect(policy) as con:
             con.executescript("""
-            CREATE TABLE plans(plan_id TEXT, plan_name TEXT, insurer TEXT, plan_year TEXT);
-            CREATE TABLE plan_networks(plan_id TEXT, network_tier TEXT, mrf_plan_key TEXT, notes TEXT, confirmed INTEGER);
+            CREATE TABLE plans(plan_id TEXT, plan_name TEXT, insurer TEXT, plan_year TEXT, plan_type TEXT);
+            CREATE TABLE plan_networks(plan_id TEXT, network_tier TEXT, mrf_plan_key TEXT, notes TEXT, confirmed INTEGER,
+                mrf_network TEXT);
             CREATE TABLE benefits(plan_id TEXT, service TEXT, network TEXT, network_tier TEXT, section TEXT,
                 service_as_printed TEXT, component TEXT, calculable INTEGER, coinsurance_pct REAL, covered INTEGER,
-                deductible_applies INTEGER, copay_usd REAL, source_url TEXT, source_page INTEGER, quote TEXT);
-            INSERT INTO plans VALUES ('test','Test PPO','Test','2026');
-            INSERT INTO plan_networks VALUES ('test','','test_key','Confirmed network mapping only',1);
-            INSERT INTO benefits VALUES ('test','primary_care_visit','in','','Office visits','Primary care','office_visit',
-                1,20,1,1,NULL,'https://example.test/policy',2,'20% after deductible');
+                deductible_applies INTEGER, copay_usd REAL, source_url TEXT, source_page INTEGER, quote TEXT,
+                benefit_id TEXT, limits_conditions TEXT, review_flags TEXT);
+            INSERT INTO plans VALUES ('test','Test PPO','Test','2026','PPO');
+            INSERT INTO plan_networks VALUES ('test','','test_key','Confirmed network mapping only',1,'Test');
+            INSERT INTO benefits VALUES ('test','primary_care_visit','in',NULL,'Office visits','Primary care','office_visit',
+                1,20,1,1,NULL,'https://example.test/policy',2,'20% after deductible','b1',NULL,NULL);
             """)
         price_store = root / "price_store.sqlite"
         with sqlite3.connect(price_store) as con:
@@ -278,6 +281,47 @@ class DirectoryBuildTests(unittest.TestCase):
         absent = find(service, {**args, "scenario": "office_visit_new"})["providers"][0]["prices"]["test"]
         self.assertEqual(absent["rate_status"], "rate_unavailable")
         self.assertNotIn("patient_cost", absent)
+
+    def test_an_unknown_specialty_is_refused(self):
+        from provider_directory import check_specialty
+        check_specialty({"specialty": None})
+        with self.assertRaises(ValueError):
+            check_specialty({"specialty": "neurosurgery"})
+
+    def test_an_office_visit_is_priced_at_the_nearest_doctors_own_rate(self):
+        service, policy, price_store = self._service()
+        db = PlanDB(policy, price_store)
+        r = estimate_nearby(db, service, "test", "office_visit_established", "in", None, 0, "90024", PRIMARY_CARE)
+        self.assertEqual((r["status"], r["patient_cost"]), ("estimated", 20.0))  # 20% of the doctor's $100
+        self.assertEqual(r["doctor"]["npi"], N1)
+        self.assertEqual(r["allowed_amount"]["basis"], "provider_rate")
+        self.assertEqual([d["npi"] for d in r["doctors"]], [N1])  # one entry per doctor, not per office
+        self.assertEqual(r["cost_range"], {"low": 20.0, "high": 20.0})
+
+    def test_no_zip_asks_for_it_and_no_doctor_rate_is_never_filled_with_a_median(self):
+        service, policy, price_store = self._service()
+        db = PlanDB(policy, price_store)
+        asked = estimate_nearby(db, service, "test", "office_visit_established", "in", None, 0, None, PRIMARY_CARE)
+        self.assertEqual((asked["status"], asked["missing_fields"]), ("needs_information", ["zip"]))
+        none = estimate_nearby(db, service, "test", "office_visit_new", "in", None, 0, "90024", PRIMARY_CARE)
+        self.assertEqual(none["status"], "needs_review")  # 20% coinsurance needs a price; there is no doctor's rate
+        self.assertIsNone(none["patient_cost"])
+        self.assertIn("has a negotiated rate", none["doctor_search"])
+        self.assertNotIn("doctor", none)
+
+    def test_a_year_prices_office_visits_at_the_nearest_doctor_with_a_rate(self):
+        service, policy, price_store = self._service()
+        db = PlanDB(policy, price_store)
+        find_doctor = doctor_finder(service, "90024", lambda scenario: PRIMARY_CARE)
+        year = db.year(db.plan("test"), None, {"office_visit_established": (3, False)}, find_doctor=find_doctor)
+        visit = year["visits"][0]
+        self.assertEqual(visit["doctor"]["npi"], N1)
+        self.assertEqual(visit["allowed_amount"]["total"], 100)
+        self.assertIsNone(year["care"]["total"])  # 20% after a deductible this fixture doesn't state
+        far = doctor_finder(service, "90024", lambda scenario: ("207N",))  # no dermatologist in the fixture
+        visit = db.year(db.plan("test"), None, {"office_visit_established": (1, False)}, find_doctor=far)["visits"][0]
+        self.assertIsNone(visit["doctor"])
+        self.assertIn("has a negotiated rate", visit["doctor_search"])
 
 
 def api_result(npi, etype="NPI-1", **basic):

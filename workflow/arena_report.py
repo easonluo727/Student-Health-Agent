@@ -23,9 +23,16 @@ def _visit_cell(entry, visit):
         detail.append(visit["tier_note"] or f"Priced at {visit['network_tier']}")
     detail += [f"{line['benefit']}: {line['rule']}" for line in visit["lines"]]
     prices = visit["allowed_amount"] or {}
-    if prices.get("total") is not None:
+    doctor = visit.get("doctor")
+    if prices.get("total") is not None and doctor:
+        detail.append(f"Allowed amount {_usd(prices['total'])}: {doctor['name']}'s own negotiated rate in "
+                      f"{prices['network']} ({prices['mrf_file_date']}), the nearest doctor with one, "
+                      f"{doctor['distance_miles']} mi away")
+    elif prices.get("total") is not None:
         detail.append(f"Allowed amount {_usd(prices['total'])}: median negotiated rate across Los Angeles providers in "
                       f"{prices['network']} ({prices['mrf_file_date']})")
+    if visit.get("doctor_search"):
+        detail.append(visit["doctor_search"])
     first = visit["lines"][0] if visit["lines"] else {}
     return {"text": _usd(visit["total"]), "detail": ". ".join(detail),
             "source": _source(entry["plan_name"], first.get("source_page"), first.get("quote"), first.get("source_url"))}

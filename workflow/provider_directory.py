@@ -11,7 +11,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from calculate_cost import calculate_cost
-from plan_db import POLICY_DB, RATES_DB, PlanDB, SCENARIOS, _encounters
+from plan_db import DOCTOR_SCENARIOS, POLICY_DB, RATES_DB, PlanDB, SCENARIOS, _encounters
 
 ROOT = Path(__file__).resolve().parents[1]
 PROVIDERS_DB = Path(os.environ.get("PROVIDERS_DB", "/data/providers.sqlite" if Path("/data").exists()
@@ -22,6 +22,42 @@ MAX_CANDIDATES = 5000
 MAX_COST_SORT_CANDIDATES = 200
 SINGLE_PROVIDER_SCENARIOS = {"office_visit_established", "office_visit_new", "telehealth_visit",
                              "specialist_followup", "therapy_intake", "therapy_session_45", "therapy_session_60"}
+# NUCC Health Care Provider Taxonomy codes (nucc.org); a code ending in X is exact, a shorter one is a prefix that
+# includes the subspecialties.
+SPECIALTIES = {
+    "family_medicine": "207Q",
+    "internal_medicine": "207R00000X",
+    "pediatrics": "2080",
+    "obstetrics_gynecology": "207V",
+    "dermatology": "207N",
+    "psychiatry": "2084P0800X",
+    "allergy_immunology": "207K",
+    "pulmonology": "207RP1001X",
+    "cardiology": "207RC0000X",
+    "orthopaedic_surgery": "207X",
+    "psychologist": "103T",
+    "clinical_social_worker": "1041C0700X",
+    "physical_therapist": "2251",
+}
+# A primary care doctor: family medicine, internal medicine, general practice.
+PRIMARY_CARE = ("207Q", "207R00000X", "208D")
+
+
+def check_specialty(args: dict) -> None:
+    """Some endpoints don't enforce the schema's enum (Meta's API, 2026-10-27), so check it here."""
+    value = args.get("specialty")
+    if value is not None and value not in SPECIALTIES:
+        raise ValueError(f"Unknown specialty {value!r}; use one of {', '.join(SPECIALTIES)}, or null.")
+
+
+def visit_taxonomies(scenario: str, specialty: str | None) -> tuple[str, ...]:
+    """Which doctors a visit is priced at: the chosen specialty, else primary care for a primary care visit."""
+    if specialty:
+        return (SPECIALTIES[specialty],)
+    return () if scenario == "specialist_followup" else PRIMARY_CARE
+NEARBY_RADIUS_MILES = 25  # how far to look for a doctor with a rate before saying there is none
+NEARBY_DOCTORS = 5
+NEARBY_MAX_CHECKED = 300  # nearest candidates whose rates are looked up before giving up
 
 
 def _ro(path: Path) -> sqlite3.Connection:
@@ -127,17 +163,69 @@ class ProviderDirectory:
                                "nppes_archive_sha256": metadata.get("archive_sha256")},
                 "message": "Locations come from NPPES. Current insurance participation is unverified."}
 
+    def nearest_priced(self, zip_code: str, scenario: str, taxonomies: tuple[str, ...], plan_id: str,
+                       tier: str | None, n: int = NEARBY_DOCTORS, cache: dict | None = None) -> dict:
+        """The n nearest doctors (individuals, one entry per NPI, within NEARBY_RADIUS_MILES of the ZIP) who have
+        their own negotiated rate for this visit in the plan tier's network. Nobody else's rate and no median: a
+        doctor without a rate is skipped. cache keeps the candidate list across plans for one ZIP and specialty.
+
+        {"doctors": [{npi, name, address, phone, distance_miles, primary_taxonomy, negotiated_rate,
+        map_destination}], "checked": candidates looked at, "message": what was searched (and why none, if so)}."""
+        what = f"within {NEARBY_RADIUS_MILES} miles of ZIP {zip_code}"
+        if not (zip_code and len(zip_code) == 5 and zip_code.isdigit()):
+            return {"doctors": [], "checked": 0, "message": f"ZIP {zip_code!r} is not a five-digit ZIP code."}
+        if not self.providers_path.is_file():
+            return {"doctors": [], "checked": 0, "message": "The provider directory is not installed, so no "
+                                                             "doctor could be priced."}
+        key = (zip_code, scenario, tuple(taxonomies))
+        if cache is None or key not in cache:
+            with closing(_ro(self.providers_path)) as directory:
+                row = directory.execute("SELECT latitude,longitude FROM zip_centroids WHERE zip5=?",
+                                        (zip_code,)).fetchone()
+                lat, lon = (row["latitude"], row["longitude"]) if row else (None, None)
+                items, _ = self._locations(directory, lat, lon, zip_code, NEARBY_RADIUS_MILES, scenario, taxonomies)
+            if cache is not None:
+                cache[key] = items
+        else:
+            items = cache[key]
+        policy = PlanDB(self.policy_path, self.rates_path)
+        try:
+            column = self._plan_column(policy, policy.plan(plan_id), tier or "")
+            doctors, seen, checked = [], set(), 0
+            for item in items:
+                if len(doctors) >= n or checked >= NEARBY_MAX_CHECKED:
+                    break
+                if item["npi"] in seen:
+                    continue
+                seen.add(item["npi"])
+                checked += 1
+                cell = self._prices(policy, item, [column], scenario, None, None)[plan_id]
+                if cell["rate_available"]:
+                    doctors.append({**{k: item[k] for k in ("npi", "name", "address", "phone", "distance_miles",
+                                                            "primary_taxonomy", "map_destination")},
+                                    "negotiated_rate": cell["negotiated_rate"]})
+        finally:
+            policy.con.close()
+        if doctors:
+            message = (f"The {len(doctors)} nearest doctor(s) {what} with their own negotiated rate in this network "
+                       f"({checked} nearest doctors checked).")
+        else:
+            message = (f"None of the {checked} nearest doctors {what} has a negotiated rate for this visit in this "
+                       "network.")
+        return {"doctors": doctors, "checked": checked, "message": message}
+
     @staticmethod
     def _locations(con: sqlite3.Connection, lat: float | None, lon: float | None, zip_code: str | None,
-                   radius: float, scenario: str | None, taxonomy: str | None) -> tuple[list[dict], bool]:
+                   radius: float, scenario: str | None, taxonomy) -> tuple[list[dict], bool]:
         base = ("SELECT l.*,p.entity_type,p.display_name,p.primary_taxonomy,p.nppes_last_updated "
                 "FROM provider_locations l JOIN providers p ON p.npi=l.npi "
                 "WHERE p.nppes_status='active' AND p.entity_type='1'")
         params: list = []
-        prefix = taxonomy
-        if prefix:
-            base += " AND EXISTS (SELECT 1 FROM provider_taxonomies t WHERE t.npi=p.npi AND t.taxonomy_code LIKE ?)"
-            params.append(prefix + "%")
+        prefixes = (taxonomy,) if isinstance(taxonomy, str) else tuple(taxonomy or ())
+        if prefixes:
+            base += (" AND EXISTS (SELECT 1 FROM provider_taxonomies t WHERE t.npi=p.npi AND ("
+                     + " OR ".join(["t.taxonomy_code LIKE ?"] * len(prefixes)) + "))")
+            params += [prefix + "%" for prefix in prefixes]
         found: dict[int, dict] = {}
         truncated = False
         if lat is not None:
@@ -270,3 +358,42 @@ class ProviderDirectory:
             cell["benefit_source"] = {"url": benefit["source_url"], "page": benefit["source_page"],
                                       "quote": benefit["quote"]}
         return cells
+
+
+def estimate_nearby(db: PlanDB, directory: ProviderDirectory, plan_id: str, scenario: str, network: str,
+                    tier: str | None, remaining_deductible: float | None, zip_code: str | None,
+                    taxonomies: tuple[str, ...]) -> dict:
+    """PlanDB.estimate at specific doctors near the user. A visit to one doctor (DOCTOR_SCENARIOS) in a tier with a
+    price network is priced at each of the nearest doctors with their own rate: the result is the nearest doctor's
+    estimate, plus every doctor's cost ("doctors") and their range ("cost_range"). It needs the user's ZIP. With no
+    such doctor nearby only a flat copay can be computed. Other visits and tiers are priced as before."""
+    if not (scenario in DOCTOR_SCENARIOS and network == "in" and db.priced_network(plan_id, tier)):
+        return db.estimate(plan_id, scenario, network, tier, remaining_deductible)
+    if not zip_code:
+        return {"status": "needs_information", "missing_fields": ["zip"], "patient_cost": None,
+                "plan_id": plan_id, "scenario": scenario, "network": network, "network_tier": tier,
+                "message": "This visit is priced at specific doctors near the user, so it needs their ZIP code."}
+    found = directory.nearest_priced(zip_code, scenario, taxonomies, plan_id, tier)
+    if not found["doctors"]:
+        result = db.estimate(plan_id, scenario, network, tier, remaining_deductible, no_rates=found["message"])
+        result["doctor_search"] = found["message"]
+        return result
+    runs = [db.estimate(plan_id, scenario, network, tier, remaining_deductible, doctor=d) for d in found["doctors"]]
+    result = runs[0]
+    result["doctors"] = [{**r["doctor"], "status": r["status"], "patient_cost": r["patient_cost"]} for r in runs]
+    costs = [r["patient_cost"] for r in runs if r["status"] == "estimated"]
+    result["cost_range"] = {"low": min(costs), "high": max(costs)} if costs else None
+    result["doctor_search"] = found["message"]
+    return result
+
+
+def doctor_finder(directory: ProviderDirectory, zip_code: str, taxonomies_for):
+    """find_doctor for PlanDB.compare: (plan_id, tier, scenario) -> (the nearest doctor with a rate, or None; why).
+    taxonomies_for(scenario) gives the specialty prefixes to search. Candidates are looked up once per scenario."""
+    cache: dict = {}
+
+    def find(plan_id, tier, scenario):
+        found = directory.nearest_priced(zip_code, scenario, taxonomies_for(scenario), plan_id, tier, n=1, cache=cache)
+        return (found["doctors"][0] if found["doctors"] else None), found["message"]
+
+    return find

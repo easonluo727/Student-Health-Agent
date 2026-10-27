@@ -83,7 +83,7 @@ class Hooks:
         if name == "ask_questions":
             return self._check_questions(args)
         if name in ("estimate_cost", "find_providers"):  # the only amount the model passes is the remaining deductible
-            if name == "find_providers" and self.answers.get("zip"):  # the ZIP the user gave in the form wins
+            if self.answers.get("zip"):  # the ZIP the user gave in the form wins
                 args["zip_code"] = str(self.answers["zip"])
             return self.guard.pre_tool("calculate_estimate",
                                        {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
@@ -105,7 +105,9 @@ class Hooks:
             # numbers so the reply may quote them.
             result = self.guard.post_tool(name, args, result, None)
             if result.get("status") == "needs_information":
-                ask = [CALCULATOR_FIELDS[f] for f in result.get("missing_fields") or [] if f in CALCULATOR_FIELDS]
+                # The ZIP: an office or specialist visit is priced at doctors near the user.
+                fields = {**CALCULATOR_FIELDS, "zip": PREMIUM_FIELDS["zip"]}
+                ask = [fields[f] for f in result.get("missing_fields") or [] if f in fields]
                 ask = [qid for qid in ask if qid not in self.answers]
                 if ask:
                     result = {**result, "auto_ask": ask}
