@@ -1,7 +1,8 @@
 """The only place an LLM client is created. Any OpenAI-compatible endpoint works.
 
 Reads LLM_BASE_URL, LLM_API_KEY and LLM_MODEL from the environment, falling back
-to the gitignored .env at the repo root. Optional LLM_EXTRA_BODY (JSON) is sent with
+to the gitignored .env at the repo root. Optional LLM_FALLBACK_MODELS (comma-separated) are tried
+in order when the main model answers 404 model_not_found. Optional LLM_EXTRA_BODY (JSON) is sent with
 the fast, no-reasoning calls; for Qwen on vLLM use
 {"chat_template_kwargs": {"enable_thinking": false}}.
 """
@@ -37,23 +38,38 @@ def fast_extra_body():
     return json.loads(raw) if raw else {}
 
 
+def fallback_models():
+    """LLM_FALLBACK_MODELS: comma-separated models to try, in order, when the main one is unavailable."""
+    load_env()
+    return [m.strip() for m in os.environ.get("LLM_FALLBACK_MODELS", "").split(",") if m.strip()]
+
+
 def make_client(timeout=90.0, max_retries=3):
     load_env()
     missing = [name for name in REQUIRED if not os.environ.get(name)]
     if missing:
         raise RuntimeError(f"Set {', '.join(missing)} (in the environment or {ENV_PATH}).")
-    from openai import OpenAI
+    from openai import NotFoundError, OpenAI
+
+    fallbacks = fallback_models()
 
     class Client(OpenAI):
-        def _should_retry(self, response):
-            # Meta's API (2026-10-26) sometimes answers 404 model_not_found for a model it serves;
-            # the same request succeeds on retry. The SDK never retries a 404 on its own.
-            if response.status_code == 404:
+        # Meta's API (2026-10-26) answers 404 model_not_found for a model it serves while that model's
+        # servers are unreachable, sometimes for minutes; other models keep working meanwhile. So on that
+        # 404 the same request goes to the next model in LLM_FALLBACK_MODELS, and the whole list is tried
+        # twice. The SDK's own retries (5xx, 429) still apply to each attempt.
+        def request(self, cast_to, options, **kwargs):
+            body = options.json_data
+            if not isinstance(body, dict) or "model" not in body:
+                return super().request(cast_to, options, **kwargs)
+            chain = [body["model"]] + [m for m in fallbacks if m != body["model"]]
+            for attempt, model in enumerate(chain * 2):
                 try:
-                    return b"model_not_found" in response.read()
-                except Exception:
-                    return False
-            return super()._should_retry(response)
+                    return super().request(cast_to, options.model_copy(update={"json_data": {**body, "model": model}}),
+                                           **kwargs)
+                except NotFoundError as error:
+                    if "model_not_found" not in str(error) or attempt == 2 * len(chain) - 1:
+                        raise
 
     return Client(
         base_url=os.environ["LLM_BASE_URL"],
