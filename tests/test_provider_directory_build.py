@@ -262,7 +262,7 @@ class DirectoryBuildTests(unittest.TestCase):
         absent_rate = service.search(**{**search, "scenario": "office_visit_new"})
         self.assertEqual(absent_rate["providers"][0]["prices"]["test"]["rate_status"], "rate_unavailable")
         self.assertIsNone(absent_rate["providers"][0]["prices"]["test"]["patient_cost"])
-        multi = service.search(**{**search, "scenario": "er_ankle_xray"})
+        multi = service.search(**{**search, "scenario": "urgent_care_flu"})
         self.assertEqual(multi["providers"][0]["prices"]["test"]["estimate_status"], "billing_provider_mismatch")
         self.assertEqual(ProviderDirectory(root / "absent.sqlite", policy, price_store).search(**search)["status"],
                          "directory_unavailable")

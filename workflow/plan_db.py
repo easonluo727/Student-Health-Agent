@@ -56,6 +56,8 @@ class Part:
 # coverage examples list "Emergency room care" and "Diagnostic test (x-ray)" (and office visits and "Diagnostic
 # tests (blood work)") as separate cost shares. A copay never exceeds the price (calculate_cost.py).
 # Reviewed 2026-10-21 against the SBCs in data/policy_pdfs/ and the Covered California 2026 benefit designs.
+# Emergency care and prescription drugs are outside the product (decided 2026-10-27, docs/PRODUCT.md), so there is
+# no ER scenario; encounters.csv keeps its rows for the MRF pipeline.
 SCENARIOS: dict[str, dict[str, Part]] = {
     "office_visit_established": {"visit": Part("primary_care_visit", "office_visit")},
     "office_visit_new": {"visit": Part("primary_care_visit", "office_visit")},
@@ -64,8 +66,6 @@ SCENARIOS: dict[str, dict[str, Part]] = {
     # The UC SHIP Ashe Center tier has no urgent care benefit: a same-day sick visit there is a primary care visit
     # ("No charge/visit (Ashe Ctr)", SBC p. 2; booklet p. 20, the Ashe Center is the student's medical home).
     "urgent_care_flu": {"visit": Part("urgent_care", fallback="primary_care_visit"), "flu_test": Part("lab_tests")},
-    "er_ankle_xray": {"er_physician": Part("emergency_room", "provider"), "er_facility": Part("emergency_room", "facility"),
-                      "xray_read": Part("xray", "provider"), "xray_facility": Part("xray", "facility")},
     "uti_visit": {"visit": Part("primary_care_visit", "office_visit"), "urinalysis": Part("lab_tests"),
                   "culture": Part("lab_tests")},
     "routine_labs": {"cmp": Part("lab_tests"), "cbc": Part("lab_tests"), "lipid": Part("lab_tests")},

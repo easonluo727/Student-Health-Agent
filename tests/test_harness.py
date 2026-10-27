@@ -64,12 +64,12 @@ class QuestionBank(unittest.TestCase):
         self.assertNotIn("maps_to", fields["conditions"])  # internal fields stay server-side
 
     def test_answers_message_marks_unknown(self):
-        text = answers_message(form_questions(["er_visits", "remaining_deductible"]), {
-            "er_visits": {"value": 1, "unknown": False},
+        text = answers_message(form_questions(["urgent_care_visits", "remaining_deductible"]), {
+            "urgent_care_visits": {"value": 1, "unknown": False},
             "remaining_deductible": {"value": None, "unknown": True},
         })
         self.assertIn("source: user_form", text)
-        self.assertIn("`er_visits` (", text)
+        self.assertIn("`urgent_care_visits` (", text)
         self.assertIn("unknown", text.splitlines()[2])
 
 
@@ -102,24 +102,24 @@ class QuestionnaireHooks(unittest.TestCase):
     def test_prefill_only_what_the_user_said(self):
         h = harness()
         h.hooks.on_user_message("I have asthma and see a pulmonologist 2 times a year")
-        args, blocked = ask(h, ["specialist_visits", "er_visits", "conditions"],
-                            [("specialist_visits", "2"), ("er_visits", "1"), ("conditions", "asthma")])
+        args, blocked = ask(h, ["specialist_visits", "lab_tests", "conditions"],
+                            [("specialist_visits", "2"), ("lab_tests", "1"), ("conditions", "asthma")])
         self.assertIsNone(blocked)
         self.assertEqual(args["checked_prefill"], {"specialist_visits": 2, "conditions": ["asthma"]})
 
     def test_invalid_option_prefill_is_dropped(self):
         h = harness()
         h.hooks.on_user_message("hi")
-        args, _ = ask(h, ["regular_rx"], [("regular_rx", "sometimes")])
+        args, _ = ask(h, ["current_coverage"], [("current_coverage", "sometimes")])
         self.assertEqual(args["checked_prefill"], {})
 
     def test_answered_questions_are_not_asked_again(self):
         h = harness()
-        h.hooks.on_form_answers(form_questions(["er_visits"]), {"er_visits": {"value": 1, "unknown": False}})
-        args, blocked = ask(h, ["er_visits", "urgent_care_visits"])
+        h.hooks.on_form_answers(form_questions(["lab_tests"]), {"lab_tests": {"value": 1, "unknown": False}})
+        args, blocked = ask(h, ["lab_tests", "urgent_care_visits"])
         self.assertIsNone(blocked)
         self.assertEqual(args["question_ids"], ["urgent_care_visits"])
-        _, blocked = ask(h, ["er_visits"])
+        _, blocked = ask(h, ["lab_tests"])
         self.assertEqual(blocked["status"], "already_answered")
 
     def test_too_many_questions(self):

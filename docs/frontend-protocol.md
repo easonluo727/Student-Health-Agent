@@ -177,7 +177,7 @@
     {
       "key": "expected",
       "label": "Your expected year",
-      "description": "2 specialist visits, 1 urgent care, 1 ER visit with X-ray",
+      "description": "2 specialist visits, 1 urgent care visit",
       "costs": { "uc_ship": { "low": 0, "mid": 0, "high": 0 } }
     }
   ],
