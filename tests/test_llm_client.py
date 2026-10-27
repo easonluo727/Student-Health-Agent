@@ -61,6 +61,15 @@ class FallbackTest(unittest.TestCase):
             post(client)
         self.assertEqual(asked, ["main", "b", "main", "b"])
 
+    def test_a_404_with_only_the_message_also_falls_back(self):
+        plain = (404, {"error": {"message": "The requested model was not found.", "type": "invalid_request_error"}})
+        client, asked = client_answering({"main": [plain], "b": [OK]}, "b")
+        self.assertEqual(post(client), {"ok": True})
+        self.assertEqual(asked, ["main", "b"])
+        bare = (404, {"message": "The requested model was not found."})
+        client, asked = client_answering({"main": [bare], "b": [OK]}, "b")
+        self.assertEqual(post(client), {"ok": True})
+
     def test_other_404_is_not_retried(self):
         client, asked = client_answering({"main": [(404, {"error": {"code": "not_found", "message": "No route."}})]}, "b")
         with self.assertRaises(openai.NotFoundError):
