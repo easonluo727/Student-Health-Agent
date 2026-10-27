@@ -37,14 +37,25 @@ def fast_extra_body():
     return json.loads(raw) if raw else {}
 
 
-def make_client(timeout=90.0, max_retries=1):
+def make_client(timeout=90.0, max_retries=3):
     load_env()
     missing = [name for name in REQUIRED if not os.environ.get(name)]
     if missing:
         raise RuntimeError(f"Set {', '.join(missing)} (in the environment or {ENV_PATH}).")
     from openai import OpenAI
 
-    return OpenAI(
+    class Client(OpenAI):
+        def _should_retry(self, response):
+            # Meta's API (2026-10-26) sometimes answers 404 model_not_found for a model it serves;
+            # the same request succeeds on retry. The SDK never retries a 404 on its own.
+            if response.status_code == 404:
+                try:
+                    return b"model_not_found" in response.read()
+                except Exception:
+                    return False
+            return super()._should_retry(response)
+
+    return Client(
         base_url=os.environ["LLM_BASE_URL"],
         api_key=os.environ["LLM_API_KEY"],
         timeout=timeout,
