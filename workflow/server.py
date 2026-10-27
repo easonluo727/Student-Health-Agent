@@ -107,11 +107,13 @@ def estimate_card(result):
     plan_name = next((p["name"] for p in available_plans() if p["plan_id"] == result.get("plan_id")),
                      result.get("plan_id"))
     rows = []
+    doctor = result.get("doctor")
     if prices.get("total") is not None:
         spread = (f" (most between ${prices['low']:,.2f} and ${prices['high']:,.2f})"
                   if prices.get("low") is not None and prices.get("high") is not None else "")
-        rows.append({"label": "Allowed amount", "amount": prices["total"],
-                     "note": "Median negotiated rate across Los Angeles providers in the network" + spread,
+        note = (f"{doctor['name']}'s own negotiated rate, {doctor['distance_miles']} mi away" if doctor else
+                "Median negotiated rate across Los Angeles providers in the network" + spread)
+        rows.append({"label": "Allowed amount", "amount": prices["total"], "note": note,
                      "source": {"kind": "mrf", "label": f"{prices.get('network')} price list, {prices.get('mrf_file_date')}"}})
     for line in result.get("lines") or []:
         rows.append({"label": line["benefit"], "amount": line["patient_cost"],
@@ -127,7 +129,11 @@ def estimate_card(result):
         "status": result["status"],
         "patient_cost": {"mid": cost} if result["status"] == "estimated" and cost is not None else None,
         "rows": rows,
-        "assumptions": [f"Network: {result.get('network')}" + (f" ({tier})" if tier else "")],
+        "assumptions": [f"Network: {result.get('network')}" + (f" ({tier})" if tier else ""),
+                        *([f"Priced at {doctor['name']}, {doctor['address']}"] if doctor else []),
+                        *([f"Nearby doctors: ${spread['low']:,.2f} to ${spread['high']:,.2f}"]
+                          if (spread := result.get("cost_range")) and spread["low"] != spread["high"] else []),
+                        *([result["doctor_search"]] if result.get("doctor_search") and not doctor else [])],
         "message": result.get("message"),
     }
 

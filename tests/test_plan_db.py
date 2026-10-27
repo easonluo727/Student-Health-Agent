@@ -74,17 +74,36 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         self.assertEqual(prices["basis"], "la_county_median")
         self.assertEqual(prices["parts"][0]["n_providers"], 3)
 
+    def test_a_doctor_is_priced_at_their_own_rate_only(self):
+        r = self.db.estimate(UCSHIP, "knee_mri", "in", "UC Family", doctor={"npi": "1000000001"})
+        self.assertEqual((r["status"], r["patient_cost"]), ("estimated", 90.0))  # 10% of this doctor's 900
+        self.assertEqual((r["allowed_amount"]["basis"], r["allowed_amount"]["low"]), ("provider_rate", None))
+        self.assertEqual(r["doctor"], {"npi": "1000000001"})
+        other = self.db.estimate(UCSHIP, "knee_mri", "in", "UC Family", doctor={"npi": "1000000009"})
+        self.assertEqual(other["status"], "needs_review")  # no rate for this doctor, and no median in its place
+        self.assertIn("this doctor", other["message"])
+
+    def test_without_rates_only_a_flat_copay_is_priced(self):
+        r = self.db.estimate("lacare_silver70_hmo_2026", "specialist_followup", no_rates="No doctor nearby.")
+        self.assertEqual((r["status"], r["patient_cost"]), ("estimated", 90))
+        r = self.db.estimate(UCSHIP, "knee_mri", "in", "UC Family", no_rates="No doctor nearby.")
+        self.assertEqual((r["status"], r["message"]), ("needs_review", "No doctor nearby."))
+
     def test_thin_price_samples_are_flagged(self):
-        prices = self.db.allowed_amounts(UCSHIP, "UC Family", "er_ankle_xray")
-        # Every fixture component comes from one or two providers.
-        self.assertEqual(len(prices["warnings"]), 4)
-        self.assertIn("er_facility", " ".join(prices["warnings"]))
+        prices = self.db.allowed_amounts(UCSHIP, "UC Family", "knee_mri")
+        # The fixture's knee MRI comes from three providers.
+        self.assertEqual(len(prices["warnings"]), 1)
+        self.assertIn("mri", prices["warnings"][0])
 
     def test_components_under_different_benefits(self):
-        r = self.db.estimate(UCSHIP, "er_ankle_xray", "in", "UC Family")
-        # $250 ER copay (facility + physician) + 20% of the X-ray components (40 read + 60 facility)
-        self.assertEqual(r["patient_cost"], 270.0)
-        self.assertEqual([line["service"] for line in r["lines"]], ["emergency_room", "xray"])
+        r = self.db.estimate("healthnet_silver70_hmo_2026", "urgent_care_flu")
+        # The urgent care copay (no price needed) + the flu test at its $9 price, below the lab copay
+        self.assertEqual([line["service"] for line in r["lines"]], ["urgent_care", "lab_tests"])
+        self.assertEqual(r["lines"][1]["patient_cost"], 9.0)
+        self.assertEqual(r["patient_cost"], r["lines"][0]["patient_cost"] + 9.0)
+
+    def test_the_er_is_not_a_scenario(self):
+        self.assertEqual(self.db.estimate(UCSHIP, "er_ankle_xray", "in", "UC Family")["status"], "invalid_input")
 
     def test_deductible_then_coinsurance(self):
         # UC SHIP Network tier: imaging is 20% after the $400 deductible; the knee MRI is $1,000.

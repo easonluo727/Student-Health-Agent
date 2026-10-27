@@ -63,6 +63,12 @@ class ToolRegistry:
             args = json.loads(raw_arguments, parse_constant=reject_constant, object_pairs_hook=unique_object)
             if not isinstance(args, dict) or set(args) != set(tool.parameters["properties"]):
                 raise ValueError("Arguments must contain exactly the declared fields.")
+            # Some endpoints don't enforce strict schemas (seen on Meta's API, 2026-10-27: "null" as a string for a
+            # nullable field). A field that may be null and holds the text "null" is null.
+            for key, spec in tool.parameters["properties"].items():
+                if ("null" in (spec.get("type") or []) and isinstance(args[key], str)
+                        and args[key].strip().lower() == "null"):
+                    args[key] = None
             if tool.validate:
                 tool.validate(args)
         except (ValueError, TypeError) as error:

@@ -83,7 +83,7 @@ export const comparisonReport: Report = {
     ],
   },
   ranking: { method: "year_total", summary: "Premiums plus what you pay for care, at 0–10 visits a year. You said 6–10.", factors: [] },
-  note: "Highlighted rows matter most for asthma. Oscar's drug list for 2027 isn't published yet, so the inhaler price is unknown.",
+  note: "Highlighted rows matter most for asthma. Oscar's 2027 provider directory isn't published yet, so its specialist prices are a range.",
   plans: plansBase,
   scenarios: [0, 2, 4, 6, 8, 10].map((v, i) => ({
     key: `visits-${v}`, label: String(v), description: `${v} specialist visits`,
@@ -93,8 +93,6 @@ export const comparisonReport: Report = {
     row("premium", "Monthly premium", "$440", "$270", "$380"),
     row("primary_care", "Primary care visit", "$25", "$65", "$45"),
     row("specialist", "Specialist visit (pulmonologist)", "$50", "$190–$230", "$120", true),
-    row("inhaler", "Controller inhaler, 30 days", "$15", "No data", "$35", true),
-    row("er", "Emergency room", "$350", "Full price until deductible", "$400"),
     row("oop_max", "Worst-case year (out-of-pocket max)", "$4,000", "$9,200", "$8,700"),
   ],
 };
@@ -113,7 +111,7 @@ export const webSearch = (): ServerEvent[] => [
   ...step("s-web", "q", "Oscar Bronze 60 2027 Los Angeles summary of benefits and coverage", { kind: "web", title: "Oscar Bronze plan documents" }),
   ...step("s-web", "p1", "Read page 2 of the summary of benefits", { kind: "web", title: "Bronze 60 — Summary of Benefits and Coverage, 2027", url: "https://www.hioscar.com/plans/2027/bronze-60-sbc" }),
   ...step("s-web", "p2", "Opened the plan finder", { kind: "web", title: "Shop and compare 2027 plans in Los Angeles", url: "https://www.coveredca.com/shop-and-compare" }),
-  ...step("s-web", "p3", "2027 drug list not published yet", { kind: "web", title: "2027 drug list (formulary) — not yet published", url: "https://www.hioscar.com/plans/2027/formulary", status: "failed" }),
+  ...step("s-web", "p3", "2027 provider directory not published yet", { kind: "web", title: "2027 provider directory — not yet published", url: "https://www.hioscar.com/plans/2027/providers", status: "failed" }),
 ];
 /** Plan comparison up to the partial report (board 4 "page being built"). */
 export const comparisonBuilding = (): ServerEvent[] => [
@@ -152,14 +150,13 @@ export const specialists = (): ServerEvent[] => [
 ];
 
 export const bill = (fileId = "file-bill", fileName = "urgent-care-bill.jpg"): ServerEvent[] => [
-  ...["Read your bill photo … 4 lines", "Looked up Anthem’s negotiated rates", "Rate for 71046 — not in the published file", "Applied copay and 20% coinsurance"].flatMap((t, i) => step("s-bill", String(i + 1), t, { kind: "document", status: i === 2 ? "failed" : "done" })),
+  ...["Read your bill photo … 3 lines", "Looked up Anthem’s negotiated rates", "Rate for 71046 — not in the published file", "Applied copay and 20% coinsurance"].flatMap((t, i) => step("s-bill", String(i + 1), t, { kind: "document", status: i === 2 ? "failed" : "done" })),
   { event: "estimate", data: {
     estimate_id: "e-bill", title: "Bill review", plan_name: "Anthem Gold 80", status: "estimated",
-    patient_cost: { mid: 67.2 },
+    patient_cost: { mid: 62.8 },
     rows: [
       { label: "99214 · Office visit, established patient", amount: 50, note: "Billed $285.00 · negotiated rate $168.00", source: billPhoto },
       { label: "94640 · Nebulizer treatment", amount: 12.8, note: "Billed $420.00 · negotiated rate $64.00 × 20% coinsurance", source: mrfAnthem },
-      { label: "J7613 · Albuterol, per dose", amount: 4.4, note: "Billed $38.00 · negotiated rate $22.00", source: mrfAnthem },
       { label: "71046 · Chest X-ray, 2 views", amount: null, note: "Billed $310.00 · no negotiated rate on file" },
       { label: "Possible overcharge on 94640", amount: 407.2, note: "$420.00 billed vs $12.80 owed", source: sbcUrgent },
     ],

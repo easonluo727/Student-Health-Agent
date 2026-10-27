@@ -64,12 +64,12 @@ class QuestionBank(unittest.TestCase):
         self.assertNotIn("maps_to", fields["conditions"])  # internal fields stay server-side
 
     def test_answers_message_marks_unknown(self):
-        text = answers_message(form_questions(["er_visits", "remaining_deductible"]), {
-            "er_visits": {"value": 1, "unknown": False},
+        text = answers_message(form_questions(["urgent_care_visits", "remaining_deductible"]), {
+            "urgent_care_visits": {"value": 1, "unknown": False},
             "remaining_deductible": {"value": None, "unknown": True},
         })
         self.assertIn("source: user_form", text)
-        self.assertIn("`er_visits` (", text)
+        self.assertIn("`urgent_care_visits` (", text)
         self.assertIn("unknown", text.splitlines()[2])
 
 
@@ -86,28 +86,40 @@ class Prompt(unittest.TestCase):
         self.assertEqual(names, ["ask_questions", "list_plans", "estimate_cost", "compare_plans", "find_providers"])
 
 
+class ToolArguments(unittest.TestCase):
+    def test_a_written_out_null_is_null_only_where_null_is_allowed(self):
+        h = harness()
+        args = {"plan_id": "lacare_silver70_hmo_2026", "scenario": "specialist_followup", "network": "in",
+                "network_tier": "null", "remaining_deductible": None, "zip_code": "NULL", "specialty": "null"}
+        parsed, error = h.tools.parse("estimate_cost", json.dumps(args))
+        self.assertIsNone(error)
+        self.assertEqual((parsed["network_tier"], parsed["zip_code"], parsed["specialty"]), (None, None, None))
+        parsed, error = h.tools.parse("estimate_cost", json.dumps({**args, "scenario": "null"}))
+        self.assertEqual(parsed["scenario"], "null")  # not nullable: left as written
+
+
 class QuestionnaireHooks(unittest.TestCase):
     def test_prefill_only_what_the_user_said(self):
         h = harness()
         h.hooks.on_user_message("I have asthma and see a pulmonologist 2 times a year")
-        args, blocked = ask(h, ["specialist_visits", "er_visits", "conditions"],
-                            [("specialist_visits", "2"), ("er_visits", "1"), ("conditions", "asthma")])
+        args, blocked = ask(h, ["specialist_visits", "lab_tests", "conditions"],
+                            [("specialist_visits", "2"), ("lab_tests", "1"), ("conditions", "asthma")])
         self.assertIsNone(blocked)
         self.assertEqual(args["checked_prefill"], {"specialist_visits": 2, "conditions": ["asthma"]})
 
     def test_invalid_option_prefill_is_dropped(self):
         h = harness()
         h.hooks.on_user_message("hi")
-        args, _ = ask(h, ["regular_rx"], [("regular_rx", "sometimes")])
+        args, _ = ask(h, ["current_coverage"], [("current_coverage", "sometimes")])
         self.assertEqual(args["checked_prefill"], {})
 
     def test_answered_questions_are_not_asked_again(self):
         h = harness()
-        h.hooks.on_form_answers(form_questions(["er_visits"]), {"er_visits": {"value": 1, "unknown": False}})
-        args, blocked = ask(h, ["er_visits", "urgent_care_visits"])
+        h.hooks.on_form_answers(form_questions(["lab_tests"]), {"lab_tests": {"value": 1, "unknown": False}})
+        args, blocked = ask(h, ["lab_tests", "urgent_care_visits"])
         self.assertIsNone(blocked)
         self.assertEqual(args["question_ids"], ["urgent_care_visits"])
-        _, blocked = ask(h, ["er_visits"])
+        _, blocked = ask(h, ["lab_tests"])
         self.assertEqual(blocked["status"], "already_answered")
 
     def test_too_many_questions(self):
@@ -163,14 +175,14 @@ class QuestionnaireHooks(unittest.TestCase):
         h = harness()
         h.hooks.on_user_message("Compare UC SHIP and L.A. Care Bronze for me. I'm 22.")
         plans = ["anthem_ppo_ucship_ucla_2026_27", "lacare_bronze60_hmo_2026"]
-        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"])
+        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"], specialty=None)
         # Said in chat is not enough: a form, with how often they expect the chosen visit.
         self.assertEqual(out["auto_ask"], ["age", "student_level", "zip", "primary_care_visits"])
         h.hooks.on_form_answers(form_questions(["age", "zip", "student_level", "primary_care_visits"]), {
             "age": {"value": 22, "unknown": False}, "zip": {"value": "90024", "unknown": False},
             "student_level": {"value": "undergraduate", "unknown": False},
             "primary_care_visits": {"value": 10, "unknown": False}})
-        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"])
+        out = call(h, "compare_plans", plan_ids=plans, scenarios=["office_visit_established"], specialty=None)
         self.assertNotIn("auto_ask", out)
         self.assertEqual(out["ranked_by"], "year_total")
         self.assertEqual({e["plan_id"]: e["premium"]["annual"] for e in out["plans"]},
@@ -211,7 +223,7 @@ class QuestionnaireHooks(unittest.TestCase):
     def test_unknown_premium_inputs_are_not_asked_again(self):
         h = harness()
         h.hooks.on_form_answers(form_questions(["age"]), {"age": {"value": None, "unknown": True}})
-        out = call(h, "compare_plans", plan_ids=["lacare_bronze60_hmo_2026"], scenarios=["office_visit_established"])
+        out = call(h, "compare_plans", plan_ids=["lacare_bronze60_hmo_2026"], scenarios=["office_visit_established"], specialty=None)
         self.assertEqual(out["auto_ask"], ["zip", "primary_care_visits"])
 
 

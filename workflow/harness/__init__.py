@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 from plan_db import PlanDB
+from provider_directory import ProviderDirectory
 
 from . import mcp
 from .hooks import Hooks
@@ -25,7 +26,9 @@ PROMPT_PATH = Path(__file__).with_name("prompts") / "system.md"
 class Harness:
     def __init__(self):
         self.db = PlanDB()
-        self.skills = [questionnaire.build(), plans_skill.build(self.db), providers_skill.build(self.db)]
+        directory = ProviderDirectory()
+        self.skills = [questionnaire.build(), plans_skill.build(self.db, directory),
+                       providers_skill.build(self.db, directory)]
         self.tools = mcp.ToolRegistry([tool for skill in self.skills for tool in skill.tools])
         self.hooks = Hooks()
         plan_context = ("```json\n" + "\n".join(json.dumps(p, ensure_ascii=False)

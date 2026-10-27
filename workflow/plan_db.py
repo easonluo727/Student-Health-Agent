@@ -6,13 +6,15 @@
 
 A *scenario* is one common encounter (data/mrf/encounters.csv: its components and their billing codes). Each
 component is paid under one of the plan's benefits (SCENARIOS below). estimate() matches each component to a
-benefit row, prices each component in the plan's network (plan_networks -> rate store, scripts/mrf/allowed.py:
-the median over every Los Angeles provider in the network, with p10-p90), groups components paid under the same row (one copay per visit), and runs the pure
-calculator (calculate_cost.py) on each group, using the remaining deductible in order. premium() is a year's list
-premium for one person (age, ZIP, student level). year() is a year of care under one plan tier: each visit priced as
-often as the user expects it, the deductible used up across the year, capped at the out-of-pocket max. compare() runs
-year() on several plans, adds each plan's premium, and rank_plans() ranks them by the user's rated priorities (or by
-the year total), recording how.
+benefit row, prices each component in the plan's network (plan_networks -> rate store, scripts/mrf/allowed.py), groups
+components paid under the same row (one copay per visit), and runs the pure calculator (calculate_cost.py) on each
+group, using the remaining deductible in order. A visit to one doctor (DOCTOR_SCENARIOS) is priced at a specific
+doctor (npi: that NPI's own rate, never a median); the caller finds the doctor (provider_directory.py). Other
+scenarios still take the median over every Los Angeles provider in the network, with p10-p90 (roadmap step 1).
+premium() is a year's list premium for one person (age, ZIP, student level). year() is a year of care under one plan
+tier: each visit priced as often as the user expects it, the deductible used up across the year, capped at the
+out-of-pocket max. compare() runs year() on several plans, adds each plan's premium, and rank_plans() ranks them by
+the user's rated priorities (or by the year total), recording how.
 """
 from __future__ import annotations
 
@@ -54,6 +56,8 @@ class Part:
 # coverage examples list "Emergency room care" and "Diagnostic test (x-ray)" (and office visits and "Diagnostic
 # tests (blood work)") as separate cost shares. A copay never exceeds the price (calculate_cost.py).
 # Reviewed 2026-10-21 against the SBCs in data/policy_pdfs/ and the Covered California 2026 benefit designs.
+# Emergency care and prescription drugs are outside the product (decided 2026-10-27, docs/PRODUCT.md), so there is
+# no ER scenario; encounters.csv keeps its rows for the MRF pipeline.
 SCENARIOS: dict[str, dict[str, Part]] = {
     "office_visit_established": {"visit": Part("primary_care_visit", "office_visit")},
     "office_visit_new": {"visit": Part("primary_care_visit", "office_visit")},
@@ -62,8 +66,6 @@ SCENARIOS: dict[str, dict[str, Part]] = {
     # The UC SHIP Ashe Center tier has no urgent care benefit: a same-day sick visit there is a primary care visit
     # ("No charge/visit (Ashe Ctr)", SBC p. 2; booklet p. 20, the Ashe Center is the student's medical home).
     "urgent_care_flu": {"visit": Part("urgent_care", fallback="primary_care_visit"), "flu_test": Part("lab_tests")},
-    "er_ankle_xray": {"er_physician": Part("emergency_room", "provider"), "er_facility": Part("emergency_room", "facility"),
-                      "xray_read": Part("xray", "provider"), "xray_facility": Part("xray", "facility")},
     "uti_visit": {"visit": Part("primary_care_visit", "office_visit"), "urinalysis": Part("lab_tests"),
                   "culture": Part("lab_tests")},
     "routine_labs": {"cmp": Part("lab_tests"), "cbc": Part("lab_tests"), "lipid": Part("lab_tests")},
@@ -81,6 +83,9 @@ SCENARIOS: dict[str, dict[str, Part]] = {
 SPECIAL = re.compile(r"pregnan|maternity|prenatal|postnatal|home delivery|mail|specialty|telehealth|online|virtual|"
                      r"livehealth|hospital stay|inpatient", re.I)
 SCENARIO_ALLOWS = {"telehealth_visit": re.compile(r"telehealth|online|virtual|livehealth", re.I)}
+# Visits billed by one doctor's office, priced at a specific nearby doctor instead of a network median (2026-10-27).
+# Telehealth is left out: it is often a separate service (UC SHIP's LiveHealth Online) and has no location.
+DOCTOR_SCENARIOS = {"office_visit_established", "office_visit_new", "specialist_followup"}
 
 
 @lru_cache(maxsize=1)
@@ -107,6 +112,14 @@ def _component(rates_path: str, plan_key: str, code: str, billing_class: str, po
     return allowed.component(_rates_con(rates_path), plan_key, code, billing_class, pos, modifier_rule, as_of=as_of)
 
 
+@lru_cache(maxsize=4096)
+def _component_at(rates_path: str, plan_key: str, code: str, billing_class: str, pos: str | None, modifier_rule: str,
+                  npi: str, as_of: str) -> allowed.ComponentResult:
+    """One doctor's own rate for a component (strict: no fallback to the network median)."""
+    return allowed.component(_rates_con(rates_path), plan_key, code, billing_class, pos, modifier_rule, npi=npi,
+                             as_of=as_of, strict_npi=True)
+
+
 class PlanDB:
     def __init__(self, path: Path = POLICY_DB, rates_path: Path = RATES_DB):
         self.con = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
@@ -123,14 +136,21 @@ class PlanDB:
                 for row in _encounters().get(scenario, ("", []))[1]:
                     self._price(plan_key, row)
 
-    def _price(self, plan_key: str, row: dict) -> allowed.ComponentResult:
+    def _price(self, plan_key: str, row: dict, npi: str | None = None) -> allowed.ComponentResult:
         r = None
         for code in row["codes"].split("|"):  # alternatives, first with a rate wins
-            r = _component(self.rates_path, plan_key, code, row["billing_class"], row["place_of_service"] or None,
-                           row["modifier_rule"], dt.date.today().isoformat())
+            args = (self.rates_path, plan_key, code, row["billing_class"], row["place_of_service"] or None,
+                    row["modifier_rule"])
+            today = dt.date.today().isoformat()
+            r = _component_at(*args, npi, today) if npi else _component(*args, today)
             if r.allowed_amount is not None:
                 break
         return r
+
+    def priced_network(self, plan_id: str, tier: str | None) -> bool:
+        """Whether this tier has a confirmed price network and the rate store is here (so a doctor can be priced)."""
+        link = self.network(plan_id, tier)
+        return bool(link and link["confirmed"] and self.rates_path)
 
     # ------------------------------------------------------------------ catalog
     def plans(self) -> list[dict]:
@@ -208,9 +228,10 @@ class PlanDB:
                                (plan_id, tier or "")).fetchone()
         return dict(row) if row else None
 
-    def allowed_amounts(self, plan_id: str, tier: str | None, scenario: str) -> dict:
+    def allowed_amounts(self, plan_id: str, tier: str | None, scenario: str, npi: str | None = None) -> dict:
         """Allowed amount of each component of a scenario in the plan's network, or why there is none.
 
+        npi: price at this doctor (their own rate only); otherwise the Los Angeles network median.
         status: priced (every component), partial (some), no_rates (none, or no network / no rate store)."""
         _, rows = _encounters()[scenario]
         link = self.network(plan_id, tier)
@@ -225,25 +246,27 @@ class PlanDB:
             return {"status": "no_rates", "message": f"The rate store ({RATES_DB}) is not available."}
         parts = []
         for row in rows:
-            r = self._price(link["mrf_plan_key"], row)
+            r = self._price(link["mrf_plan_key"], row, npi)
             parts.append({"component": row["component"], "billing_code": r.billing_code,
                           "billing_class": r.billing_class, "place_of_service": r.place_of_service,
                           "allowed_amount": r.allowed_amount, "basis": r.allowed_amount_basis,
-                          "n_providers": r.n_providers, "p10": r.p10, "p90": r.p90,
+                          "n_providers": r.n_providers, "p10": None if npi else r.p10, "p90": None if npi else r.p90,
                           "mrf_file_dates": r.mrf_file_dates})
         missing = [p["component"] for p in parts if p["allowed_amount"] is None]
         complete = not missing
         warnings = [f"The {p['component']} price comes from only {p['n_providers']} provider(s) in this network, "
                     "so it is rough; most hospitals publish facility fees as a percent of charges, which has no "
-                    "dollar price." for p in parts if p["allowed_amount"] is not None and p["n_providers"] < THIN_SAMPLE]
+                    "dollar price." for p in parts
+                    if not npi and p["allowed_amount"] is not None and p["n_providers"] < THIN_SAMPLE]
 
         def total(key):
             vals = [p[key] for p in parts]
             return round(sum(vals), 2) if complete and all(v is not None for v in vals) else None
 
+        whose = "this doctor" if npi else "this network"
         return {"status": "priced" if complete else "partial" if len(missing) < len(parts) else "no_rates",
-                "message": None if complete else "No negotiated rate in this network for: " + ", ".join(missing) + ".",
-                "basis": "la_county_median" if complete else None,
+                "message": None if complete else f"No negotiated rate for {whose} for: " + ", ".join(missing) + ".",
+                "basis": ("provider_rate" if npi else "la_county_median") if complete else None,
                 "total": total("allowed_amount"), "low": total("p10"), "high": total("p90"),
                 "components": {p["component"]: p["allowed_amount"] for p in parts}, "parts": parts,
                 "warnings": warnings,
@@ -322,8 +345,18 @@ class PlanDB:
                 "plan_pays_percentage": None if coins is None else 100 - coins}
 
     def estimate(self, plan_id: str, scenario: str, network: str = "in", tier: str | None = None,
-                 remaining_deductible: float | None = None) -> dict:
-        """What the user pays for one occurrence of a scenario under one plan, network and tier."""
+                 remaining_deductible: float | None = None, doctor: dict | None = None,
+                 no_rates: str | None = None) -> dict:
+        """What the user pays for one occurrence of a scenario under one plan, network and tier.
+
+        doctor ({"npi", ...}): price at this doctor's own negotiated rate; it is returned as result["doctor"].
+        no_rates: price without any rate (only a flat copay can then be computed), with this reason."""
+        result = self._estimate(plan_id, scenario, network, tier, remaining_deductible, doctor, no_rates)
+        if doctor is not None:
+            result["doctor"] = doctor
+        return result
+
+    def _estimate(self, plan_id, scenario, network, tier, remaining_deductible, doctor, no_rates) -> dict:
         plan = self.plan(plan_id)
         if plan is None:
             return {"status": "invalid_input", "message": f"Unknown plan {plan_id!r}.", "patient_cost": None}
@@ -335,7 +368,12 @@ class PlanDB:
                     "options": plan["in_network_tiers"]}
         tier = tier if network == "in" else None
         label = _encounters()[scenario][0]
-        prices = self.allowed_amounts(plan_id, tier, scenario) if network == "in" else {"status": "no_rates"}
+        if no_rates:
+            prices = {"status": "no_rates", "message": no_rates}
+        elif network == "in":
+            prices = self.allowed_amounts(plan_id, tier, scenario, (doctor or {}).get("npi"))
+        else:
+            prices = {"status": "no_rates"}
 
         # Components paid under the same benefit row are one bill under that row (one copay per visit).
         groups: OrderedDict[str, dict] = OrderedDict()
@@ -399,11 +437,13 @@ class PlanDB:
                                                            "mrf_file_date", "parts", "warnings")} if prices else None,
                 "lines": lines}
 
-    def year(self, plan: dict, tier: str | None, counts: dict, preferred: tuple = ()) -> dict:
+    def year(self, plan: dict, tier: str | None, counts: dict, preferred: tuple = (), find_doctor=None) -> dict:
         """One plan tier over a year. counts: {scenario: (times a year, assumed)}. Each visit is priced in turn with
         the deductible still left, so it is used up across the year; the care total is capped at the out-of-pocket
         max. preferred: tiers the user goes to (e.g. "Ashe Center" for someone keeping the Ashe Center); a visit the
-        plan's preferred tier can price is priced there, the rest in `tier`."""
+        plan's preferred tier can price is priced there, the rest in `tier`. find_doctor(plan_id, tier, scenario) ->
+        (doctor or None, reason): a DOCTOR_SCENARIOS visit is priced at that doctor (the nearest one with a rate in
+        this network), or without a rate when there is none."""
         plan_id = plan["plan_id"]
         pref = next((t for t in preferred if t in plan["in_network_tiers"] and t != tier), None)
         ded_row = self._plan_level(plan_id, r"deductible", "in", tier)
@@ -412,6 +452,10 @@ class PlanDB:
         visits, care, problem = [], Decimal(0), None
         for scenario, (times, assumed) in counts.items():
             runs, total, cached, first, failed = [], Decimal(0), None, None, None
+            at = {}
+            if find_doctor and scenario in DOCTOR_SCENARIOS and self.priced_network(plan_id, tier):
+                doctor, reason = find_doctor(plan_id, tier, scenario)
+                at = {"doctor": doctor} if doctor else {"no_rates": reason}
             at_pref = self.estimate(plan_id, scenario, "in", pref, None) if pref else None
             if at_pref is not None and at_pref["status"] == "estimated":  # a campus clinic: flat copays, no deductible
                 first, used = at_pref, pref
@@ -423,7 +467,7 @@ class PlanDB:
             for _ in range(times_left):
                 if cached is None or cached[0] != remaining:  # the same deductible left gives the same cost
                     cached = (remaining, self.estimate(plan_id, scenario, "in", tier,
-                                                       None if remaining is None else float(remaining)))
+                                                       None if remaining is None else float(remaining), **at))
                 r = cached[1]
                 first = first or r
                 if r["status"] != "estimated":
@@ -438,7 +482,8 @@ class PlanDB:
                     remaining -= Decimal(str(r["deductible_paid"]))
             prices = first["allowed_amount"] or {}
             visit = {"scenario": scenario, "label": first["scenario_label"], "times": times, "assumed": assumed,
-                     "network_tier": used,
+                     "network_tier": used, "doctor": at.get("doctor") if used == tier else None,
+                     "doctor_search": at.get("no_rates") if used == tier else None,
                      "tier_note": (f"{pref} can't price this visit (it needs a price or the deductible), so it is "
                                    f"priced at {tier}.") if pref and used != pref else None,
                      "status": failed["status"] if failed else "estimated",
@@ -474,8 +519,8 @@ class PlanDB:
 
     def compare(self, plan_ids: list[str], scenarios: list[str], profile: dict | None = None,
                 visits: dict | None = None, preferences: dict | None = None,
-                preferred_tiers: list[str] | None = None) -> dict:
-        """A year of care under each plan for this person, ranked.
+                preferred_tiers: list[str] | None = None, find_doctor=None) -> dict:
+        """A year of care under each plan for this person, ranked. find_doctor: see year().
 
         visits: {scenario: times a year} from the user's answers (0 drops a scenario); a chosen scenario without a
         count is counted once and marked assumed. A plan with several priced tiers is priced in its cheapest one for
@@ -492,7 +537,7 @@ class PlanDB:
                 out.append({"plan_id": plan_id, "status": "invalid_input", "message": "Unknown plan."})
                 continue
             tiers = [t or None for t in plan["priced_tiers"]] or [None]
-            best = min((self.year(plan, tier, counts, preferred) for tier in tiers),
+            best = min((self.year(plan, tier, counts, preferred, find_doctor) for tier in tiers),
                        key=lambda e: (e["care"]["total"] is None, e["care"]["total"] or 0))
             if len(tiers) > 1:
                 best["tier_note"] = (f"Priced at {best['network_tier']}, the cheapest of its priced tiers "

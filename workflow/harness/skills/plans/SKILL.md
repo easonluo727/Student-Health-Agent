@@ -28,9 +28,20 @@ closest ones as an approximation, clearly labelled.
 
 | Status | What to do |
 | --- | --- |
-| `estimated` | Give `patient_cost`, then the lines (which benefit, the copay or coinsurance, the allowed amount). Say the allowed amount is the median negotiated rate across Los Angeles providers in that network, give its range (`low`–`high`) and its date. |
-| `needs_information` | Ask for exactly the `missing_fields` (a deductible question is sent as a form automatically). |
+| `estimated` | Give `patient_cost`, then the lines (which benefit, the copay or coinsurance, the allowed amount). With `doctors` (below), say whose price it is. Without, say the allowed amount is the median negotiated rate across Los Angeles providers in that network, give its range (`low`–`high`) and its date. |
+| `needs_information` | Ask for exactly the `missing_fields` (a deductible or ZIP question is sent as a form automatically). |
 | `needs_review` / `not_covered` | Say so plainly with the `message`, and cite the benefit's page. |
+
+**Office and specialist visits are priced at real doctors near the user.** For `office_visit_established`,
+`office_visit_new` and `specialist_followup` in a tier with price data, pass the user's `zip_code` as they stated it
+(otherwise `null`; Python then asks for it) and, for a specialist, the `specialty` (for example `pulmonology` for
+asthma; primary care visits need none). Python finds the nearest doctors (up to 5, within 25 miles) who have **their
+own** negotiated rate in the plan's network and prices the visit at each. `patient_cost` and the lines are for the
+nearest one (`doctor`); `doctors` lists each with their `distance_miles`, `negotiated_rate` and `patient_cost`, and
+`cost_range` their range. Name the doctors with their distance and cost; when every cost is the same (a flat copay),
+say so in one line. A negotiated rate means the doctor is in that network's price list, not that they take the plan
+today: tell the user to confirm with the office. When `doctor_search` says no nearby doctor has a rate, say so; the
+result then holds only what a flat copay gives.
 
 When `allowed_amount.warnings` is not empty, say that part of the price is rough and why, in one sentence.
 A copay plan's cost does not depend on it; a deductible or coinsurance line does.
@@ -64,6 +75,11 @@ A plan with `not_ranked` is left out: say why. A plan with `budget.over` true ha
 
 When the user wants to keep going to a place that is a tier of a plan (the Ashe Center, for UC SHIP), Python prices
 the visits it can there (`visits[].network_tier`) and the rest in the plan's cheapest priced tier (`tier_note`).
+
+Office and specialist visits are priced at the nearest doctor with their own negotiated rate in each plan's network
+(`visits[].doctor`), so the comparison needs the user's ZIP (Python asks for it with the premium inputs). With a
+specialist visit, pass `specialty`; otherwise `null`. When you explain a plan's visit cost, name that doctor and their
+distance. `visits[].doctor_search` says when no nearby doctor in a plan's network has a rate.
 
 Quote premiums exactly as returned (`premium.amount` per `premium.period`, `premium.annual`); never divide, round or
 convert them yourself. Say premiums are before any subsidy: Covered California plans may cost much less after the
