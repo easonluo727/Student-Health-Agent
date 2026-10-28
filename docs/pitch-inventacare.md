@@ -18,6 +18,7 @@ file replaces sections 3 and 4.
 | 7 | No numbers for the data | 5 insurers, 7 networks, 444 GB of insurer files, about 630,000 negotiated rates, about 68,000 providers, 9 Los Angeles plans, 818 benefit rules | Counted from `rates.sqlite`, `providers.sqlite`, `policy.sqlite`. |
 | 8 | Coverage scope not stated | Today: 9 plans in Los Angeles (UC SHIP and Covered California), 41 common services | Judges will ask; say it plainly. |
 | 9 | Premiums | Premiums are list prices before any subsidy | Subsidies are not computed. |
+| 10 | No model training | Scene 6 adds about 25 seconds on the bill-reading model we trained, with its test results; Demo B and Scene 5 are 5 seconds shorter each to make room | Same facts as `docs/pitch.md` section 3: Muse Glimmer 30B fine-tuned on 900 generated bills, scored on 100 held-out generated bills by `scripts/bills/score.py` (2026-10-28). |
 
 KFF figures were checked against the source: 51% of insured adults find at least one aspect of their insurance at
 least somewhat difficult to understand; 30% find it difficult to understand what they will owe out of pocket
@@ -99,7 +100,7 @@ Architecture diagram, three levels (give viewers time to read it).
 > An AI agent understands your questions and explains the results, but it never does the math. Every number comes
 > from our calculation engine and can be traced to its source."
 
-### Scene 4 — Live Product Demonstration (2:25–3:55)
+### Scene 4 — Live Product Demonstration (2:25–3:50)
 
 Use only real TallyHealth footage; never a mockup presented as the product.
 
@@ -114,7 +115,7 @@ premium (list price), care cost for the year, and out-of-pocket maximum; the doc
 prices; the ranking and the explanation. Use the real plan names and numbers the product returns. If a premium is
 missing, show it as missing.
 
-**Demo B — Insurance Cost Estimator (3:15–3:55).** Same user, ZIP 90024: "I have this plan and want to see a doctor
+**Demo B — Insurance Cost Estimator (3:15–3:50).** Same user, ZIP 90024: "I have this plan and want to see a doctor
 near UCLA. How much might I pay for an office visit?"
 
 Show: the plan being identified or asked for; nearby doctors with their own negotiated rate; the estimate and its
@@ -134,7 +135,7 @@ doctor. If data is missing, show the product saying so.
 > answer.
 > It's an estimate, not a guaranteed final bill, but it gives patients a clear starting point before they get care."
 
-### Scene 5 — Impact and Commercialization (3:55–4:30)
+### Scene 5 — Impact and Commercialization (3:50–4:15)
 
 Unchanged (a plan to validate, no claims of customers, partners or revenue).
 
@@ -144,22 +145,35 @@ Unchanged (a plan to validate, no claims of customers, partners or revenue).
 > To build a business, we plan a business-to-business-to-consumer model: paid tools for independent insurance
 > brokers first, then partnerships with universities and benefits organizations."
 
-### Scene 6 — Team, Roadmap, and Vision (4:30–4:55)
+### Scene 6 — Our Own Model, Roadmap, and Vision (4:15–4:55)
 
-Three-phase roadmap, with "today" stated plainly:
-- **Today**: 9 plans in Los Angeles, 41 common services; office and specialist visits priced at specific doctors.
-- **Phase 1, validate and improve**: price more services at specific doctors; more plans in California; validate
-  rules and rates; student user testing.
+First (about 25 seconds), the bill-reading model. On screen, the results table, labelled "100 generated test bills,
+not real patient bills":
+
+| | Muse Glimmer 30B, before training | Muse Glimmer 30B, after training | Muse Spark |
+|---|---|---|---|
+| Bills with every field right | 73% | **86%** | 76% |
+| All fields | 97.4% | **99.2%** | 85.2% |
+| Bills it refused to read | 0 | 0 | 6 |
+
+Then the three-phase roadmap, with "today" stated plainly:
+- **Today**: 9 plans in Los Angeles, 41 common services; office and specialist visits priced at specific doctors; a
+  bill-reading model trained and tested.
+- **Phase 1, validate and improve**: bill audit (check each line of a bill against that doctor's negotiated rate);
+  price more services at specific doctors; more plans in California; validate rules and rates; student user testing.
 - **Phase 2, pilots**: broker workflows, university and institutional pilots, willingness to pay.
 - **Phase 3, expansion**: beyond California; APIs; more services; prescription drugs and emergency care when
   reliable data allows.
 
 Closing card: **TallyHealth — Understand your coverage. Anticipate your costs. Choose with confidence.**
 
-> "We built TallyHealth because understanding healthcare costs shouldn't require becoming an insurance expert.
-> Today we cover nine plans in Los Angeles. Next, we'll price more services at specific doctors, add more plans, and
-> pilot with insurance brokers.
-> Our mission is simple: to help people make confident healthcare decisions before the bill arrives."
+> "Next, we're adding bill audit: checking each line of a medical bill against that doctor's negotiated rate.
+> Bills hold private health information, so we trained our own model to read them. On a hundred generated test
+> bills, our fine-tuned Muse Glimmer read every field correctly on eighty-six percent, up from seventy-three before
+> training, and ahead of Muse Spark at seventy-six. Muse Spark refused six bills because they listed tests like HIV
+> screening.
+> Today we cover nine plans in Los Angeles. Our mission is simple: to help people make confident healthcare
+> decisions before the bill arrives."
 
 ---
 
@@ -186,6 +200,15 @@ Keep every rule of the original, and add or tighten these:
   computed a price.
 - Policy rules were converted before use and carry a source quote. Don't claim each rule was checked by hand.
 - An uploaded plan document identifies the plan; the numbers come from the database.
+
+**Model training** (same rules as `docs/pitch.md` section 3)
+- Say "generated test bills". The model has not been tested on real bills.
+- Bill audit is in development; don't show or narrate it as a working feature.
+- Don't say the test bills use layouts the model never saw: the 100 were drawn at random from the same 1,000 bills,
+  so layouts may overlap with training.
+- Don't compare speed: Glimmer read the 100 bills in one batch, Muse Spark one API call at a time.
+- Say "ahead of" Muse Spark, not "far ahead": 100 bills, p = 0.04. Before vs after training is p = 0.004.
+- Training ran on Modal; Fireworks was only a 20-bill trial.
 
 **Before recording**
 - [ ] The live site (Railway) runs a build with doctor-level pricing (merged 2026-10-27, PRs #15 and #16).
