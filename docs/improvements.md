@@ -16,6 +16,7 @@
 - **C. 补全费用计算**：只补 demo 用到的缺口（P2 第 5 条）；HPV、生孩子先不做；急诊和药品不在产品范围内（2026-10-27 定，见 `PRODUCT.md`）。
 - **D. 前端去 AI 化**，加上医生卡和账单审核结果卡。
 - 有余力再做：E. 找保单的搜索（P1 第 1 条），F. 微调一个读账单的开源小模型。
+  - **F 的进度（2026-10-28）**：Fireworks 暂停了数据集上传（API 返回 "dataset uploads are temporarily disabled"），改在 Modal 上用 Axolotl 训（`scripts/bills/modal_sft.py`）。Muse Glimmer 30B，QLoRA，只训语言层，900 张生成的账单图片，2 个 epoch，1 张 H100 约 37 分钟。eval-100 上的 loss 从 0.145 降到 0.003。LoRA 在 Modal volume `bills-sft` 的 `/outputs/bills-sft-glimmer-v1/`。坑：HF `datasets` 会把内容是 JSON 字符串的 assistant 回答解析成 dict，模板于是丢掉这一轮、loss 全为 0，所以字符串内容一律写成 text 列表；`train` 开 GPU 前会先跑 `check_labels` 检查。还没做：在 eval-100 和真实账单上比较字段准确率（基础模型、微调后、Muse Spark），以及部署。
 - 还要做：第 1 天把模型换成 Meta Model API（先确认支持 `server.py` 用的 Responses API），最后一天录 demo 视频和提交。
 
 按顺序做：
