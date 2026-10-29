@@ -42,30 +42,30 @@
 
 :root {
   --radius: 1.5rem;
-  --background: oklch(0.951 0.008 88); /* canvas-soft #f1efe9 */
-  --foreground: oklch(0.2 0.008 200); /* ink #12191a */
+  --background: #F8FAF7;
+  --foreground: #263B35;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.008 200);
+  --card-foreground: #263B35;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.008 200);
-  --primary: oklch(0.85 0.075 172); /* mint #8fdcc8 */
-  --primary-foreground: oklch(0.2 0.008 200);
-  --secondary: oklch(0.951 0.008 88);
-  --secondary-foreground: oklch(0.2 0.008 200);
-  --muted: oklch(0.951 0.008 88);
-  --muted-foreground: oklch(0.6 0.008 160); /* mute #808784 */
-  --accent: oklch(0.95 0.025 170); /* mint pale #e1f4ee */
-  --accent-foreground: oklch(0.31 0.045 175); /* ink deep */
+  --popover-foreground: #263B35;
+  --primary: #1F4D40;
+  --primary-foreground: #F8FAF7;
+  --secondary: #E3F4EC;
+  --secondary-foreground: #1F4D40;
+  --muted: #F1F6F2;
+  --muted-foreground: #61736B;
+  --accent: #E3F4EC;
+  --accent-foreground: #1F4D40;
   --destructive: oklch(0.55 0.18 27);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.906 0.008 88); /* line #e3e1db */
-  --input: oklch(0.906 0.008 88);
-  --ring: oklch(0.2 0.008 200);
-  --chart-1: oklch(0.2 0.008 200);
-  --chart-2: oklch(0.6 0.008 160);
-  --chart-3: oklch(0.906 0.008 88);
-  --chart-4: oklch(0.55 0.13 150);
-  --chart-5: oklch(0.82 0.16 85);
+  --border: #DCE7DF;
+  --input: #DCE7DF;
+  --ring: #91B9A6;
+  --chart-1: #1F4D40;
+  --chart-2: #91B9A6;
+  --chart-3: #E3F4EC;
+  --chart-4: #263B35;
+  --chart-5: #B8D8C8;
   --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
 }
 
@@ -88,14 +88,14 @@
   --color-negative-deep: var(--negative-deep);
 }
 :root {
-  --body: oklch(0.4 0.01 165);
-  --positive: oklch(0.56 0.13 150);
-  --positive-deep: oklch(0.36 0.08 150);
+  --body: #496158;
+  --positive: #91B9A6;
+  --positive-deep: #1F4D40;
   --warning-pale: oklch(0.96 0.03 83);
   --warning-content: oklch(0.37 0.055 83);
   --negative-pale: oklch(0.94 0.03 25);
   --negative-deep: oklch(0.45 0.15 25);
-  --composer-shadow: 0 1px 2px oklch(0.2 0.008 200 / 0.06);
+  --composer-shadow: 0 8px 28px rgb(31 77 64 / 6%);
   --map-street: oklch(1 0 0);
   --map-land: oklch(0.91 0.005 160);
 }
@@ -108,8 +108,9 @@
 .conversation { display:flex; flex-direction:column; min-height:0; flex-shrink:0; padding:0 24px; }
 .with-canvas .conversation { width:440px; }
 .chat-only .conversation { width:min(100%,768px); margin:0 auto; }
-.conversation-scroll { flex:1; min-height:0; overflow-y:auto; padding-top:32px; padding-bottom:24px; }
+.conversation-scroll { flex:1; min-height:0; overflow-y:auto; padding-top:32px; padding-bottom:32px; }
 .user-message { background:var(--accent); padding:12px 16px; border-radius:24px; margin-left:auto; max-width:90%; font-size:16px; line-height:24px; overflow-wrap:anywhere; }
+.conversation-scroll > .user-message:not(:first-child) { margin-top:40px; }
 .agent-message { font-size:16px; line-height:26px; margin-top:24px; }
 .empty-conversation { justify-content:center; }
 .empty-conversation .conversation-scroll { flex:none; overflow:visible; padding:0 0 24px; }
@@ -195,3 +196,21 @@
 .email-field { display:grid; grid-template-columns:64px 1fr; align-items:center; gap:8px; border-bottom:1px solid var(--border); padding-bottom:8px; }
 .email-field > span:first-child { color:var(--muted-foreground); font-size:12px; }
 .email-field input { width:100%; background:transparent; border:0; outline:none; font-size:14px; color:var(--foreground); }
+
+/* Keep the patient price in view; technical billing lines open on request. */
+.estimate-summary { padding:28px; border:1px solid var(--border); border-radius:20px; background:var(--background); }
+.estimate-eyebrow { color:var(--body); font-size:13px; line-height:20px; }
+.estimate-price-label { margin-top:20px; color:var(--body); font-size:14px; line-height:20px; }
+.estimate-price { margin-top:4px; color:var(--primary); font-size:clamp(36px, 4vw, 52px); font-weight:600; letter-spacing:-0.04em; line-height:1.12; font-variant-numeric:tabular-nums; }
+.estimate-status { margin-top:4px; font-size:24px; font-weight:600; line-height:1.25; }
+.estimate-details { margin-top:18px; border:1px solid var(--border); border-radius:16px; background:var(--card); overflow:hidden; }
+.estimate-details summary { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 20px; color:var(--primary); font-size:14px; font-weight:600; cursor:pointer; list-style:none; }
+.estimate-details summary::-webkit-details-marker { display:none; }
+.estimate-details summary:hover { background:var(--accent); }
+.estimate-details summary:focus-visible { outline:2px solid var(--ring); outline-offset:-3px; }
+.estimate-details[open] summary { border-bottom:1px solid var(--border); }
+.estimate-details[open] summary svg { transform:rotate(180deg); }
+.estimate-details-content { padding:20px; }
+.estimate-details .bill-table th:last-child,.estimate-details .bill-table td:last-child { text-align:right; white-space:nowrap; }
+.estimate-details .bill-table th:first-child,.estimate-details .bill-table td:first-child { padding-left:0; }
+.estimate-details .bill-table th:last-child,.estimate-details .bill-table td:last-child { padding-right:0; }

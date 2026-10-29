@@ -28,7 +28,7 @@ closest ones as an approximation, clearly labelled.
 
 | Status | What to do |
 | --- | --- |
-| `estimated` | Give `patient_cost`, then the lines (which benefit, the copay or coinsurance, the allowed amount). With `doctors` (below), say whose price it is. Without, say the allowed amount is the median negotiated rate across Los Angeles providers in that network, give its range (`low`–`high`) and its date. |
+| `estimated` | Give `patient_cost` as the answer. Name the doctor if one was used. The estimate card already has an expandable price breakdown with the benefit, copay or coinsurance, allowed amount, and sources; explain those numbers in chat only if the user asks. Without a doctor, do not describe a median as one doctor's price. |
 | `needs_information` | Ask for exactly the `missing_fields` (a deductible or ZIP question is sent as a form automatically). |
 | `needs_review` / `not_covered` | Say so plainly with the `message`, and cite the benefit's page. |
 
@@ -38,8 +38,9 @@ closest ones as an approximation, clearly labelled.
 asthma; primary care visits need none). Python finds the nearest doctors (up to 5, within 25 miles) who have **their
 own** negotiated rate in the plan's network and prices the visit at each. `patient_cost` and the lines are for the
 nearest one (`doctor`); `doctors` lists each with their `distance_miles`, `negotiated_rate` and `patient_cost`, and
-`cost_range` their range. Name the doctors with their distance and cost; when every cost is the same (a flat copay),
-say so in one line. A negotiated rate means the doctor is in that network's price list, not that they take the plan
+`cost_range` their range. Name the doctor used for the estimate and their patient cost. If other nearby doctors have
+different patient costs, mention that alternatives are available without listing their negotiated rates in the first
+reply. A negotiated rate means the doctor is in that network's price list, not that they take the plan
 today: tell the user to confirm with the office. When `doctor_search` says no nearby doctor has a rate, say so; the
 result then holds only what a flat copay gives.
 

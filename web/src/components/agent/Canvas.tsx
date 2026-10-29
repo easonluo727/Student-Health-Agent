@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, ExternalLink, AlertCircle, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ExternalLink, AlertCircle, Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CareSection, Estimate, Plan, Provider, Report, ReplyTarget, SearchStep } from "@/agent/protocol";
 import { SourceChip, SourceChips } from "./SourceChip";
@@ -140,17 +140,31 @@ export function CareView({ care, onAsk }: { care: CareSection; onAsk: Ask }) {
 const statusText: Record<Estimate["status"], string> = { estimated: "Estimated", needs_information: "Needs information", needs_review: "Needs review", not_covered: "Not covered", invalid_input: "Invalid input" };
 export function EstimateView({ estimate }: { estimate: Estimate }) {
   return <div className="canvas-content">
-    <dl className="bill-meta"><div><dt>Plan</dt><dd>{estimate.plan_name}</dd></div><div><dt>Status</dt><dd>{statusText[estimate.status]}</dd></div>
-      {estimate.patient_cost && <div><dt>You should owe</dt><dd>{costText(estimate.patient_cost)}</dd></div>}</dl>
-    {estimate.rows.length > 0 && <table className="data-table bill-table"><thead><tr><th>Line</th><th>Amount</th></tr></thead><tbody>
-      {estimate.rows.map(r => <tr key={r.label} className={r.amount == null ? "row-warning" : ""}>
-        <td>{r.label}{r.note && <p className="mt-2 text-xs">{r.note}</p>}{r.amount == null && <div className="mt-2"><StatusBadge tone="warning">No data</StatusBadge></div>}</td>
-        <td>{r.amount == null ? "No data" : money(r.amount)}</td>
-      </tr>)}</tbody></table>}
-    <div className="my-5"><SourceChips sources={estimate.rows.map(r => r.source)} /></div>
-    {estimate.message && estimate.status !== "estimated" && <p className="estimate-message text-2xl font-semibold text-foreground">{estimate.message}</p>}
-    {estimate.assumptions.map(a => <p key={a} className="mt-3 text-xs text-muted-foreground">{a}</p>)}
-    {estimate.message && estimate.status === "estimated" && <p className="estimate-note mt-3 text-xs text-muted-foreground">{estimate.message}</p>}
+    <div className="estimate-summary">
+      <p className="estimate-eyebrow">{estimate.plan_name}</p>
+      {estimate.patient_cost ? <>
+        <p className="estimate-price-label">Your estimated cost</p>
+        <p className="estimate-price">{costText(estimate.patient_cost)}</p>
+      </> : <>
+        <p className="estimate-price-label">Cost estimate</p>
+        <p className="estimate-status">{statusText[estimate.status]}</p>
+        {estimate.message && <p className="mt-3 text-sm text-body">{estimate.message}</p>}
+      </>}
+    </div>
+    {(estimate.rows.length > 0 || estimate.assumptions.length > 0 || (estimate.message && estimate.status === "estimated")) &&
+      <details className="estimate-details">
+        <summary>More information <ChevronDown className="size-4" aria-hidden="true" /></summary>
+        <div className="estimate-details-content">
+          {estimate.rows.length > 0 && <div className="overflow-x-auto"><table className="data-table bill-table"><thead><tr><th>Line</th><th>Amount</th></tr></thead><tbody>
+            {estimate.rows.map((r, i) => <tr key={`${r.label}-${i}`} className={r.amount == null ? "row-warning" : ""}>
+              <td>{r.label}{r.note && <p className="mt-2 text-xs">{r.note}</p>}{r.amount == null && <div className="mt-2"><StatusBadge tone="warning">No data</StatusBadge></div>}</td>
+              <td>{r.amount == null ? "No data" : money(r.amount)}</td>
+            </tr>)}</tbody></table></div>}
+          {estimate.rows.some(r => r.source) && <div className="mt-5"><SourceChips sources={estimate.rows.map(r => r.source)} /></div>}
+          {estimate.assumptions.map((a, i) => <p key={i} className="mt-3 text-xs text-muted-foreground">{a}</p>)}
+          {estimate.message && estimate.status === "estimated" && <p className="mt-3 text-xs text-muted-foreground">{estimate.message}</p>}
+        </div>
+      </details>}
   </div>;
 }
 
