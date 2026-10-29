@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, FileText, Image as ImageIcon, Loader2, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, ChevronDown, FileText, Image as ImageIcon, Loader2, Paperclip, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UPLOAD_ACCEPT } from "@/agent/config";
 import type { Agent } from "@/agent/useAgent";
@@ -12,11 +12,20 @@ export function Composer({ agent, inputRef }: { agent: Agent; inputRef: React.Re
   const [text, setText] = useState("");
   const [files, setFiles] = useState<Pending[]>([]);
   const picker = useRef<HTMLInputElement>(null);
+  const plansDropdown = useRef<HTMLDetailsElement>(null);
   const busy = agent.state.busy;
   const uploading = files.some(f => !f.result && !f.error);
   const ready = files.filter(f => f.result).map(f => f.result!);
   const canSend = !busy && !uploading && (!!text.trim() || ready.length > 0);
   useEffect(() => () => files.forEach(f => f.preview && URL.revokeObjectURL(f.preview)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    function dismiss(event: PointerEvent) {
+      const dropdown = plansDropdown.current;
+      if (dropdown && !dropdown.contains(event.target as Node)) dropdown.open = false;
+    }
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
 
   function add(list: File[]) {
     for (const file of list) {
@@ -40,7 +49,7 @@ export function Composer({ agent, inputRef }: { agent: Agent; inputRef: React.Re
   return <>
     <form className="composer" onSubmit={e => { e.preventDefault(); send(); }}>
       {t && <div className="mb-2"><span className="attachment-tag">Replying about: {t.label}<Button type="button" variant="ghost" size="icon" className="size-5" aria-label="Clear reply target" onClick={() => agent.setReplyTarget(null)}><X /></Button></span></div>}
-      <textarea ref={inputRef} aria-label="Message" placeholder="Ask a question…" value={text} onChange={e => setText(e.target.value)}
+      <textarea ref={inputRef} aria-label="Message" title="Drag the bottom-right corner to resize" placeholder="Ask a question…" value={text} onChange={e => setText(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
@@ -52,10 +61,22 @@ export function Composer({ agent, inputRef }: { agent: Agent; inputRef: React.Re
         {busy ? <Button type="button" size="icon" className="send-button" aria-label="Stop" title="Stop" onClick={agent.stop}><Square /></Button>
           : <Button type="submit" size="icon" className="send-button" aria-label="Send message" title="Send message" disabled={!canSend}><ArrowUp /></Button>}
       </div>
-      {agent.mode !== "chat" && agent.plans.length > 0 && <div className="mt-2 flex flex-wrap gap-2" aria-label="Plans">{agent.plans.map(p => {
-        const on = agent.planIds.includes(p.plan_id);
-        return <button type="button" key={p.plan_id} aria-pressed={on} className={`plan-toggle ${on ? "selected" : ""}`} onClick={() => agent.setPlanIds(on ? agent.planIds.filter(x => x !== p.plan_id) : [...agent.planIds, p.plan_id])}>{p.name} · {p.plan_year}</button>;
-      })}</div>}
+      {agent.mode !== "chat" && agent.plans.length > 0 && <details ref={plansDropdown} className="plan-picker"
+        onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); e.currentTarget.open = false; e.currentTarget.querySelector("summary")?.focus(); } }}>
+        <summary><span>{agent.planIds.length ? `${agent.planIds.length} ${agent.planIds.length === 1 ? "plan" : "plans"} selected` : "Select plans"}</span><ChevronDown aria-hidden className="size-4" /></summary>
+        <div className="plan-picker-menu">
+          <div className="plan-picker-heading"><span>Choose plans to {agent.mode === "review" ? "compare" : "calculate"}</span>
+            <button type="button" onClick={() => { if (plansDropdown.current) { plansDropdown.current.open = false; plansDropdown.current.querySelector("summary")?.focus(); } }}>Done</button>
+          </div>
+          <div className="plan-picker-options" role="group" aria-label="Plans">{agent.plans.map(p => {
+            const selected = agent.planIds.includes(p.plan_id);
+            return <label key={p.plan_id} className={`plan-picker-option ${selected ? "selected" : ""}`}>
+              <input type="checkbox" checked={selected} onChange={() => agent.setPlanIds(selected ? agent.planIds.filter(x => x !== p.plan_id) : [...agent.planIds, p.plan_id])} />
+              <span>{p.name}<small>{p.plan_year}</small></span>
+            </label>;
+          })}</div>
+        </div>
+      </details>}
       <input ref={picker} className="hidden" type="file" multiple accept={UPLOAD_ACCEPT} onChange={e => { add(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
     </form>
     {files.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{files.map(f => <span className={`attachment-tag ${f.error ? "attachment-error" : ""}`} key={f.key} title={f.error}>

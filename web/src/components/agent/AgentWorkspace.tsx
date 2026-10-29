@@ -38,7 +38,13 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
 
   return <SourceContext.Provider value={setSource}>
     <div className="insurance-workspace">
-      <header className="workspace-header"><span className="text-sm font-semibold">Health insurance agent</span><Button variant="ghost" onClick={agent.newChat}>New chat</Button></header>
+      <header className="workspace-header">
+        <button type="button" className="brand-home" aria-label="TallyHealth home" onClick={() => { setSource(null); agent.newChat(); }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/tallyhealth-logo.png" alt="TallyHealth" width={180} height={60} />
+        </button>
+        <Button variant="ghost" onClick={agent.newChat}>New chat</Button>
+      </header>
       {toolbar}
       <div className={`workspace-body ${canvasOpen ? "with-canvas" : "chat-only"}`}>
         <section className={`conversation ${empty ? "empty-conversation" : ""}`} aria-label="Conversation">
@@ -68,7 +74,7 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
             {!empty && !canvasOpen && views.length > 0 && <Button variant="secondary" className="action-button mt-5" onClick={() => agent.setCanvas(true)}>Open page</Button>}
           </div>
           <div className="composer-area">
-            <Composer agent={agent} inputRef={input} />
+            <Composer key={state.sessionId} agent={agent} inputRef={input} />
             {empty && <div className="example-prompts">{prompts.map(p => <Button variant="ghost" key={p} onClick={() => agent.sendMessage(p)}>{p}<ChevronRight /></Button>)}</div>}
           </div>
         </section>
