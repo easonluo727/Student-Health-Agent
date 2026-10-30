@@ -82,7 +82,15 @@ export function useAgent(transport: AgentTransport) {
   const upload = useCallback((file: File) => transport.upload(sessionRef.current, file), [transport]);
 
   const stop = useCallback(() => { abort.current?.abort(); abort.current = null; dispatch({ type: "busy", busy: false }); }, []);
-  const newChat = useCallback(() => { stop(); setReplyTarget(null); dispatch({ type: "reset", sessionId: newSessionId() }); }, [stop]);
+  const newChat = useCallback(() => {
+    stop();
+    setReplyTarget(null);
+    setMode("chat");
+    setPlanIds([]);
+    const sessionId = newSessionId();
+    sessionRef.current = sessionId;
+    dispatch({ type: "reset", sessionId });
+  }, [stop]);
 
   /** Dev/mock only: replay recorded events into a fresh conversation without a network call. */
   const replay = useCallback((events: ServerEvent[], opts: { userText?: string | undefined; attachments?: LocalAttachment[] | undefined; busy?: boolean | undefined; view?: string | undefined } = {}) => {

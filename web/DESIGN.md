@@ -245,6 +245,16 @@ components:
 
 ## Overview
 
+### Approved UI update (2026-10-29)
+
+These updates supersede the older palette and controls below. The product is **TallyHealth**. Use the supplied `public/tallyhealth-logo.png` wordmark in the header as a home button; it starts a fresh conversation and clears the draft, selected plans, and mode.
+
+- Palette: background `#F8FAF7`, text `#263B35`, primary actions `#1F4D40` with off-white text, pale surfaces `#E3F4EC`, sage accents `#91B9A6`. The logo retains the supplied artwork's colors.
+- Patient cost is the lead number. Technical billing lines, copays, sources, and detailed assumptions are inside a default-closed **More information** disclosure. Do not describe estimates as guaranteed final bills.
+- Leave 40 px before the user's next question after an agent response.
+- Review and Calculate use a compact plan-selection bar with a selected count. Opening it reveals a bounded, scrollable checkbox list; Done, Escape, or clicking outside closes it. Multiple selections remain selected when closed.
+- The message field resizes vertically using its bottom-right handle, from 64 px up to the smaller of 320 px and 40% of viewport height.
+
 The product has **one page: the agent chat**. There is no landing page, no sidebar menu, no fixed dashboard, no tabs and no feature menu. The user talks to the agent; the agent chooses what to do each turn — reply in a sentence, ask questions, call harness tools (database, calculator, web search), or **build a page for this user in a canvas on the right**, like Muse AI; every user's page is different. Every number on screen comes from Python, so the design always shows where a number came from.
 
 The look pairs a clear mint `{colors.primary}` (`#8fdcc8`) action accent with a warm paper canvas `{colors.canvas-soft}` (`#f1efe9`) and a near-black ink `{colors.ink}` (`#12191a`). It reads like a calm consumer-finance tool: generous whitespace, large rounded white cards, and one heavy display number per card. The chat chrome stays plain so the cards carry the identity.
