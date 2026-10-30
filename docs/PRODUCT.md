@@ -232,10 +232,10 @@ Railway 上的一个服务 agent-api
      ├─ API（SSE，协议见 docs/frontend-protocol.md），在 /api
      ├─ agent 流程（调用 LLM，供应商由环境变量配置）
      ├─ 匹配和计算：plan_db.py、calculate_cost.py、guards.py
-     └─ 只读数据：保单信息数据库（data/plans/policy.sqlite）+ allowed amount 价格库（rates.sqlite，3.1 GB，Railway 磁盘卷）
+     └─ 数据：保单信息数据库（上传计划可写；data/plans/policy.sqlite）+ 只读 allowed amount 价格库（rates.sqlite，3.1 GB，Railway 磁盘卷）
 ```
 - 模型供应商是配置项（`workflow/llm_client.py`），每个比赛按要求换。
-- 数据都是只读的，跟着代码一起部署，不需要 Supabase。
+- allowed amount 和医生目录只读；保单库可以写入标记为 `verified=0` 的上传计划，不需要 Supabase。
 - **页面上的数据只来自这一轮 harness 工具的结果**（数据库或搜索），Python 核对后才显示。
 
 技术细节见 `AGENTS.md` 和 `db/README.md`。

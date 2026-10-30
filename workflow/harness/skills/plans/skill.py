@@ -82,7 +82,8 @@ def plan_summary(db):
     out = []
     for p in db.plans():
         summary = {k: p[k] for k in ("plan_id", "plan_name", "insurer", "plan_year", "plan_type", "deductible_in_usd",
-                                     "oop_max_in_usd", "in_network_tiers")}
+                                     "oop_max_in_usd", "in_network_tiers", "verified")}
+        summary["uploaded"] = p["plan_id"].startswith("upload_")
         if rules := db.rules(p["plan_id"]):
             summary["rules"] = rules
         out.append(summary)

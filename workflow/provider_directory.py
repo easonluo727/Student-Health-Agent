@@ -21,6 +21,7 @@ MAX_RESULTS = 50
 MAX_CANDIDATES = 5000
 MAX_COST_SORT_CANDIDATES = 200
 SINGLE_PROVIDER_SCENARIOS = {"office_visit_established", "office_visit_new", "telehealth_visit",
+                             "preferred_telehealth_visit",
                              "specialist_followup", "therapy_intake", "therapy_session_45", "therapy_session_60"}
 # NUCC Health Care Provider Taxonomy codes (nucc.org); a code ending in X is exact, a shorter one is a prefix that
 # includes the subspecialties.

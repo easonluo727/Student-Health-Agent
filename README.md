@@ -12,7 +12,7 @@ Whether you get insurance through work, the marketplace or school, or are pickin
 
 You chat with an advisor that knows your plan and the real prices in Los Angeles. Next on the roadmap: recommending specific in-network doctors near you, priced doctor by doctor, with public quality data (`docs/improvements.md`).
 
-1. **Upload your plan.** Attach the PDF. The model reads the first page, and Python finds the plan in the plan database.
+1. **Upload your plan.** Attach the PDF. The model reads the first page and Python first looks for a trusted catalog match. If it is new, the benefit tables are extracted, validated and saved into the shared plan library as an uploaded, unverified plan.
 2. **Answer a short questionnaire.** Instead of asking one question at a time, the agent picks questions from a fixed question bank and sends them as a form: your conditions, how often you see a doctor, your budget, what matters to you.
 3. **Get real numbers for a visit.** The agent splits the visit into the parts the plan pays separately, looks up the negotiated rate in a database compiled from insurers' price files, applies the plan's copay, coinsurance and deductible, and explains the result. The rate, the benefit and the PDF page are shown with every estimate.
 4. **Compare plans (the Arena).** The same visits priced on several plans side by side, with the deductible not met and already met.
@@ -42,7 +42,7 @@ The core rule: **the model makes judgments, Python makes numbers.** The model de
 | **Questionnaire skill** | A 22-question bank; the tool schema enumerates the question IDs, so the model can't invent questions. Every question names the database query or calculator input it feeds | [`workflow/harness/skills/questionnaire/`](workflow/harness/skills/questionnaire/) |
 | **Plans skill** | `estimate_cost` (one visit on one plan) and `compare_plans` (the Arena). The model picks only plan IDs, scenarios and the network; Python matches and prices | [`workflow/harness/skills/plans/`](workflow/harness/skills/plans/), [`workflow/plan_db.py`](workflow/plan_db.py) |
 | **Hooks** | Block amounts the user never stated, and reject replies with untraced dollar amounts | [`workflow/harness/hooks.py`](workflow/harness/hooks.py), [`workflow/guards.py`](workflow/guards.py) |
-| **Calculator** | Pure, deterministic cost sharing (copay, coinsurance, deductible). Refuses rules a person hasn't verified | [`workflow/calculate_cost.py`](workflow/calculate_cost.py) |
+| **Calculator** | Pure, deterministic cost sharing (copay, coinsurance, deductible). Uses reviewed rules, plus structurally complete uploaded rules that are explicitly disclosed as unverified | [`workflow/calculate_cost.py`](workflow/calculate_cost.py) |
 
 ## Where the LLM runs
 
@@ -51,14 +51,14 @@ Every model call goes through one client ([`workflow/llm_client.py`](workflow/ll
 | Task | Model input | Where |
 | --- | --- | --- |
 | Chat agent: choosing questions, plans and scenarios; writing replies | Text and tool calls | [`workflow/server.py`](workflow/server.py) |
-| Recognizing an uploaded plan | Image of page 1 | [`workflow/harness/reader.py`](workflow/harness/reader.py) |
+| Recognizing or session-extracting an uploaded plan | Page images and PDF text | [`workflow/harness/reader.py`](workflow/harness/reader.py), [`scripts/policy/extract_sbc.py`](scripts/policy/extract_sbc.py) |
 | Extracting benefit tables from plan PDFs (offline) | Page images and text | [`scripts/policy/extract_sbc.py`](scripts/policy/extract_sbc.py) |
 
 ## The data
 
 **Price database (allowed amounts).** A streaming Python pipeline, with no LLM, read insurers' Transparency in Coverage files: 316 files, 70 GB compressed, 444 GB of JSON. It kept 629,842 negotiated rates for 41 billing codes across 68,333 Los Angeles providers in 7 networks (Anthem PPO Prudent Buyer, which UC SHIP uses; Anthem Pathway EPO and HMO; UnitedHealthcare Choice Plus; Cigna National PPO; Ambetter from Health Net; L.A. Care). They are grouped into 19 common visits, such as urgent care for the flu or an ER visit for a sprained ankle. The agent prices directly from this 3.1 GB SQLite database (not in git; on Railway it is a volume): the median over every Los Angeles provider in the plan's network, with a p10–p90 range. Details: [`scripts/mrf/README.md`](scripts/mrf/README.md).
 
-**Plan database.** One row per price a plan states (service × network × tier), extracted from official plan PDFs ([`scripts/policy/extract_sbc.py`](scripts/policy/extract_sbc.py)) and built into [`data/plans/policy.sqlite`](data/plans/policy.sqlite) by [`scripts/policy/build_seed.py`](scripts/policy/build_seed.py). The calculator refuses any row that isn't verified or has a review flag. [`data/plans/plan_networks.csv`](data/plans/plan_networks.csv) says which price network each plan uses. Details: [`db/README.md`](db/README.md).
+**Plan database.** One row per price a plan states (service × network × tier), extracted from official plan PDFs ([`scripts/policy/extract_sbc.py`](scripts/policy/extract_sbc.py)) and built into [`data/plans/policy.sqlite`](data/plans/policy.sqlite) by [`scripts/policy/build_seed.py`](scripts/policy/build_seed.py). Trusted seed rows must be verified and flag-free; uploaded rows remain unverified but may be calculated when structurally complete and are always disclosed as such. [`data/plans/plan_networks.csv`](data/plans/plan_networks.csv) says which price network each plan uses. Details: [`db/README.md`](db/README.md).
 
 ## Run it
 
@@ -110,7 +110,7 @@ No test calls the LLM or the network.
 
 - **Coverage is narrow.** Prices exist for 19 common visits in Los Angeles. Surgery, hospital stays and prescription drug prices aren't in the database.
 - **A negotiated rate is an estimate.** Claim edits and bundling change what is finally paid. For now prices are the median across a network's Los Angeles providers, not a quote from a specific doctor; doctor-level pricing is the next step.
-- **Few plans.** The plan database holds 11 Los Angeles plans. An uploaded plan that isn't in it can't be priced yet.
-- **No premium subsidies, out-of-pocket maximum, or balance billing** in the calculator yet. Premiums are list prices
+- **Few verified plans.** The shared database starts with 9 Los Angeles plans. A new uploaded SBC is added to the plan library but remains explicitly unverified, and benefits needing a negotiated-rate network cannot be priced until a network link exists.
+- **No premium subsidies or balance billing** in the calculator yet. Premiums are list prices
   (Covered California 2026 preliminary rates for Los Angeles, UC SHIP at UCLA).
 - It is not medical advice and doesn't guarantee coverage.

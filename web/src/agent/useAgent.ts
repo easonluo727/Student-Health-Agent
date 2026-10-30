@@ -21,7 +21,14 @@ export function useAgent(transport: AgentTransport) {
   const sessionRef = useRef(state.sessionId);
   useEffect(() => { sessionRef.current = state.sessionId; }, [state.sessionId]);
 
-  useEffect(() => { transport.getPlans().then(setPlans).catch(() => setPlans([])); }, [transport]);
+  const refreshPlans = useCallback(async () => {
+    try { setPlans(await transport.getPlans()); } catch { setPlans([]); }
+  }, [transport]);
+  useEffect(() => {
+    let live = true;
+    transport.getPlans().then(p => { if (live) setPlans(p); }).catch(() => { if (live) setPlans([]); });
+    return () => { live = false; };
+  }, [transport]);
   const refreshIntegrations = useCallback(async () => {
     try { const i = await transport.getIntegrations(); setIntegrations(i); return i; } catch { return null; }
   }, [transport]);
@@ -43,12 +50,13 @@ export function useAgent(transport: AgentTransport) {
         if (ctrl.signal.aborted) break;
         dispatch({ type: "server", event });
       }
+      if (!ctrl.signal.aborted && input.type === "message" && input.attachments?.length) await refreshPlans();
     } catch (e) {
       if (!ctrl.signal.aborted) dispatch({ type: "local_error", message: e instanceof Error ? e.message : "The agent could not be reached." });
     } finally {
       if (abort.current === ctrl) { abort.current = null; dispatch({ type: "busy", busy: false }); }
     }
-  }, [transport, mode, planIds]);
+  }, [transport, mode, planIds, refreshPlans]);
 
   const sendMessage = useCallback((text: string, attachments: LocalAttachment[] = []) => {
     const target = replyTarget;

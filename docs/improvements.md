@@ -43,6 +43,11 @@
 
 2026-10-21 做完：默认价格不再用 UCLA 价；区间算对；对接代码不再崩溃；桥 1 全部有证据；桥 2 审过一遍（`SCENARIOS` 和 `encounters.csv`，依据是 SBC 的联邦费用示例和 Covered CA 2026 统一设计）；copay 不超过服务价格（Covered CA 脚注 6，原来算错）；Ashe Center 看流感按普通门诊算；远程看诊没有 98005 价格时用 99213；样本太少的价格会带警告；`scripts/mrf/check_rates.py` 做跨网络检查。
 
+2026-10-28 补上远程看诊的保单差异：普通 telehealth 和保险指定的 preferred telehealth/LiveHealth Online
+现在是两个场景、两类保单福利。UC SHIP Network 普通远程门诊按 $25，LiveHealth Online 按 $0 且无需
+referral；Anthem Gold 只有指定的 Preferred Online and Telehealth PCP 路径按 $0。用户没说明平台时，
+问卷会先问是哪一种，普通 telehealth 不会再误用 preferred 的 $0 福利。
+
 还剩（`check_rates.py` 报出的就是这些）：
 - **HIV 检测**：现在常用 87389，但当初只导入了 86701，Health Net 没有 86701 的价格。要把 87389 加进 `data/mrf/billing_codes.csv` 再跑一次导入。
 
@@ -56,16 +61,13 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 
 ### 1. 上传 PDF 当场抽取
 
-**现状**：上传的 PDF 只读第 1 页认出名字，再去保单库里找（`harness/reader.py` 的 `db_catalog()`）。库里没有的 plan（比如 Prime 500）只能回答"算不了"。
+**2026-10-30 已完成标准 SBC 路径**：上传先匹配已有计划；匹配不到时，共用 `extract_sbc.extract()` 抽取
+临时 `plans.csv` 和 `benefits.csv`，再用 `build_seed.build_plan()` 校验并写入共享 policy SQLite。自动抽取的
+plan/row 保持 `verified=0`，但结构完整且没有其他 review flag 的行可以计算；每个结果都提示未经人工核对，
+并且新计划会出现在 `/plans` 和比较 UI。生产环境要把 `POLICY_DB` 指向持久卷才能跨部署保留上传计划。
 
-**做法**：
-1. 找不到对应的 plan 时，在服务里调用 `scripts/policy/extract_sbc.py` 的抽取流程。先把它改成可以 import 的函数，进度通过 `search_step` 事件推给前端面板（复用现在的 "Agent computer" 面板）。
-2. 抽出的数据存成**这次对话专用的临时 plan**，不写进公共保单库，回答时注明"由模型从你的上传中读取，未经人工核对"。`plan_db.PlanDB` 要支持同时查公共库和这次对话的临时 plan，比如为每个对话建一个内存 SQLite，并 ATTACH 公共库。
-3. 网络匹配：模型从保单原文里找出网络名（只做摘录），Python 再和 `data/plan_profiles.v1.json` 的网络名单比对，比对上就生成 `plan_networks` 行，自动接上协商价。比对不上时只能算固定 copay。
-4. 定位福利页：SBC 用现成的 `find_pages()`，很稳；长手册或 EOC 要按 "Schedule of Benefits"、"Copayment"、"Coinsurance" 等关键词的密度给每页打分，挑出连续的高分页段。
-
-**耗时**：标准 SBC 3–5 分钟，65 页以上的长保单会更久。
-**工作量**：约半天，主要花在长保单的测试上。
+**还剩**：长手册/EOC 没有稳定的自动页定位；当前只有能找到联邦 SBC 固定表头的文件会自动抽取。自动匹配
+MRF 网络也未实现，所以新计划只有固定 copay 能在没有 allowed amount 时直接计算。
 
 ### 1.6 账单照片和 Gmail 申诉信（2026-10-26）
 

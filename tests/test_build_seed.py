@@ -40,6 +40,19 @@ def run(benefits, plan=PLAN, sources=None, networks=None, premiums=None):
 
 
 class BuildSeed(unittest.TestCase):
+    def test_session_extraction_can_calculate_without_being_marked_verified(self):
+        src = Path(tempfile.mkdtemp()) / "session_plan"
+        src.mkdir()
+        (src / "plans.csv").write_text("plan_id,insurer,plan_name,verified\n"
+                                       "session_plan,Uploaded,Uploaded Plan,\n")
+        (src / "benefits.csv").write_text(
+            HEAD + f"session_plan,{OFFICE},primary_care_visit,PCP,office_visit,in,,25,,no,,yes,,$25,\n")
+        plan, rows, problems = build_seed.build_plan(src, allow_unverified_calculation=True)
+        self.assertEqual(problems, [])
+        self.assertEqual(plan["verified"], False)
+        self.assertEqual((rows[0]["verified"], rows[0]["calculable"], rows[0]["review_flags"]),
+                         (False, True, []))
+
     def test_normalizes_and_classifies(self):
         code, plans, rows, _ = run(
             f"p,{OFFICE},primary_care_visit,PCP,,in,UC Family,$25,NOT FOUND,no,NOT FOUND,yes,none,$25/visit,yes\n"

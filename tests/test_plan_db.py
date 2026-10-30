@@ -137,6 +137,33 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         prices = self.db.allowed_amounts("healthnet_silver70_hmo_2026", None, "telehealth_visit")
         self.assertEqual((prices["total"], prices["parts"][0]["billing_code"]), (90.0, "99213"))
 
+    def test_ordinary_and_preferred_telehealth_use_different_policy_rows(self):
+        ordinary = self.db.estimate("anthem_gold80_hmo_2026", "telehealth_visit")
+        preferred = self.db.estimate("anthem_gold80_hmo_2026", "preferred_telehealth_visit")
+        self.assertEqual((ordinary["patient_cost"], preferred["patient_cost"]), (40, 0))
+        self.assertIn("including Office, Online, and Telehealth", ordinary["lines"][0]["benefit"])
+        self.assertIn("Preferred Online and Telehealth", preferred["lines"][0]["benefit"])
+
+    def test_uc_ship_livehealth_is_free_and_ordinary_telehealth_is_not(self):
+        ordinary = self.db.estimate(UCSHIP, "telehealth_visit", "in", "Network")
+        livehealth = self.db.estimate(UCSHIP, "preferred_telehealth_visit", "in", "Network")
+        self.assertEqual((ordinary["patient_cost"], livehealth["patient_cost"]), (25, 0))
+        self.assertIn("Telehealth Visits (Medical)", ordinary["lines"][0]["benefit"])
+        self.assertIn("LiveHealth Online", livehealth["lines"][0]["benefit"])
+        self.assertIn("No referral needed", livehealth["lines"][0]["limits"])
+
+    def test_uc_ship_livehealth_is_not_available_in_uc_family_tier(self):
+        result = self.db.estimate(UCSHIP, "preferred_telehealth_visit", "in", "UC Family")
+        self.assertEqual(result["status"], "needs_review")
+        self.assertIn("telehealth_visit benefit", result["message"])
+
+    def test_generic_telehealth_never_selects_a_preferred_only_row(self):
+        benefit = self.db.benefit("anthem_gold80_hmo_2026", "telehealth_visit", scenario="telehealth_visit")
+        self.assertIsNone(benefit)
+        fallback = self.db.benefit("anthem_gold80_hmo_2026", "primary_care_visit",
+                                   component="office_visit", scenario="telehealth_visit")
+        self.assertEqual(fallback["copay_usd"], 40)
+
     def test_ashe_center_flu_visit_is_a_primary_care_visit(self):
         r = self.db.estimate(UCSHIP, "urgent_care_flu", "in", "Ashe Center")
         self.assertEqual((r["lines"][0]["service"], r["lines"][0]["patient_cost"]), ("primary_care_visit", 0))
@@ -302,11 +329,43 @@ class PlanDbOnFixtureRates(unittest.TestCase):
 
 
 class PlanDbWithoutRateStore(unittest.TestCase):
+    def test_external_policy_path_is_seeded_on_first_start(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy = Path(tmp) / "volume" / "policy.sqlite"
+            db = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+            self.assertTrue(policy.is_file())
+            self.assertGreater(len(db.plans()), 0)
+            db.con.close()
+
     def test_flat_copays_still_work(self):
         db = PlanDB(rates_path=Path("/nonexistent/rates.sqlite"))
         db.warm()  # startup remains available when the optional rate store is absent
         self.assertEqual(db.estimate("healthnet_silver70_hmo_2026", "specialist_followup")["patient_cost"], 90)
         self.assertEqual(db.allowed_amounts("healthnet_silver70_hmo_2026", None, "knee_mri")["status"], "no_rates")
+
+    def test_uploaded_plan_is_persisted_and_disclosed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy = Path(tmp) / "policy.sqlite"
+            shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
+            db = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+            plan = dict(db.con.execute(
+                "SELECT * FROM plans WHERE plan_id='healthnet_silver70_hmo_2026'").fetchone())
+            plan.update(plan_id="upload_test", plan_name="Uploaded Test Plan", verified=0)
+            benefit = dict(db.con.execute(
+                "SELECT * FROM benefits WHERE plan_id='healthnet_silver70_hmo_2026' "
+                "AND service='primary_care_visit' AND network='in' LIMIT 1").fetchone())
+            benefit.update(benefit_id="uploadbenefit1", plan_id="upload_test", verified=0, calculable=1,
+                           review_flags="")
+            self.assertTrue(db.add_uploaded_plan(plan, [benefit]))
+            self.assertFalse(db.add_uploaded_plan(plan, [benefit]))
+            self.assertIsNotNone(db.plan("upload_test"))
+            persistent = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+            result = persistent.estimate("upload_test", "office_visit_established")
+            self.assertEqual((result["status"], result["patient_cost"]), ("estimated", 50))
+            self.assertIn("not human verified", result["message"])
+            self.assertIsNotNone(persistent.plan("upload_test"))
+            db.con.close()
+            persistent.con.close()
 
 
 class Premiums(unittest.TestCase):

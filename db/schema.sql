@@ -24,7 +24,8 @@ CREATE TABLE benefits (
     category           TEXT NOT NULL,             -- office_visits, tests, drugs, ... (from the SBC section)
     section            TEXT,                      -- the SBC "Common Medical Event", verbatim
     service            TEXT NOT NULL CHECK (service IN (
-                           'primary_care_visit', 'specialist_visit', 'urgent_care', 'emergency_room', 'ambulance',
+                           'primary_care_visit', 'specialist_visit', 'telehealth_visit', 'urgent_care',
+                           'emergency_room', 'ambulance',
                            'lab_tests', 'xray', 'advanced_imaging', 'generic_drugs', 'preferred_brand_drugs',
                            'mental_health_outpatient', 'preventive_care', 'plan_level', 'other')),
     service_as_printed TEXT NOT NULL,
@@ -43,7 +44,7 @@ CREATE TABLE benefits (
     source_page        INTEGER,
     verified           INTEGER NOT NULL DEFAULT 0,
     review_flags       TEXT NOT NULL DEFAULT '',   -- comma-separated: why the calculator must not use the row as-is
-    calculable         INTEGER NOT NULL DEFAULT 0  -- verified AND no review_flags
+    calculable         INTEGER NOT NULL DEFAULT 0  -- trusted: verified and flag-free; uploads may be unverified but structurally complete
 );
 CREATE INDEX ix_benefits_lookup ON benefits (plan_id, service, network, network_tier);
 CREATE INDEX ix_benefits_category ON benefits (category, service);

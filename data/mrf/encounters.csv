@@ -14,6 +14,7 @@ therapy_intake,Therapy intake (psychiatric diagnostic evaluation),visit,90791,pr
 therapy_session_45,Therapy session (45 min),visit,90834,professional,11|02|10,global,Claude review 2026-10-21
 therapy_session_60,Therapy session (60 min),visit,90837,professional,11|02|10,global,Claude review 2026-10-21
 telehealth_visit,Telehealth visit (video),visit,98005|99213,professional,10|02|11,global,Claude review 2026-10-21
+preferred_telehealth_visit,Plan-designated preferred telehealth visit (video),visit,98005|99213,professional,10|02|11,global,Policy integration 2026-10-28
 routine_labs,Routine blood work (CMP + CBC + lipid panel),cmp,80053,professional,11|81,global,Claude review 2026-10-21
 routine_labs,Routine blood work (CMP + CBC + lipid panel),cbc,85025,professional,11|81,global,Claude review 2026-10-21
 routine_labs,Routine blood work (CMP + CBC + lipid panel),lipid,80061,professional,11|81,global,Claude review 2026-10-21

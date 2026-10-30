@@ -3,8 +3,10 @@
 import json
 import re
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "workflow"))
 
@@ -55,6 +57,12 @@ class QuestionBank(unittest.TestCase):
         for qid in CALCULATOR_FIELDS.values():
             self.assertEqual(BY_ID[qid]["group"], "D")
 
+    def test_telehealth_type_maps_to_distinct_scenarios(self):
+        q = BY_ID["telehealth_type"]
+        self.assertEqual({o["value"] for o in q["options"]}, {"preferred", "other"})
+        self.assertIn("preferred_telehealth_visit", q["maps_to"])
+        self.assertIn("telehealth_visit", q["maps_to"])
+
     def test_form_matches_protocol(self):
         form = build_form(["conditions", "allowed_amount"], "Title", "Why", {"allowed_amount": 180})
         self.assertTrue(form["request_id"].startswith("form_"))
@@ -80,6 +88,8 @@ class Prompt(unittest.TestCase):
         self.assertIn("## questionnaire", prompt)
         self.assertIn("## plans", prompt)
         self.assertIn("`specialist_visits`", prompt)
+        self.assertIn("`preferred_telehealth_visit`", prompt)
+        self.assertIn("ask `telehealth_type`", prompt)
 
     def test_tools(self):
         names = [t["name"] for t in harness().tools.definitions()]
@@ -239,6 +249,68 @@ class UploadMatching(unittest.TestCase):
         self.assertIsNone(match_plan(davis, catalog))
         self.assertEqual(match_plan("L.A. Care Covered Silver 70 HMO", catalog)["plan_id"], "lacare_silver70_hmo_2026")
         self.assertIsNone(match_plan("STUDENT MEDICOVER PRIME 500 International", catalog))
+
+
+class UploadExtraction(unittest.IsolatedAsyncioTestCase):
+    async def test_previously_uploaded_plan_matches_without_extracting_again(self):
+        from harness import reader
+
+        catalog = [{"plan_id": "upload_file1", "name": "Uploaded Plan", "insurer": "Test",
+                    "plan_year": "2026", "verified": False, "uploaded": True,
+                    "match": {"all": ["Uploaded Plan"], "any": ["Test"]}}]
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(reader, "page_count", return_value=3), \
+                patch.object(reader, "thumbnail", return_value="data:image/jpeg;base64,x"), \
+                patch.object(reader, "page_image", return_value=b"png"), \
+                patch.object(reader, "read_identity", return_value={"plan_name": "Uploaded Plan", "insurer": "Test"}), \
+                patch.object(reader, "page_text", return_value="Test Uploaded Plan"), \
+                patch.object(reader, "extract_uploaded_plan") as extract:
+            events = [event async for event in reader.read_plan_pdf(
+                object(), "model", Path(tmp) / "plan.pdf", "plan.pdf", catalog, policy_db=object(),
+                work_dir=tmp, plan_id="upload_file1")]
+        self.assertTrue(events[-1][1]["uploaded"])
+        self.assertEqual(events[-1][1]["plan"]["plan_id"], "upload_file1")
+        extract.assert_not_called()
+
+    async def test_unknown_plan_is_extracted_into_the_shared_database(self):
+        from harness import reader
+
+        extracted = {"plan_id": "upload_file1", "name": "Uploaded Plan", "insurer": "Test",
+                     "plan_year": "2026", "uploaded": True, "newly_added": True, "benefit_rows": 12,
+                     "calculable_rows": 10, "summary_pages": [1], "benefit_pages": [2, 3]}
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(reader, "page_count", return_value=3), \
+                patch.object(reader, "thumbnail", return_value="data:image/jpeg;base64,x"), \
+                patch.object(reader, "page_image", return_value=b"png"), \
+                patch.object(reader, "read_identity", return_value={"plan_name": "Uploaded Plan"}), \
+                patch.object(reader, "page_text", return_value="Uploaded Plan"), \
+                patch.object(reader, "extract_uploaded_plan", return_value=extracted) as extract:
+            events = [event async for event in reader.read_plan_pdf(
+                object(), "model", Path(tmp) / "plan.pdf", "plan.pdf", [], policy_db=object(),
+                work_dir=tmp, plan_id="upload_file1")]
+        self.assertEqual(events[-1][0], "result")
+        self.assertTrue(events[-1][1]["uploaded"])
+        self.assertEqual(events[-1][1]["plan"]["benefit_rows"], 12)
+        extract.assert_called_once()
+
+    async def test_pathological_page_count_is_not_extracted(self):
+        from harness import reader
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(reader, "page_count", return_value=reader.MAX_UPLOAD_PDF_PAGES + 1), \
+                patch.object(reader, "thumbnail", return_value="data:image/jpeg;base64,x"), \
+                patch.object(reader, "page_image", return_value=b"png"), \
+                patch.object(reader, "read_identity", return_value={"plan_name": "Uploaded Plan"}), \
+                patch.object(reader, "page_text", return_value="Uploaded Plan"), \
+                patch.object(reader, "extract_uploaded_plan") as extract:
+            events = [event async for event in reader.read_plan_pdf(
+                object(), "model", Path(tmp) / "plan.pdf", "plan.pdf", [], policy_db=object(),
+                work_dir=tmp, plan_id="upload_file1")]
+        failed = [data for kind, data in events if kind == "progress" and data["step_id"] == "extract"]
+        self.assertEqual(failed[-1]["status"], "failed")
+        self.assertIn("limited", failed[-1]["text"])
+        self.assertFalse(events[-1][1]["uploaded"])
+        extract.assert_not_called()
 
 
 if __name__ == "__main__":

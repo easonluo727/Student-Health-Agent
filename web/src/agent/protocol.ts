@@ -18,7 +18,10 @@ export interface ReplyTarget { kind: "dashboard_item"; ref: string; label: strin
 export type Mode = "calculate" | "review"
 export interface TurnContext { mode: Mode; plan_ids?: string[] }
 export interface TurnRequest { session_id: string; input: TurnInput; reply_target?: ReplyTarget; context?: TurnContext }
-export interface Plan { plan_id: string; name: string; insurer: string; plan_year: string }
+export interface Plan {
+  plan_id: string; name: string; insurer: string; plan_year: string
+  verified: boolean; uploaded: boolean
+}
 
 export interface Option { value: string; label: string }
 export type QuestionKind = "single" | "multi" | "number" | "text" | "weight"

@@ -30,7 +30,7 @@
 
 ### 计划列表
 
-`GET {API_BASE}/plans` 返回能算钱的计划：`[{ "plan_id", "name", "insurer", "plan_year" }]`。来源是计划数据库 `data/plans/policy.sqlite`，所有计划同时可用，`review` 就是 Arena（`compare_plans`）。前端用它渲染 Calculate 和 Review 的计划选择。
+`GET {API_BASE}/plans` 返回计划：`[{ "plan_id", "name", "insurer", "plan_year", "verified", "uploaded" }]`。来源是计划数据库 `data/plans/policy.sqlite`，所有计划同时可用，`review` 就是 Arena（`compare_plans`）。前端用它渲染 Calculate 和 Review 的计划选择，并把上传且未经核对的计划标出来。
 
 `input` 有四种：
 
@@ -49,7 +49,7 @@
 
 `POST {API_BASE}/upload`，`multipart/form-data`，字段 `session_id` 和 `file`（PDF，或 JPEG、PNG、WebP、HEIC 照片，最大 25 MB；后端按文件开头的字节判断类型）。返回 `{ "file_id", "name", "size", "content_type" }`。前端把 `file_id` 放进下一条 `message` 的 `attachments`。
 
-后端收到带附件的消息后，先读 PDF 再交给模型：用模型读第 1 页，只认出计划身份（计划名、保险公司、年份、网络、文件类型），再由 Python 在计划数据库 `data/plans/policy.sqlite` 里匹配。匹配上就告诉模型这个计划的 `plan_id`，算钱用的是数据库里的数字，不用上传文件里读到的数字；匹配不上就如实说明，不估算。读取进度用 `search_step` 事件发送，带 `kind: "document"`，截图是 PDF 页面。
+后端收到带附件的消息后，先用模型读第 1 页认出计划身份（计划名、保险公司、年份、网络、文件类型），再由 Python 在 `data/plans/policy.sqlite` 里匹配。匹配上就使用已有数据库里的数字。匹配不上时，后端用 `extract_sbc.py` 读取 SBC 的 summary 和 benefit table 页面，生成临时 `plans.csv`、`benefits.csv`，通过 `build_seed.py` 的结构校验后写入共享 policy SQLite。该 plan 会立刻出现在 `/plans` 和比较 UI 中，但保持 `verified=0` 并标明“自动抽取、未经人工核对”。没有确认的 MRF 网络映射时，只能可靠计算不依赖 negotiated rate 的固定 copay。读取和抽取进度用 `search_step` 事件发送，带 `kind: "document"`，截图是 PDF 页面。
 
 ### 响应：SSE 事件
 
