@@ -1,6 +1,6 @@
 # TallyHealth
 
-**An AI health-insurance assistant for Los Angeles, with every cost traced to a policy page or negotiated rate.**
+**An AI health-insurance assistant for the United States, with every cost traced to a policy page or negotiated rate.**
 
 The LLM provider is configuration: any OpenAI-compatible endpoint works ([`workflow/llm_client.py`](workflow/llm_client.py)).
 
