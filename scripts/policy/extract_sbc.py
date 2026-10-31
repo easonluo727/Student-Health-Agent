@@ -29,6 +29,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "workflow"))
 from llm_client import fast_extra_body, llm_model, make_client  # noqa: E402
 
+POPPLER_TIMEOUT = 120
+
 PLAN_COLUMNS = ["plan_id", "insurer", "plan_name", "plan_year", "plan_type", "network_name", "deductible_in_usd",
                 "deductible_out_usd", "oop_max_in_usd", "oop_max_out_usd", "coinsurance_in_pct", "source_url",
                 "verified"]
@@ -36,7 +38,8 @@ BENEFIT_COLUMNS = ["plan_id", "section", "service", "service_as_printed", "compo
                    "copay_usd", "coinsurance_pct", "deductible_applies", "prior_auth", "covered", "limits_conditions",
                    "quote", "source_url", "source_page", "verified"]
 ROW_FIELDS = BENEFIT_COLUMNS[1:14]  # what the model fills per row
-SERVICES = ("primary_care_visit, specialist_visit, urgent_care, emergency_room, ambulance, lab_tests, xray, "
+SERVICES = ("primary_care_visit, specialist_visit, telehealth_visit, urgent_care, emergency_room, ambulance, "
+            "lab_tests, xray, "
             "advanced_imaging, generic_drugs, preferred_brand_drugs, mental_health_outpatient, preventive_care")
 
 RULES = """
@@ -61,6 +64,8 @@ OUTPUT RULES
   has no deductible -> false.
 - section = the "Common Medical Event" text the row sits under (an EOC: the benefit heading).
 - service: after splitting, the most specific of: """ + SERVICES + """; otherwise "other".
+  Use "telehealth_visit" for a telehealth-only or designated/preferred online-service row. Keep a combined
+  "office, online, and telehealth" PCP row as "primary_care_visit" because it is also the ordinary office benefit.
   An x-ray row is "xray"; a blood-work row is "lab_tests". Drug tiers: generic / Tier 1 -> "generic_drugs";
   preferred brand / Tier 2 -> "preferred_brand_drugs"; non-preferred brand, Tier 3, specialty, Tier 4 -> "other".
 - service_as_printed: the benefit name exactly as printed. component: "office_visit" | "facility" | "provider" | null.
@@ -113,7 +118,8 @@ benefit heading the row sits under. For an EPO/HMO, out-of-network cells that sa
 
 
 def page_texts(pdf):
-    out = subprocess.run(["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
+    out = subprocess.run(["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True,
+                         timeout=POPPLER_TIMEOUT).stdout
     return out.split("\f")
 
 
@@ -129,7 +135,7 @@ def find_pages(texts):
 def render(pdf, page, tmp):
     prefix = Path(tmp) / f"p{page}"
     subprocess.run(["pdftoppm", "-f", str(page), "-l", str(page), "-r", "200", "-png", "-singlefile", str(pdf),
-                    str(prefix)], check=True)
+                    str(prefix)], check=True, timeout=POPPLER_TIMEOUT)
     return base64.b64encode(prefix.with_suffix(".png").read_bytes()).decode("ascii")
 
 
@@ -257,6 +263,64 @@ def parse_pages(spec):
     return pages
 
 
+def extract(client, model, pdf, plan_id, *, source_url="", out=None, pages=None, summary_pages=None, eoc=False,
+            workers=5, identity=None, progress=None, max_benefit_pages=None):
+    """Extract one PDF into CSV-shaped dictionaries and optionally write plans.csv and benefits.csv.
+
+    The offline reviewed build and runtime upload workflow share this function. SQLite storage is left to the caller,
+    which decides whether the normalized rows belong in the reviewed seed or the shared unverified runtime catalog.
+    """
+    pdf = Path(pdf)
+    out = Path(out) if out else None
+    identity = identity or {}
+    progress = progress or (lambda _message: None)
+    texts = page_texts(pdf)
+    found_summary, found_pages = find_pages(texts)
+    summary_pages = list(summary_pages) if summary_pages is not None else [found_summary] if found_summary else []
+    pages = list(pages) if pages is not None else found_pages
+    if not summary_pages or not pages:
+        raise ValueError(f"Could not find the policy summary and benefit-table pages automatically "
+                         f"(summary={summary_pages}, benefits={pages}).")
+    pages = [p for p in pages if p not in summary_pages]
+    if not pages:
+        raise ValueError("No benefit-table pages remain after removing the summary pages.")
+    if max_benefit_pages is not None and len(pages) > max_benefit_pages:
+        raise ValueError(f"Found {len(pages)} benefit-table pages; the session limit is {max_benefit_pages}.")
+    note = EOC_NOTE if eoc else ""
+    context = "\n\n".join(texts[p - 1] for p in summary_pages)
+    progress(f"Found summary page(s) {summary_pages} and benefit page(s) {pages}.")
+
+    with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(workers) as pool:
+        def run(page_list, prompt, ctx):
+            got = ask(client, model, note + prompt,
+                      [(p, render(pdf, p, tmp), texts[p - 1]) for p in page_list], ctx)
+            progress(f"Read page {','.join(map(str, page_list))}: {len(got.get('rows') or [])} benefit rows.")
+            return got
+
+        summary_future = pool.submit(run, summary_pages, SUMMARY_PROMPT, "")
+        page_futures = [(p, pool.submit(run, [p], PAGE_PROMPT, context)) for p in pages]
+        summary = summary_future.result()
+        page_rows = [(summary_pages[0], summary.get("rows") or [])] + [
+            (p, future.result().get("rows") or []) for p, future in page_futures]
+
+    plan, rows, dropped = assemble(plan_id, source_url, summary, page_rows)
+    for target, source in (("plan_name", "plan_name"), ("insurer", "insurer"), ("plan_year", "plan_year"),
+                           ("network_name", "network_names")):
+        if plan.get(target) == "NOT FOUND" and identity.get(source):
+            value = identity[source]
+            plan[target] = ", ".join(map(str, value)) if isinstance(value, list) else value
+    services = before_deductible(client, model, context)
+    changed = apply_before_deductible(rows, services)
+    if out:
+        out.mkdir(parents=True, exist_ok=True)
+        write_csv(out / "plans.csv", PLAN_COLUMNS, [plan])
+        write_csv(out / "benefits.csv", BENEFIT_COLUMNS, rows)
+    progress(f"Structured {len(rows)} benefit rows; dropped {dropped} repeated rows; "
+             f"updated {changed} deductible flags.")
+    return {"plan": plan, "benefits": rows, "summary_pages": summary_pages, "benefit_pages": pages,
+            "dropped_rows": dropped, "deductible_services": services, "deductible_rows_changed": changed}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("pdf", type=Path)
@@ -279,45 +343,28 @@ def main():
 
     client, model = make_client(timeout=600.0, max_retries=2), llm_model()
 
-    texts = page_texts(args.pdf)
-    found_summary, found_pages = find_pages(texts)
-    summary_pages = parse_pages(args.summary_pages) if args.summary_pages else [found_summary] if found_summary else []
-    pages = parse_pages(args.pages) if args.pages else found_pages
-    if not summary_pages or not pages:
-        sys.exit(f"could not find the pages (summary {summary_pages}, benefits {pages}); "
-                 "pass --summary-pages/--pages")
-    pages = [p for p in pages if p not in summary_pages]
-    note = EOC_NOTE if args.eoc else ""
-    context = "\n\n".join(texts[p - 1] for p in summary_pages)
-    print(f"{args.plan_id}: summary pages {summary_pages}, benefit pages {pages}", flush=True)
     if args.deductible_only:
+        texts = page_texts(args.pdf)
+        found_summary, _ = find_pages(texts)
+        summary_pages = parse_pages(args.summary_pages) if args.summary_pages else [found_summary] if found_summary else []
+        if not summary_pages:
+            sys.exit("could not find the summary page; pass --summary-pages")
+        context = "\n\n".join(texts[p - 1] for p in summary_pages)
         rows = list(csv.DictReader(open(out / "benefits.csv", newline="", encoding="utf-8")))
         services = before_deductible(client, model, context)
         changed = apply_before_deductible(rows, services)
         write_csv(out / "benefits.csv", BENEFIT_COLUMNS, rows)
         print(f"{args.plan_id}: covered before the deductible {services}; {changed} rows set to no")
         return
-
-    with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(args.workers) as pool:
-        def run(page_list, prompt, ctx):
-            got = ask(client, model, note + prompt, [(p, render(args.pdf, p, tmp), texts[p - 1]) for p in page_list],
-                      ctx)
-            print(f"  page {','.join(map(str, page_list))}: {len(got.get('rows') or [])} rows", flush=True)
-            return got
-        summary_future = pool.submit(run, summary_pages, SUMMARY_PROMPT, "")
-        page_futures = [(p, pool.submit(run, [p], PAGE_PROMPT, context)) for p in pages]
-        summary = summary_future.result()
-        page_rows = [(summary_pages[0], summary.get("rows") or [])] + [(p, f.result().get("rows") or [])
-                                                                        for p, f in page_futures]
-
-    plan, rows, dropped = assemble(args.plan_id, args.source_url, summary, page_rows)
-    services = before_deductible(client, model, context)
-    changed = apply_before_deductible(rows, services)
-    out.mkdir(parents=True, exist_ok=True)
-    write_csv(out / "plans.csv", PLAN_COLUMNS, [plan])
-    write_csv(out / "benefits.csv", BENEFIT_COLUMNS, rows)
-    print(f"{args.plan_id}: {len(rows)} rows ({dropped} repeats dropped; covered before the deductible {services}, "
-          f"{changed} rows set to no) -> {out}")
+    try:
+        result = extract(client, model, args.pdf, args.plan_id, source_url=args.source_url, out=out,
+                         pages=parse_pages(args.pages) if args.pages else None,
+                         summary_pages=parse_pages(args.summary_pages) if args.summary_pages else None,
+                         eoc=args.eoc, workers=args.workers,
+                         progress=lambda message: print(f"{args.plan_id}: {message}", flush=True))
+    except ValueError as error:
+        sys.exit(str(error))
+    print(f"{args.plan_id}: {len(result['benefits'])} rows -> {out}")
 
 if __name__ == "__main__":
     main()

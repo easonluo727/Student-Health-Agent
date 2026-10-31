@@ -10,6 +10,7 @@ redeploy doesn't lose them. Each finished compare_plans result is sent as the Ar
 """
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -79,8 +80,13 @@ class TurnRequest(BaseModel):
 
 
 def available_plans():
-    return [{"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"], "plan_year": p["plan_year"]}
-            for p in PlanDB().plans()]
+    db = PlanDB()
+    try:
+        return [{"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"],
+                 "plan_year": p["plan_year"], "verified": bool(p["verified"]),
+                 "uploaded": p["plan_id"].startswith("upload_")} for p in db.plans()]
+    finally:
+        db.con.close()
 
 
 def sse(event, data):
@@ -236,14 +242,31 @@ async def read_attachments(session, attachments):
             continue
         search_id = f"doc_{uuid.uuid4().hex[:8]}"
         result = None
-        async for kind, data in read_plan_pdf(client, MODEL, upload["path"], upload["name"], db_catalog()):
+        sha256 = upload.get("sha256") or hashlib.sha256(upload["path"].read_bytes()).hexdigest()
+        uploaded_plan_id = "upload_" + sha256[:24]
+        policy_db = session.harness.db
+        async for kind, data in read_plan_pdf(
+                client, MODEL, upload["path"], upload["name"], db_catalog(policy_db),
+                policy_db=policy_db, work_dir=upload["path"].parent, plan_id=uploaded_plan_id):
             if kind == "progress":
                 yield sse("search_step", {**data, "search_id": search_id, "kind": "document"})
             else:
                 result = data
         plan, read = result["plan"], json.dumps(result["identity"], ensure_ascii=False)
         intro = f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: {read}. "
-        if plan:
+        if plan and result["uploaded"] and "benefit_rows" in plan:
+            notes.append(intro + f"It was not in the verified catalog, so {plan['benefit_rows']} benefit rows were "
+                         f"automatically extracted and saved in the shared policy database as plan_id "
+                         f"{plan['plan_id']}. "
+                         f"{plan['calculable_rows']} structurally complete rows can be estimated. The extraction "
+                         "was not human verified; disclose that before every result. It is now available to other "
+                         "users and in plan comparisons. Benefits needing negotiated rates remain unavailable "
+                         "until a confirmed MRF network bridge exists.]")
+        elif plan and result["uploaded"]:
+            notes.append(intro + f"It matches the previously uploaded plan {plan['name']} (plan_id "
+                         f"{plan['plan_id']}) in the shared database. Its extraction is still not human verified; "
+                         "disclose that before every result.]")
+        elif plan:
             notes.append(intro + f"It matches {plan['name']} in the plan database: use plan_id {plan['plan_id']}. "
                          "Benefit numbers come from the database, not from the upload.]")
         else:
@@ -330,7 +353,8 @@ async def session_turn(session, request):
 @app.get("/plans")
 async def plans():
     return [{"plan_id": plan["plan_id"], "name": plan["name"], "insurer": plan["insurer"],
-             "plan_year": plan["plan_year"]} for plan in available_plans()]
+             "plan_year": plan["plan_year"], "verified": plan["verified"], "uploaded": plan["uploaded"]}
+            for plan in available_plans()]
 
 
 def sniff_upload(data):
@@ -370,7 +394,8 @@ async def upload(session_id: str = Form(...), file: UploadFile = File(...)):
     path = folder / f"{file_id}{suffix}"
     path.write_bytes(data)
     name = Path(file.filename or f"upload{suffix}").name
-    session.uploads[file_id] = {"path": path, "name": name, "content_type": content_type}
+    session.uploads[file_id] = {"path": path, "name": name, "content_type": content_type,
+                                "sha256": hashlib.sha256(data).hexdigest()}
     STORE.save(session_id, session)
     return {"file_id": file_id, "name": name, "size": len(data), "content_type": content_type}
 

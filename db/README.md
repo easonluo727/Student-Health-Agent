@@ -1,10 +1,18 @@
-# Databases (SQLite, read-only at runtime)
+# Databases (SQLite; policy uploads are writable at runtime)
 
 | database | file | size | where it lives in production |
 |---|---|---|---|
-| ① policy (`plans`, `benefits`, `plan_networks`, `premiums`, `age_curve`, `rating_regions`) | `data/plans/policy.sqlite` | ~100 KB | committed, deployed with the code |
+| ① policy (`plans`, `benefits`, `plan_networks`, `premiums`, `age_curve`, `rating_regions`) | `data/plans/policy.sqlite` | ~600 KB | committed seed; runtime catalog defaults to `/data/policy.sqlite` on Railway (`POLICY_DB`) |
 | ② allowed amounts (MRF rates) | `data/mrf/rates.sqlite` | 3.1 GB | Railway volume, `/data/rates.sqlite` (`RATES_DB`) |
 | ③ NPPES provider directory | `data/providers/providers.sqlite` (built offline, not committed) | varies | same Railway volume, `/data/providers.sqlite` (`PROVIDERS_DB`), only after approval |
+
+The policy catalog is read-only for normal queries, but an unknown uploaded SBC is normalized and inserted through
+one short write transaction. Set `POLICY_DB` to a durable volume path in production if uploaded plans must survive a
+redeploy; on first start the app copies the committed seed database there automatically. Uploaded rows remain
+`verified=0`; `plan_networks` is not guessed from the PDF. On Railway, `/data/policy.sqlite` is initialized from the
+committed seed automatically. Running `build_seed.py`
+replaces its output database from the reviewed CSV sources, so do not point `--out` at a live upload database unless
+you intentionally want to reset those runtime additions.
 
 The directory is an independently built database; it never modifies ① or ②. Its schema, build and validation procedure are in [`scripts/providers/README.md`](../scripts/providers/README.md). The agent's `find_providers` tool uses NPPES identity/practice locations and strict NPI-specific rates. A confirmed plan-to-network bridge does not verify a provider's current participation, and a negotiated rate is not a guaranteed paid amount.
 
@@ -24,6 +32,9 @@ plan SBC PDF ──scripts/policy/extract_sbc.py (LLM) or the Perplexity prompt�
                                             │  validates, normalizes, adds category / review_flags / calculable
                                             ▼
                                data/plans/policy.sqlite   (rebuilt from scratch; commit it)
+
+unknown uploaded SBC ──extract_sbc.extract() ──> temporary plans.csv + benefits.csv
+                     ──build_seed.build_plan() ──> shared runtime policy.sqlite (`verified=0`)
 ```
 
 `extract_sbc.py` finds an SBC's pages itself (page 1 "Important Questions" + the "What You Will Pay" table pages;
@@ -43,10 +54,10 @@ One row = one price: plan × SBC section × service × component × setting × n
 | column | meaning |
 |---|---|
 | `category` | grouping from the SBC "Common Medical Event": `office_visits`, `tests`, `drugs`, `outpatient_surgery`, `emergency`, `hospital_stay`, `mental_health`, `pregnancy`, `recovery`, `pediatric`, `plan_level`, `excluded`, `other` |
-| `service` | the calculator's service key (12 services, `plan_level`, or `other`) |
+| `service` | the calculator's service key (including distinct office and telehealth benefits), `plan_level`, or `other` |
 | `network` / `network_tier` | `in`/`out`; tier as printed (e.g. `Ashe Center`, `UC Family`, `Network`) |
 | `review_flags` | comma-separated reasons the calculator must not use the row as-is: `unverified`, `coverage_unknown`, `missing_cost`, `missing_deductible`, `cap`, `penalty`, `balance_billing` |
-| `calculable` | 1 when verified and no flags. The agent only computes costs from these rows. |
+| `calculable` | 1 for a verified, flag-free seed row, or for a structurally complete runtime upload. Uploaded rows remain `verified=0` and every result carries an unverified disclosure. |
 
 `plan_level` rows hold each tier's individual deductible and out-of-pocket limit in `copay_usd`.
 

@@ -1,6 +1,8 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "policy"))
 import extract_sbc as ex  # noqa: E402
@@ -42,6 +44,29 @@ class ExtractSbc(unittest.TestCase):
 
     def test_parse_pages(self):
         self.assertEqual(ex.parse_pages("2-4,6"), [2, 3, 4, 6])
+
+    def test_importable_extractor_writes_session_csvs(self):
+        summary = {"plan": {"insurer": None, "plan_name": None, "plan_year": "2026", "plan_type": "PPO"},
+                   "rows": []}
+        benefit = {"rows": [{"section": "If you visit a health care provider's office or clinic",
+                              "service": "primary_care_visit", "service_as_printed": "Primary care visit",
+                              "component": "office_visit", "network": "in", "network_tier": None,
+                              "copay_usd": 25, "coinsurance_pct": None, "deductible_applies": False,
+                              "prior_auth": None, "covered": True, "limits_conditions": None,
+                              "quote": "$25 copay"}]}
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(ex, "page_texts", return_value=["Important Questions", "Common Medical Event"]), \
+                patch.object(ex, "render", return_value="image"), \
+                patch.object(ex, "before_deductible", return_value=[]), \
+                patch.object(ex, "ask", side_effect=lambda _c, _m, prompt, _pages, _ctx="":
+                             summary if "overall deductible" in prompt else benefit):
+            out = Path(tmp) / "extracted" / "session_x"
+            result = ex.extract(object(), "model", Path(tmp) / "plan.pdf", "session_x", out=out,
+                                identity={"plan_name": "Uploaded Plan", "insurer": "Uploaded Insurer"}, workers=1)
+            self.assertTrue((out / "plans.csv").exists())
+            self.assertTrue((out / "benefits.csv").exists())
+            self.assertEqual(result["plan"]["plan_name"], "Uploaded Plan")
+            self.assertEqual((len(result["benefits"]), result["benefits"][0]["source_page"]), (1, 2))
 
 
 if __name__ == "__main__":

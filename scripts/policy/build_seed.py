@@ -12,7 +12,9 @@ Output: <out>, rebuilt from scratch each run (small, committed, deployed with th
 
 Normalizing: NOT FOUND / blank / "none" -> NULL; yes/no -> 1/0; a component other than
 office_visit/facility/provider (e.g. "asc") becomes the row's setting. Each benefit row gets a category from its
-SBC section and review_flags for what the calculator cannot handle; calculable = verified and no flags.
+SBC section and review_flags for what the calculator cannot handle; the trusted seed is calculable only when
+verified and flag-free. The runtime upload path can explicitly allow structurally complete, unverified rows while
+keeping verified=false and adding a user-facing disclosure.
 Bad rows are listed and skipped. A duplicate natural key skips the whole plan, since the rows can't be told apart.
 """
 from __future__ import annotations
@@ -28,7 +30,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SERVICES = {"primary_care_visit", "specialist_visit", "urgent_care", "emergency_room", "ambulance", "lab_tests",
+SERVICES = {"primary_care_visit", "specialist_visit", "telehealth_visit", "urgent_care", "emergency_room",
+            "ambulance", "lab_tests",
             "xray", "advanced_imaging", "generic_drugs", "preferred_brand_drugs", "mental_health_outpatient",
             "preventive_care", "plan_level", "other"}
 COMPONENTS = {"office_visit", "facility", "provider"}
@@ -89,8 +92,10 @@ def category(section, service):
     return next((c for key, c in CATEGORIES if key in s), "other")
 
 
-def flags(row, verified):
-    out = [] if verified else ["unverified"]
+def flags(row, verified, allow_unverified_calculation=False):
+    # Runtime uploads are stored separately from the reviewed CSV seed and explicitly shown as model-extracted. They may be
+    # calculated when structurally complete without falsely marking the source as human-verified.
+    out = [] if verified or allow_unverified_calculation else ["unverified"]
     if row["service"] == "plan_level" or row["covered"] is False:
         return out
     if row["covered"] is None:
@@ -111,7 +116,7 @@ def flags(row, verified):
     return out
 
 
-def build_plan(folder, blanket_verified=False):
+def build_plan(folder, blanket_verified=False, allow_unverified_calculation=False):
     """Return (plan, benefits, problems) for one extracted plan folder; plan is None if it can't be used."""
     problems = []
     plan_rows = read(folder / "plans.csv")
@@ -164,7 +169,7 @@ def build_plan(folder, blanket_verified=False):
         keys[key] += 1
         row_verified = yes(b.get("verified"))
         verified = plan["verified"] and (row_verified is True or (blanket_verified and row_verified is not False))
-        row_flags = flags(row, verified)
+        row_flags = flags(row, verified, allow_unverified_calculation)
         row.update(benefit_id=hashlib.sha1("|".join((folder.name, *key)).encode()).hexdigest()[:16],
                    category=category(row["section"], row["service"]), verified=verified,
                    review_flags=row_flags, calculable=not row_flags)

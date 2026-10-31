@@ -24,9 +24,9 @@ PROMPT_PATH = Path(__file__).with_name("prompts") / "system.md"
 
 
 class Harness:
-    def __init__(self):
-        self.db = PlanDB()
-        directory = ProviderDirectory()
+    def __init__(self, db: PlanDB | None = None):
+        self.db = db or PlanDB()
+        directory = ProviderDirectory(policy_path=self.db.path) if self.db.path else ProviderDirectory()
         self.skills = [questionnaire.build(), plans_skill.build(self.db, directory),
                        providers_skill.build(self.db, directory)]
         self.tools = mcp.ToolRegistry([tool for skill in self.skills for tool in skill.tools])

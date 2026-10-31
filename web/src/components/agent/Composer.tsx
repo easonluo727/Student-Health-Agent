@@ -72,7 +72,7 @@ export function Composer({ agent, inputRef }: { agent: Agent; inputRef: React.Re
             const selected = agent.planIds.includes(p.plan_id);
             return <label key={p.plan_id} className={`plan-picker-option ${selected ? "selected" : ""}`}>
               <input type="checkbox" checked={selected} onChange={() => agent.setPlanIds(selected ? agent.planIds.filter(x => x !== p.plan_id) : [...agent.planIds, p.plan_id])} />
-              <span>{p.name}<small>{p.plan_year}</small></span>
+              <span>{p.name}{p.uploaded && <em className="unverified-plan">Uploaded · unverified</em>}<small>{p.plan_year}</small></span>
             </label>;
           })}</div>
         </div>

@@ -11,11 +11,11 @@ const billPhoto: Source = { kind: "user_message", label: "Your bill photo" };
 const sbcUrgent: Source = { kind: "policy", label: "SBC p.4 · urgent care and coinsurance", page: 4 };
 
 export const mockPlans: Plan[] = [
-  { plan_id: "anthem-gold-80", name: "Anthem Gold 80", insurer: "Anthem Blue Cross", plan_year: "2027" },
-  { plan_id: "oscar-bronze-60", name: "Oscar Bronze 60", insurer: "Oscar", plan_year: "2027" },
-  { plan_id: "blue-shield-silver-70", name: "Blue Shield Silver 70", insurer: "Blue Shield of California", plan_year: "2027" },
-  { plan_id: "kaiser-silver-70-hmo", name: "Kaiser Silver 70 HMO", insurer: "Kaiser Permanente", plan_year: "2027" },
-  { plan_id: "health-net-platinum-90", name: "Health Net Platinum 90", insurer: "Health Net", plan_year: "2027" },
+  { plan_id: "anthem-gold-80", name: "Anthem Gold 80", insurer: "Anthem Blue Cross", plan_year: "2027", verified: true, uploaded: false },
+  { plan_id: "oscar-bronze-60", name: "Oscar Bronze 60", insurer: "Oscar", plan_year: "2027", verified: true, uploaded: false },
+  { plan_id: "blue-shield-silver-70", name: "Blue Shield Silver 70", insurer: "Blue Shield of California", plan_year: "2027", verified: true, uploaded: false },
+  { plan_id: "kaiser-silver-70-hmo", name: "Kaiser Silver 70 HMO", insurer: "Kaiser Permanente", plan_year: "2027", verified: true, uploaded: false },
+  { plan_id: "health-net-platinum-90", name: "Health Net Platinum 90", insurer: "Health Net", plan_year: "2027", verified: true, uploaded: false },
 ];
 
 /** Split text into a streamed agent message. */

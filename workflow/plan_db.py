@@ -22,8 +22,10 @@ import csv
 import datetime as dt
 import os
 import re
+import shutil
 import sqlite3
 import sys
+import threading
 from collections import OrderedDict
 from dataclasses import dataclass
 from decimal import Decimal
@@ -33,12 +35,14 @@ from pathlib import Path
 from calculate_cost import calculate_cost
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY_DB = ROOT / "data" / "plans" / "policy.sqlite"
+POLICY_SEED_DB = ROOT / "data" / "plans" / "policy.sqlite"
+POLICY_DB = Path(os.environ.get("POLICY_DB", "/data/policy.sqlite" if Path("/data").exists() else POLICY_SEED_DB))
 RATES_DB = Path(os.environ.get("RATES_DB", ROOT / "data" / "mrf" / "rates.sqlite"))
 ENCOUNTERS_CSV = ROOT / "data" / "mrf" / "encounters.csv"
 # A price from fewer providers than this is flagged. Hospital facility fees are the usual case: most hospitals
 # publish them as a percent of charges or a case rate, which are not dollar prices and are left out.
 THIN_SAMPLE = 10
+_POLICY_WRITE_LOCK = threading.Lock()
 
 sys.path.insert(0, str(ROOT / "scripts" / "mrf"))
 import allowed  # noqa: E402  (rate selection rules, shared with the MRF pipeline)
@@ -61,7 +65,12 @@ class Part:
 SCENARIOS: dict[str, dict[str, Part]] = {
     "office_visit_established": {"visit": Part("primary_care_visit", "office_visit")},
     "office_visit_new": {"visit": Part("primary_care_visit", "office_visit")},
-    "telehealth_visit": {"visit": Part("primary_care_visit", "office_visit")},
+    # A plan may price ordinary telehealth and its designated platform differently. The dedicated service keeps
+    # those rows separate from office visits; ordinary telehealth may fall back to a PCP rule when the policy has
+    # no telehealth-specific row, but the preferred-platform scenario never assumes that a generic PCP rule is a
+    # preferred-platform benefit.
+    "telehealth_visit": {"visit": Part("telehealth_visit", "office_visit", "primary_care_visit")},
+    "preferred_telehealth_visit": {"visit": Part("telehealth_visit", "office_visit")},
     "specialist_followup": {"visit": Part("specialist_visit", "office_visit")},
     # The UC SHIP Ashe Center tier has no urgent care benefit: a same-day sick visit there is a primary care visit
     # ("No charge/visit (Ashe Ctr)", SBC p. 2; booklet p. 20, the Ashe Center is the student's medical home).
@@ -82,9 +91,16 @@ SCENARIOS: dict[str, dict[str, Part]] = {
 # Benefit rows that are not the everyday version of a service (unless the scenario asks for them).
 SPECIAL = re.compile(r"pregnan|maternity|prenatal|postnatal|home delivery|mail|specialty|telehealth|online|virtual|"
                      r"livehealth|hospital stay|inpatient", re.I)
-SCENARIO_ALLOWS = {"telehealth_visit": re.compile(r"telehealth|online|virtual|livehealth", re.I)}
+SCENARIO_ALLOWS = {
+    "telehealth_visit": re.compile(r"telehealth|online|virtual", re.I),
+    "preferred_telehealth_visit": re.compile(r"preferred.*(?:online|telehealth)|livehealth", re.I),
+}
+SCENARIO_EXCLUDES = {
+    # A generic request must not silently receive a $0 rate that is limited to the plan's designated platform.
+    "telehealth_visit": re.compile(r"preferred.*(?:online|telehealth)|livehealth", re.I),
+}
 # Visits billed by one doctor's office, priced at a specific nearby doctor instead of a network median (2026-10-27).
-# Telehealth is left out: it is often a separate service (UC SHIP's LiveHealth Online) and has no location.
+# Telehealth is left out: it is often a separate platform service and has no meaningful nearby-office location.
 DOCTOR_SCENARIOS = {"office_visit_established", "office_visit_new", "specialist_followup"}
 
 
@@ -121,11 +137,48 @@ def _component_at(rates_path: str, plan_key: str, code: str, billing_class: str,
 
 
 class PlanDB:
-    def __init__(self, path: Path = POLICY_DB, rates_path: Path = RATES_DB):
-        self.con = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
+    def __init__(self, path: Path = POLICY_DB, rates_path: Path = RATES_DB,
+                 connection: sqlite3.Connection | None = None):
+        path = Path(path)
+        if connection is None and not path.exists() and path != POLICY_SEED_DB:
+            with _POLICY_WRITE_LOCK:
+                if not path.exists():
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(POLICY_SEED_DB, path)
+        self.con = connection or sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
+        self.path = None if connection is not None else Path(path)
         self.con.row_factory = sqlite3.Row
         # Without the rate store only flat copays can be computed.
         self.rates_path = str(rates_path) if Path(rates_path).exists() else None
+
+    def add_uploaded_plan(self, plan: dict, benefits: list[dict]) -> bool:
+        """Persist one normalized PDF extraction in the shared policy database.
+
+        The regular connection remains read-only. This method opens a short, serialized write transaction so
+        concurrent uploads cannot interleave. Returns False when the same content-derived plan_id already exists.
+        """
+        if self.path is None:
+            raise ValueError("A database path is required to persist an uploaded plan.")
+        plan_id = plan.get("plan_id")
+        if not plan_id or not str(plan_id).startswith("upload_"):
+            raise ValueError("Uploaded plan_id must start with 'upload_'.")
+
+        def values(row, columns):
+            return [",".join(row.get(c) or []) if isinstance(row.get(c), list) else row.get(c) for c in columns]
+
+        with _POLICY_WRITE_LOCK, sqlite3.connect(self.path, timeout=30) as write:
+            write.execute("PRAGMA foreign_keys=ON")
+            write.execute("BEGIN IMMEDIATE")
+            if write.execute("SELECT 1 FROM plans WHERE plan_id=?", (plan_id,)).fetchone():
+                return False
+            plan_columns = [r[1] for r in write.execute("PRAGMA table_info(plans)")]
+            benefit_columns = [r[1] for r in write.execute("PRAGMA table_info(benefits)")]
+            write.execute(f"INSERT INTO plans ({', '.join(plan_columns)}) "
+                          f"VALUES ({', '.join('?' * len(plan_columns))})", values(plan, plan_columns))
+            write.executemany(f"INSERT INTO benefits ({', '.join(benefit_columns)}) "
+                              f"VALUES ({', '.join('?' * len(benefit_columns))})",
+                              [values(row, benefit_columns) for row in benefits])
+        return True
 
     def warm(self) -> None:
         """Price every component of every scenario in every linked network, so requests don't wait."""
@@ -184,11 +237,24 @@ class PlanDB:
         if not rows:
             return None
         allowed = SCENARIO_ALLOWS.get(scenario)
+        excluded = SCENARIO_EXCLUDES.get(scenario)
+
+        def text(r):
+            return " ".join(filter(None, (r["section"], r["service_as_printed"])))
+
+        if excluded:
+            rows = [r for r in rows if not excluded.search(text(r))]
+        # Scenario-specific policy rows must actually describe that scenario. This makes an unavailable preferred
+        # platform return no benefit instead of falling through to an ordinary telehealth price in the same service.
+        if allowed and service == "telehealth_visit":
+            rows = [r for r in rows if allowed.search(text(r))]
+        if not rows:
+            return None
 
         def rank(r):
-            text = " ".join(filter(None, (r["section"], r["service_as_printed"])))
-            special = bool(SPECIAL.search(text)) and not (allowed and allowed.search(text))
-            wanted = 0 if (allowed and allowed.search(text)) else 1
+            row_text = text(r)
+            special = bool(SPECIAL.search(row_text)) and not (allowed and allowed.search(row_text))
+            wanted = 0 if (allowed and allowed.search(row_text)) else 1
             comp = 0 if r["component"] == component else 1 if r["component"] is None else 2
             return (special, wanted, comp, not r["calculable"], r["_order"])
 
@@ -360,11 +426,18 @@ class PlanDB:
         plan = self.plan(plan_id)
         if plan is None:
             return {"status": "invalid_input", "message": f"Unknown plan {plan_id!r}.", "patient_cost": None}
+        notice = ("Automatically extracted from an uploaded PDF; not human verified. "
+                  if not plan.get("verified", True) else "")
+
+        def msg(text):
+            return notice + (text or "")
+
         if scenario not in SCENARIOS or scenario not in _encounters():
-            return {"status": "invalid_input", "message": f"Unknown scenario {scenario!r}.", "patient_cost": None}
+            return {"status": "invalid_input", "message": msg(f"Unknown scenario {scenario!r}."),
+                    "patient_cost": None}
         if network == "in" and tier is None and plan["in_network_tiers"]:
             return {"status": "needs_information", "missing_fields": ["network_tier"], "patient_cost": None,
-                    "message": "This plan has several in-network tiers; choose one.",
+                    "message": msg("This plan has several in-network tiers; choose one."),
                     "options": plan["in_network_tiers"]}
         tier = tier if network == "in" else None
         label = _encounters()[scenario][0]
@@ -382,7 +455,7 @@ class PlanDB:
             if row is None and part.fallback:
                 row = self.benefit(plan_id, part.fallback, network, tier, part.component, scenario)
             if row is None:
-                return self._result("needs_review", f"The plan has no {part.service} benefit for this network/tier.",
+                return self._result("needs_review", msg(f"The plan has no {part.service} benefit for this network/tier."),
                                     plan_id, scenario, label, network, tier, prices, [])
             g = groups.setdefault(row["benefit_id"], {"row": row, "components": [], "allowed": Decimal(0),
                                                       "priced": True})
@@ -407,23 +480,23 @@ class PlanDB:
                           "missing_fields": result["missing_fields"], "rule": rule_text(row),
                           "source_page": row["source_page"], "source_url": row["source_url"],
                           "quote": row["quote"], "limits": row["limits_conditions"],
-                          "review_flags": row["review_flags"]})
+                          "review_flags": row["review_flags"], "verified": bool(row.get("verified", True))})
             if result["status"] == "not_covered":
-                return self._result("not_covered", f"{row['service_as_printed']} is not covered.", plan_id, scenario,
+                return self._result("not_covered", msg(f"{row['service_as_printed']} is not covered."), plan_id, scenario,
                                     label, network, tier, prices, lines)
             if result["status"] != "estimated":
                 missing = result["missing_fields"]
                 if "allowed_amount" in missing and prices.get("status") in ("no_rates", "partial"):
-                    return self._result("needs_review", prices.get("message", "No price data."), plan_id, scenario,
+                    return self._result("needs_review", msg(prices.get("message", "No price data.")), plan_id, scenario,
                                         label, network, tier, prices, lines)
-                return self._result(result["status"], result["message"], plan_id, scenario, label, network, tier,
+                return self._result(result["status"], msg(result["message"]), plan_id, scenario, label, network, tier,
                                     prices, lines, missing)
             total += Decimal(str(result["patient_cost"]))
             if uses_deductible and remaining is not None:
                 paid += min(remaining, g["allowed"])
                 remaining -= min(remaining, g["allowed"])
-        return self._result("estimated", "Estimate for one occurrence; excludes balance billing and the out-of-pocket "
-                            "maximum. Not a coverage guarantee.", plan_id, scenario, label, network, tier, prices,
+        return self._result("estimated", msg("Estimate for one occurrence; excludes balance billing and the out-of-pocket "
+                            "maximum. Not a coverage guarantee."), plan_id, scenario, label, network, tier, prices,
                             lines, patient_cost=float(total.quantize(Decimal("0.01"))), deductible_paid=float(paid))
 
     @staticmethod
@@ -536,7 +609,9 @@ class PlanDB:
             if plan is None:
                 out.append({"plan_id": plan_id, "status": "invalid_input", "message": "Unknown plan."})
                 continue
-            tiers = [t or None for t in plan["priced_tiers"]] or [None]
+            tier_source = plan["priced_tiers"] or (plan["in_network_tiers"]
+                                                    if plan["plan_id"].startswith("upload_") else [])
+            tiers = [t or None for t in tier_source] or [None]
             best = min((self.year(plan, tier, counts, preferred, find_doctor) for tier in tiers),
                        key=lambda e: (e["care"]["total"] is None, e["care"]["total"] or 0))
             if len(tiers) > 1:
