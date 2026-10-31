@@ -11,6 +11,19 @@ import { SourceContext, SourceDialog } from "./SourceChip";
 
 const prompts = ["What will a specialist visit cost me?", "Which 2027 plan fits me best?", "Check this bill for overcharges."];
 
+function ThinkingBar({ state }: { state: Agent["state"] }) {
+  if (!state.busy) return null;
+  for (let index = state.items.length - 1; index >= 0; index -= 1) {
+    const item = state.items[index];
+    if (item.kind === "user") return <div className="agent-message flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
+      <span className="size-2 animate-pulse rounded-full bg-current" aria-hidden />
+      Thinking...
+    </div>;
+    if (item.kind !== "search") return null;
+  }
+  return null;
+}
+
 /** The full agent UI. Framework-neutral: pass an agent from useAgent(transport). */
 export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: ReactNode }) {
   const { state } = agent;
@@ -71,6 +84,7 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
                 case "error": return <p key={item.id} role="alert" className="agent-message text-negative-deep">{item.message}</p>;
               }
             })}
+            <ThinkingBar state={state} />
             {!empty && !canvasOpen && views.length > 0 && <Button variant="secondary" className="action-button mt-5" onClick={() => agent.setCanvas(true)}>Open page</Button>}
           </div>
           <div className="composer-area">
