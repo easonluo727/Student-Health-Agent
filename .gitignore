@@ -54,6 +54,8 @@ data/policy_pdfs/
 data/uploads/
 # Conversation state (workflow/sessions.py)
 data/sessions.sqlite*
+# Accounts (workflow/accounts.py)
+data/users.sqlite*
 
 # --- Fine-tuning runs (predictions and upload scripts, local only) ---
 fireworks-training-runs/

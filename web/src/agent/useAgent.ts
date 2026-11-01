@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import type { Answer, Attachment, EmailDraftEdit, Integrations, Plan, ReplyTarget, ServerEvent, TurnContext, TurnInput } from "./protocol";
 import type { AgentTransport } from "./transport";
 import { agentReducer, initialState, type LocalAttachment } from "./store";
+import { useAuth } from "./useAuth";
 
 export function newSessionId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -12,6 +13,7 @@ export type ChatMode = "chat" | TurnContext["mode"];
 
 export function useAgent(transport: AgentTransport) {
   const [state, dispatch] = useReducer(agentReducer, undefined, () => initialState(newSessionId()));
+  const auth = useAuth(transport);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [integrations, setIntegrations] = useState<Integrations | null>(null);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
@@ -112,11 +114,11 @@ export function useAgent(transport: AgentTransport) {
   }, [stop]);
 
   return useMemo(() => ({
-    state, plans, integrations, replyTarget, mode, planIds,
+    state, auth, plans, integrations, replyTarget, mode, planIds,
     setReplyTarget, setMode, setPlanIds, refreshIntegrations,
     setCanvas: (open?: boolean, view?: string) => dispatch({ type: "canvas", open, view }),
     sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay,
-  }), [state, plans, integrations, replyTarget, mode, planIds, refreshIntegrations, sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay]);
+  }), [state, auth, plans, integrations, replyTarget, mode, planIds, refreshIntegrations, sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay]);
 }
 
 export type Agent = ReturnType<typeof useAgent>;

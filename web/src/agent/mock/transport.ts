@@ -17,6 +17,10 @@ export function createMockTransport({ delay = 35 }: { delay?: number } = {}): Ag
   return {
     async getPlans() { return mockPlans; },
     async getIntegrations() { return integrations; },
+    // No Google client id in the mock, so the sign-in button stays hidden.
+    async getAuth() { return { user: null, google_client_id: null }; },
+    async signInWithGoogle() { throw new Error("Sign-in needs the real backend."); },
+    async signOut() {},
     async upload(_session, file) {
       const problem = validateUpload(file);
       if (problem) throw new Error(problem);

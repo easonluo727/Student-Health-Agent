@@ -3,6 +3,7 @@ import { ChevronRight, FileText, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReplyTarget, Source } from "@/agent/protocol";
 import type { Agent } from "@/agent/useAgent";
+import { AccountMenu } from "./AccountMenu";
 import { ConfirmCard, EmailCard, FormCard, SearchSteps } from "./Cards";
 import { EstimateView, ReportView, SearchView } from "./Canvas";
 import { Composer } from "./Composer";
@@ -56,7 +57,10 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/tallyhealth-logo.png" alt="TallyHealth" width={180} height={60} />
         </button>
-        <Button variant="ghost" onClick={agent.newChat}>New chat</Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={agent.newChat}>New chat</Button>
+          <AccountMenu auth={agent.auth} />
+        </div>
       </header>
       {toolbar}
       <div className={`workspace-body ${canvasOpen ? "with-canvas" : "chat-only"}`}>

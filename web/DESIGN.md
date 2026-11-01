@@ -327,7 +327,7 @@ Every money figure uses tabular numerals (`font-feature-settings: "tnum"`) so co
 - **Card interior**: `{spacing.xl}` 24 px.
 
 ### Page structure
-- **Header**: `app-header`, 56 px, product name on the left and "New chat" on the right. Nothing else.
+- **Header**: `app-header`, 56 px, product name on the left; on the right "New chat" and the account control (Google's own "Sign in with Google" button, or the signed-in user's avatar and name with a sign-out icon button). Nothing else.
 - **Conversation**: one column, `{layout.chat-column}` 720 px, centred on `{colors.canvas-soft}`. Question and confirm cards are full column width.
 - **Canvas (agent-built page)**: opens on the right only when the agent builds a page, after its tool calls are done. Chat shrinks to `{layout.chat-column-with-canvas}` 440 px; the canvas takes the rest (at least `{layout.canvas-min}` 720 px), white `{colors.canvas}` with a 1 px `{colors.line}` left edge, its own scroll, and a slim top bar: page title, page switcher when there is more than one page, close button. Closing leaves an "Open page" `button-secondary` in the chat turn that made it.
 - **Page generation**: the page appears section by section as the agent writes it; a section that is still being written shows a `{colors.canvas-soft}` placeholder block of the right height, never a spinner. When a page fails the number check and is rewritten, the canvas keeps the last good version until the new one is ready.

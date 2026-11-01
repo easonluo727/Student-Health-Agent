@@ -20,12 +20,13 @@ import uuid
 
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from accounts import COOKIE_NAME, AccountStore, google_client_id, verify_google_token
 from arena_report import arena_report
 from llm_client import llm_model, load_env, make_client
 from harness import Harness
@@ -49,19 +50,22 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(","),
-    allow_methods=["GET", "POST"],  # /plans, /turn and /upload
+    allow_methods=["GET", "POST"],  # /plans, /turn, /upload and /auth
     allow_headers=["*"],
+    allow_credentials=True,  # the login cookie, when the frontend runs on another port in development
 )
 client = make_client(timeout=300.0)  # a shared endpoint can be slow under load
 MODEL = llm_model()
 # Price every scenario component in the rate store once, in the background (a few minutes), so turns don't wait.
 threading.Thread(target=lambda: PlanDB().warm(), name="warm-rates", daemon=True).start()
 STORE = SessionStore(upload_dir=UPLOAD_DIR)
+ACCOUNTS = AccountStore()
 
 
 def purge_forever():
     while True:
         STORE.purge()
+        ACCOUNTS.purge()
         time.sleep(3600)
 
 
@@ -378,6 +382,40 @@ async def integrations():
     return {"gmail": {"connected": False, "email": None, "connect_url": None}}
 
 
+class GoogleSignIn(BaseModel):
+    credential: str  # the ID token from Google's sign-in button
+
+
+@app.get("/auth/me")
+async def auth_me(request: Request):
+    # The client id is sent here rather than built into the frontend, so it is set once, on the server.
+    return {"user": ACCOUNTS.user_for(request.cookies.get(COOKIE_NAME)), "google_client_id": google_client_id()}
+
+
+@app.post("/auth/google")
+async def auth_google(body: GoogleSignIn, request: Request, response: Response):
+    client_id = google_client_id()
+    if client_id is None:
+        raise HTTPException(503, "Google sign-in is not configured on this server.")
+    try:
+        claims = await asyncio.to_thread(verify_google_token, body.credential, client_id)
+    except ValueError as error:
+        raise HTTPException(401, f"Google sign-in failed: {error}")
+    user, token = ACCOUNTS.sign_in(claims)
+    # Railway ends TLS at its proxy, so the app itself sees http; the proxy says what the browser used.
+    https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+    response.set_cookie(COOKIE_NAME, token, max_age=ACCOUNTS.ttl, httponly=True, secure=https, samesite="lax",
+                        path="/")
+    return {"user": user}
+
+
+@app.post("/auth/logout")
+async def auth_logout(request: Request, response: Response):
+    ACCOUNTS.sign_out(request.cookies.get(COOKIE_NAME))
+    response.delete_cookie(COOKIE_NAME, path="/")
+    return {"user": None}
+
+
 @app.post("/upload")
 async def upload(session_id: str = Form(...), file: UploadFile = File(...)):
     data = await file.read(MAX_UPLOAD_BYTES + 1)
@@ -410,7 +448,9 @@ async def turn(request: TurnRequest):
 # statically exported frontend (web/out, built by the Dockerfile) at /. Mounted last so the API routes win.
 for _path, _endpoint, _methods in (("/api/turn", turn, ["POST"]), ("/api/upload", upload, ["POST"]),
                                    ("/api/plans", plans, ["GET"]),
-                                   ("/api/integrations", integrations, ["GET"])):
+                                   ("/api/integrations", integrations, ["GET"]),
+                                   ("/api/auth/me", auth_me, ["GET"]), ("/api/auth/google", auth_google, ["POST"]),
+                                   ("/api/auth/logout", auth_logout, ["POST"])):
     app.add_api_route(_path, _endpoint, methods=_methods)
 WEB_DIR = Path(os.environ.get("WEB_DIR", ROOT / "web" / "out"))
 if WEB_DIR.is_dir():

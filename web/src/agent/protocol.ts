@@ -97,6 +97,10 @@ export interface EmailDraft {
 export interface EmailDraftEdit { to: string[]; cc?: string[]; subject: string; body: string }
 export type EmailSendStatus = "sending" | "sent" | "failed"
 export interface EmailStatus { request_id: string; status: EmailSendStatus; message?: string | null; sent_at?: string | null }
+// ---- Google sign-in (optional; GET /auth/me, POST /auth/google, POST /auth/logout) ----
+export interface User { user_id: string; email: string; name: string | null; picture: string | null }
+export interface AuthState { user: User | null; google_client_id: string | null } // client id null → sign-in off
+
 export interface Integrations { gmail: { connected: boolean; email: string | null; connect_url: string | null } }
 
 export type ServerEvent =

@@ -77,6 +77,8 @@ LLM_API_KEY=...
 LLM_MODEL=...
 # optional, for the fast no-reasoning calls; Qwen on vLLM:
 # LLM_EXTRA_BODY={"chat_template_kwargs": {"enable_thinking": false}}
+# optional, turns on "Sign in with Google" (an OAuth web client id whose JavaScript origins include the site):
+# GOOGLE_CLIENT_ID=....apps.googleusercontent.com
 EOF
 
 # 1. Agent service (port 8000)

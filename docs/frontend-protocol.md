@@ -251,6 +251,14 @@
 - 搜索进度：在对话里显示为步骤列表，正在进行的步骤有加载动画。有截图时，右下角出现浮动小窗口，显示最新一页和当前步骤；搜索结束后自动缩成一行。点放大按钮打开完整的 “Computer” 视图：搜索进行中跟随最新一步；结束后显示所有截图的总览；点击某一张可停下来查看，点 “Back to live” / “Overview” 回到跟随。
 - 地图：Leaflet。默认底图是 Esri 浅灰底图加地名层，不需要 key；可以用 `NEXT_PUBLIC_MAP_TILES`、`NEXT_PUBLIC_MAP_LABELS`、`NEXT_PUBLIC_MAP_ATTRIBUTION` 换成别的。
 
+## Google 登录（2026-11-01，可选）
+
+用户可以用 Google 账号登录，不登录也能用全部功能。前端用 Google 自己的按钮（Google Identity Services），拿到 ID token 后交给后端；后端校验后设一个 httpOnly cookie（`th_login`，30 天）。所有请求都带 `credentials: "include"`。
+
+- `GET {API_BASE}/auth/me` → `{ "user": { "user_id", "email", "name", "picture" } | null, "google_client_id": string | null }`。`google_client_id` 为 `null` 表示服务器没配 `GOOGLE_CLIENT_ID`，前端不显示登录按钮（mock 也是这样）。
+- `POST {API_BASE}/auth/google`，body `{ "credential": "<Google ID token>" }` → `{ "user" }`，同时设 cookie。token 无效、过期、不是发给本 client 的，或邮箱没验证，返回 401；没配 client id 返回 503。
+- `POST {API_BASE}/auth/logout` → `{ "user": null }`，删除 cookie 和这条登录记录。
+
 ## Gmail 申诉邮件（2026-10-26，前端和 mock 已做，后端待做）
 
 agent 起草申诉邮件，从用户自己的 Gmail 发出。**用户不点 "Send from Gmail"，就永远不发。**
