@@ -1,33 +1,65 @@
-.venv/
+# --- Secrets ---
 .env
+.env.*
+!.env.example
+
+# --- Python ---
+.venv/
 __pycache__/
 *.pyc
+
+# --- OS / editors / local agent tools ---
 .DS_Store
+.vscode/
+.idea/
+.gstack/
+.conductor/
+.context/
+
+# --- Frontend build output (web/.gitignore covers the rest) ---
+web/out/
+
+# --- Media: demo videos and recordings stay local ---
+*.mp4
+*.mov
+*.webm
+.video-demo/
+Claude outputs/
+
+# --- Local scratch files ---
 page*.png
 page*.txt
 test_plan.pdf
 testing.txt
+*.log
 
-# MRF pipeline: raw and intermediate data stay local; only small CSVs/reports are committed
+# --- MRF pipeline: raw and intermediate data stay local; only small CSVs/reports are committed ---
 data/mrf/raw/
 data/mrf/work/
-data/mrf/*.log
-data/mrf/*.sqlite-journal
 data/mrf/la_npis.csv
 data/mrf/rates.sqlite
+
+# --- Provider directory (built offline, 79 MB) ---
 data/providers/
-.gstack/
-data/mrf/*.sqlite-shm
-data/mrf/*.sqlite-wal
-# Downloaded plan PDFs (official sources listed in docs); not committed
+
+# --- SQLite side files, anywhere ---
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+
+# --- Runtime data from the agent service ---
+# Downloaded plan PDFs (official sources listed in docs)
 data/policy_pdfs/
 # PDFs users upload to the agent service
 data/uploads/
-# Local design assets (not published)
-decks/
-docs/AMD-brand-guidelines.pdf
 # Conversation state (workflow/sessions.py)
 data/sessions.sqlite*
 
+# --- Fine-tuning runs (predictions and upload scripts, local only) ---
+fireworks-training-runs/
+
+# --- Local design assets and decks (not published) ---
+decks/
+docs/AMD-brand-guidelines.pdf
 # teammate feedback deck, summarized in docs/feedback-2026-10-24.md
 Untitled presentation.pdf
