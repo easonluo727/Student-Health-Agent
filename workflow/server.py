@@ -34,7 +34,8 @@ from harness import Harness
 from harness.hooks import MAX_REPLY_RETRIES
 from harness.skills.questionnaire.skill import answers_message, build_form
 from plan_db import PlanDB
-from sessions import NotYours, SessionStore, upload_folder
+from memory import FIELDS as MEMORY_FIELDS, QUESTION_FIELDS, MemoryStore, question_answers
+from sessions import NotYours, SessionStore, appeal_drafted, bill_review, file_kind, upload_folder
 
 load_env()
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +54,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(","),
-    allow_methods=["GET", "POST", "DELETE"],  # /plans, /turn, /upload, /auth and /me
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # /plans, /turn, /upload, /auth and /me
     allow_headers=["*"],
     allow_credentials=True,  # the login cookie, when the frontend runs on another port in development
 )
@@ -63,6 +64,7 @@ MODEL = llm_model()
 threading.Thread(target=lambda: PlanDB().warm(), name="warm-rates", daemon=True).start()
 STORE = SessionStore(upload_dir=UPLOAD_DIR)
 ACCOUNTS = AccountStore()
+MEMORY = MemoryStore()
 
 
 def purge_forever():
@@ -202,6 +204,20 @@ def run_tool(tool, args):
         return {"status": "error", "message": f"{type(error).__name__}: {str(error)[:300]}"}
 
 
+def records_for(session, name, args, result):
+    """What this tool call taught us about the user's files, for the database (sessions.SessionStore._write)."""
+    status = result.get("status")
+    if name in ("find_plan_match", "extract_plan") and status in ("matched", "extracted"):
+        return [file_kind(args["file_id"], "plan", result["plan_id"], result.get("name"))]
+    if name == "read_bill" and status == "read":
+        return [file_kind(args["file_id"], "bill")]
+    if name == "audit_bill" and status in ("audited", "unavailable"):
+        return [bill_review(args["bill_id"], session.harness.bills[args["bill_id"]].get("file_id"), result)]
+    if name == "draft_appeal" and status == "drafted":
+        return [appeal_drafted(args["bill_id"])]
+    return []
+
+
 async def run_call(session, call):
     """Run one tool call through hooks and tools, yielding SSE chunks. Raises EndTurn (form card) to pause the turn."""
     harness = session.harness
@@ -222,6 +238,7 @@ async def run_call(session, call):
             yield sse("search_step", {"search_id": step_id, "kind": "document", "step_id": step_id,
                                       "status": "failed" if failed else "done", "text": step})
 
+    session.records.extend(records_for(session, call.name, args, result))
     if call.name == "estimate_cost" and result.get("status") in ESTIMATE_STATUSES:
         yield sse("estimate", estimate_card(result))
     if call.name == "audit_bill" and result.get("status") in ("audited", "unavailable"):
@@ -254,7 +271,7 @@ async def agent_loop(session):
         response = await asyncio.to_thread(
             client.responses.create,
             model=MODEL,
-            instructions=harness.system_prompt,
+            instructions="\n\n".join(filter(None, [harness.system_prompt, session.memory])),
             input=session.history,
             tools=harness.tools.definitions(),
             parallel_tool_calls=False,
@@ -338,14 +355,14 @@ async def turn_events(session, request, user_id):
     events = [{"event": "input", "data": {**request.input, **({"reply_target": request.reply_target}
                                                                if request.reply_target else {})}}]
     try:
-        async for chunk in session_turn(session, request):
+        async for chunk in session_turn(session, request, user_id):
             events.append(sse_event(chunk))
             yield chunk
     finally:  # also when the client goes away mid-stream
         STORE.save(request.session_id, session, user_id, events)
 
 
-async def session_turn(session, request):
+async def session_turn(session, request, user_id=None):
     hooks = session.harness.hooks
     data = request.input
     kind = data.get("type")
@@ -374,6 +391,8 @@ async def session_turn(session, request):
             if kind == "form_response":
                 answers = data.get("answers") or {}
                 hooks.on_form_answers(questions, answers)
+                if user_id:
+                    remember_answers(user_id, questions, answers)
                 session.history.append({"role": "user", "content": answers_message(questions, answers)})
             else:  # closing a form means "I don't know" to each question, so Python doesn't ask them again
                 hooks.on_form_answers(questions, {})
@@ -506,13 +525,29 @@ async def upload(request: Request, session_id: str = Form(..., pattern=SESSION_I
 
 @app.post("/turn")
 async def turn(body: TurnRequest, request: Request):
-    user_id = current_user_id(request)
+    user = current_user(request)
+    user_id = (user or {}).get("user_id")
     try:  # checked before the stream starts, so the frontend gets a plain 404
         session = STORE.get(body.session_id, user_id)
     except NotYours:
         raise HTTPException(404, NOT_FOUND)
+    if user:  # what the user told us before: fills the questionnaire, and the agent reads it (memory.py)
+        session.harness.hooks.use_memory(question_answers(MEMORY.facts(user_id)))
+        session.memory = MEMORY.memory(user, {p["plan_id"]: p["name"] for p in available_plans()})
     return StreamingResponse(turn_events(session, body, user_id), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache, no-transform"})
+
+
+def remember_answers(user_id, questions, answers):
+    """Keep a signed-in user's answers to the questions that last (ZIP, age) in their memory, so the
+    newest answer wins next time too. An answer that doesn't pass the settings check is not kept."""
+    for q in questions:
+        answer = answers.get(q["field"]) or {}
+        if q["field"] in QUESTION_FIELDS and not answer.get("unknown") and answer.get("value") is not None:
+            try:
+                MEMORY.remember(user_id, {q["field"]: answer["value"]}, "form")
+            except ValueError:
+                pass
 
 
 # The signed-in user's own data: their conversations (to reopen or delete) and their files. Anything that isn't
@@ -557,6 +592,36 @@ async def my_upload(file_id: str, request: Request):
     return FileResponse(upload["path"], media_type=upload["content_type"], filename=upload["name"])
 
 
+def settings_of(user):
+    facts = MEMORY.facts(user["user_id"])
+    return {"user": user, "settings": {f: facts[f]["value"] if f in facts else None for f in MEMORY_FIELDS}}
+
+
+@app.get("/me/settings")
+async def my_settings(request: Request):
+    signed_in(request)
+    return settings_of(current_user(request))
+
+
+@app.put("/me/settings")
+async def update_my_settings(body: dict, request: Request):
+    """Change any of: name (null = the Google name), zip, age, plan_id (null forgets one)."""
+    user_id = signed_in(request)
+    unknown = set(body) - {"name", *MEMORY_FIELDS}
+    if unknown:
+        raise HTTPException(422, f"Unknown settings: {', '.join(sorted(unknown))}.")
+    facts = {f: body[f] for f in MEMORY_FIELDS if f in body}
+    name = body.get("name")
+    if name is not None and (not isinstance(name, str) or len(name.strip()) > 80):
+        raise HTTPException(422, "Name must be text of at most 80 characters.")
+    try:
+        MEMORY.remember(user_id, facts, "settings", plan_ids={p["plan_id"] for p in available_plans()})
+    except ValueError as error:
+        raise HTTPException(422, str(error))
+    user = ACCOUNTS.set_name(user_id, (name or "").strip() or None) if "name" in body else current_user(request)
+    return settings_of(user)
+
+
 @app.delete("/me")
 async def delete_me(request: Request, response: Response):
     """Delete the account and everything in it: conversations, transcripts, files, logins."""
@@ -579,6 +644,8 @@ for _path, _endpoint, _methods in (("/api/turn", turn, ["POST"]), ("/api/upload"
                                    ("/api/me/sessions/{session_id}", delete_my_session, ["DELETE"]),
                                    ("/api/me/uploads", my_uploads, ["GET"]),
                                    ("/api/me/uploads/{file_id}", my_upload, ["GET"]),
+                                   ("/api/me/settings", my_settings, ["GET"]),
+                                   ("/api/me/settings", update_my_settings, ["PUT"]),
                                    ("/api/me", delete_me, ["DELETE"])):
     app.add_api_route(_path, _endpoint, methods=_methods)
 WEB_DIR = Path(os.environ.get("WEB_DIR", ROOT / "web" / "out"))

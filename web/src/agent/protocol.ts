@@ -102,9 +102,24 @@ export interface User { user_id: string; email: string; name: string | null; pic
 export interface AuthState { user: User | null; google_client_id: string | null } // client id null → sign-in off
 // ---- The signed-in user's conversations (GET/DELETE /me/sessions[/{id}]) ----
 export interface SessionSummary { session_id: string; title: string | null; created_at: number; updated_at: number; uploads: number } // Unix seconds
-export interface StoredUpload { file_id: string; session_id: string; name: string; content_type: string; size: number; sha256: string; created_at: number }
+export interface BillReview {
+  bill_id: string; status: "audited" | "unavailable"; plan_id: string | null; plan_name: string | null
+  provider: string | null; statement_date: string | null
+  billed: number | null; you_owe: number | null; possible_overcharge: number | null; findings: number
+  appeal_drafted: boolean; updated_at: number
+}
+export interface StoredUpload {
+  file_id: string; session_id: string; name: string; content_type: string; size: number; sha256: string; created_at: number
+  kind: "plan" | "bill" | null // what the agent found the file to be; null until it reads it
+  plan_id: string | null; plan_name: string | null
+  bill_reviews: BillReview[]
+}
 /** One step of a saved chat: what the user sent (with the item they asked about), or an event the server sent. */
 export type TranscriptEvent = ServerEvent | { event: "input"; data: TurnInput & { reply_target?: ReplyTarget } }
+// ---- Settings (GET/PUT /me/settings): long-term facts the agent remembers; null = not set ----
+export interface UserSettings { zip: string | null; age: number | null; plan_id: string | null }
+export interface SettingsState { user: User; settings: UserSettings }
+export type SettingsUpdate = Partial<UserSettings> & { name?: string | null }
 export interface SessionTranscript { session_id: string; events: TranscriptEvent[]; uploads: StoredUpload[] }
 
 export interface Integrations { gmail: { connected: boolean; email: string | null; connect_url: string | null } }

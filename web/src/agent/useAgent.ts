@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import type { Answer, Attachment, EmailDraftEdit, Integrations, Plan, ReplyTarget, ServerEvent, TurnContext, TurnInput } from "./protocol";
+import type { Answer, Attachment, EmailDraftEdit, Integrations, Plan, ReplyTarget, ServerEvent, SettingsUpdate, TurnContext, TurnInput } from "./protocol";
 import type { AgentTransport } from "./transport";
 import { agentReducer, initialState, type LocalAttachment } from "./store";
 import { useAuth } from "./useAuth";
@@ -126,6 +126,15 @@ export function useAgent(transport: AgentTransport) {
     dispatch({ type: "restore", sessionId, events: saved.events, files });
   }, [transport, stop]);
   const listSessions = useCallback(() => transport.listSessions(), [transport]);
+  const listUploads = useCallback(() => transport.listUploads(), [transport]);
+  const getSettings = useCallback(() => transport.getSettings(), [transport]);
+  const { updateUser } = auth;
+  const saveSettings = useCallback(async (update: SettingsUpdate) => {
+    const saved = await transport.saveSettings(update);
+    updateUser(saved.user);
+    return saved;
+  }, [transport, updateUser]);
+  const fileUrl = useCallback((fileId: string) => transport.fileUrl(fileId), [transport]);
   const deleteSession = useCallback(async (sessionId: string) => {
     await transport.deleteSession(sessionId);
     if (sessionId === sessionRef.current) newChat();
@@ -147,8 +156,8 @@ export function useAgent(transport: AgentTransport) {
     setReplyTarget, setMode, setPlanIds, refreshIntegrations,
     setCanvas: (open?: boolean, view?: string) => dispatch({ type: "canvas", open, view }),
     sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay,
-    openSession, listSessions, deleteSession,
-  }), [state, auth, plans, integrations, replyTarget, mode, planIds, refreshIntegrations, sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay, openSession, listSessions, deleteSession]);
+    openSession, listSessions, deleteSession, listUploads, getSettings, saveSettings, fileUrl,
+  }), [state, auth, plans, integrations, replyTarget, mode, planIds, refreshIntegrations, sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay, openSession, listSessions, deleteSession, listUploads, getSettings, saveSettings, fileUrl]);
 }
 
 export type Agent = ReturnType<typeof useAgent>;

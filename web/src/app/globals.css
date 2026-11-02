@@ -86,6 +86,8 @@
   --color-body: var(--body);
   --color-positive: var(--positive);
   --color-negative-deep: var(--negative-deep);
+  --color-positive-deep: var(--positive-deep);
+  --color-warning-content: var(--warning-content);
 }
 :root {
   --body: #496158;

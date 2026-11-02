@@ -11,7 +11,8 @@ Who may use a conversation: an anonymous one, anyone who has its id (the fronten
 who uses it claims it. An owned one, only its owner; to everyone else it doesn't exist (NotYours). Owned
 conversations never expire; the owner deletes them.
 
-Each save also appends what the user saw that turn (their input and the SSE events), so a chat can be shown again.
+Each save also appends what the user saw that turn (their input and the SSE events), so a chat can be shown again,
+and writes the turn's records: what an uploaded file turned out to be (a plan or a bill) and each bill review.
 """
 
 import json
@@ -40,6 +41,30 @@ class Session:
         self.uploads = self.harness.files  # file_id -> {"path", "name", "content_type", "sha256"}; tools read it
         self.attachment_notes = []
         self.context = None  # the last home-screen mode applied
+        # Per request, not saved in the state: the user's memory for the prompt (memory.py), and facts from this
+        # turn's tools for the database (see SessionStore._write).
+        self.memory = ""
+        self.records = []
+
+
+def file_kind(file_id, kind, plan_id=None, plan_name=None):
+    """Record: the agent found an upload to be a plan (with the plan it is) or a bill."""
+    return {"type": "file_kind", "file_id": file_id, "kind": kind, "plan_id": plan_id, "plan_name": plan_name}
+
+
+def bill_review(bill_id, file_id, result):
+    """Record: an audit_bill result, summarized for the user's file list and memory."""
+    provider, totals = result["provider"], result["totals"]
+    return {"type": "bill_review", "bill_id": bill_id, "file_id": file_id, "status": result["status"],
+            "plan_id": result["plan_id"], "plan_name": result["plan_name"],
+            "provider": provider.get("name_on_record") or provider.get("name_on_bill"),
+            "statement_date": result.get("statement_date"), "billed": totals["billed"],
+            "you_owe": totals["you_owe_on_checked_lines"], "possible_overcharge": totals["possible_overcharge"],
+            "findings": len(result["findings"])}
+
+
+def appeal_drafted(bill_id):
+    return {"type": "appeal", "bill_id": bill_id}
 
 
 def _plain(item):
@@ -55,7 +80,8 @@ def dump(session):
         "attachment_notes": session.attachment_notes,
         "context": session.context,
         "bills": session.harness.bills,
-        "hooks": {"user_texts": hooks.user_texts, "answers": hooks.answers},
+        "hooks": {"user_texts": hooks.user_texts, "answers": hooks.answers,
+                  "from_memory": sorted(hooks.from_memory)},
         "guard": {"user_numbers": sorted(map(str, guard._user_numbers)),
                   "tool_numbers": sorted(map(str, guard._tool_numbers)),
                   "confirmed": [list(k) for k in guard._confirmed], "missing_fields": guard._missing_fields},
@@ -73,6 +99,7 @@ def load(state):
     session.harness.bills.update(state.get("bills") or {})  # the bills skill holds this same dict
     hooks, guard = session.harness.hooks, session.harness.hooks.guard
     hooks.user_texts, hooks.answers = state["hooks"]["user_texts"], state["hooks"]["answers"]
+    hooks.from_memory = set(state["hooks"].get("from_memory") or [])
     g = state["guard"]
     guard._user_numbers = {Decimal(n) for n in g["user_numbers"]}
     guard._tool_numbers = {Decimal(n) for n in g["tool_numbers"]}
@@ -156,6 +183,31 @@ class SessionStore:
                             "VALUES (?, ?, ?, ?, ?)",
                             [(session_id, seq + i, e["event"], json.dumps(e["data"], ensure_ascii=False), now)
                              for i, e in enumerate(events, start=1)])
+            self._write(con, session_id, session.records, now)
+
+    @staticmethod
+    def _write(con, session_id, records, now):
+        """The turn's records (file_kind, bill_review, appeal), in the save's transaction."""
+        for r in records:
+            if r["type"] == "file_kind":
+                con.execute("UPDATE uploads SET kind=?, plan_id=?, plan_name=? WHERE file_id=? AND session_id=?",
+                            (r["kind"], r["plan_id"], r["plan_name"], r["file_id"], session_id))
+            elif r["type"] == "bill_review":
+                file_id = r["file_id"] if con.execute("SELECT 1 FROM uploads WHERE file_id=? AND session_id=?",
+                                                      (r["file_id"], session_id)).fetchone() else None
+                con.execute(
+                    "INSERT INTO bill_audits (session_id, bill_id, file_id, status, plan_id, plan_name, provider, "
+                    "statement_date, billed, you_owe, possible_overcharge, findings, created_at, updated_at) VALUES "
+                    "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(session_id, bill_id) DO UPDATE SET "
+                    "file_id=excluded.file_id, status=excluded.status, plan_id=excluded.plan_id, "
+                    "plan_name=excluded.plan_name, provider=excluded.provider, statement_date=excluded.statement_date, "
+                    "billed=excluded.billed, you_owe=excluded.you_owe, possible_overcharge=excluded.possible_overcharge, "
+                    "findings=excluded.findings, appeal_drafted=0, updated_at=excluded.updated_at",
+                    (session_id, r["bill_id"], file_id, r["status"], r["plan_id"], r["plan_name"], r["provider"],
+                     r["statement_date"], r["billed"], r["you_owe"], r["possible_overcharge"], r["findings"], now, now))
+            elif r["type"] == "appeal":
+                con.execute("UPDATE bill_audits SET appeal_drafted=1 WHERE session_id=? AND bill_id=?",
+                            (session_id, r["bill_id"]))
 
     def add_upload(self, session_id: str, user_id: str | None, file_id: str, path: Path, name: str,
                    content_type: str, size: int, sha256: str) -> None:
@@ -195,17 +247,29 @@ class SessionStore:
         return [{"event": event, "data": json.loads(data)} for event, data in rows]
 
     def uploads_of(self, user_id: str, session_id: str | None = None) -> list[dict]:
-        """The user's uploaded files, newest first; only one conversation's when session_id is given."""
-        sql = ("SELECT u.file_id, u.session_id, u.name, u.content_type, u.size, u.sha256, u.created_at, u.path "
-               "FROM uploads u JOIN sessions s ON s.session_id = u.session_id WHERE s.user_id=?")
+        """The user's uploaded files, newest first, each with what it is (kind: "plan", "bill" or None until the
+        agent reads it) and its bill reviews; only one conversation's when session_id is given."""
+        sql = ("SELECT u.file_id, u.session_id, u.name, u.content_type, u.size, u.sha256, u.created_at, u.path, "
+               "u.kind, u.plan_id, u.plan_name FROM uploads u JOIN sessions s ON s.session_id = u.session_id "
+               "WHERE s.user_id=?")
         params = [user_id]
         if session_id is not None:
             sql, params = sql + " AND u.session_id=?", params + [session_id]
+        review_keys = ("bill_id", "status", "plan_id", "plan_name", "provider", "statement_date", "billed", "you_owe",
+                       "possible_overcharge", "findings", "appeal_drafted", "updated_at")
         with transaction(self.path) as con:
             rows = con.execute(sql + " ORDER BY u.created_at DESC", params).fetchall()
+            reviews = {}
+            for file_id, *review in con.execute(
+                    "SELECT b.file_id, " + ", ".join(f"b.{k}" for k in review_keys) + " FROM bill_audits b JOIN "
+                    "sessions s ON s.session_id = b.session_id WHERE s.user_id=? AND b.file_id IS NOT NULL "
+                    "ORDER BY b.bill_id", (user_id,)):
+                reviews.setdefault(file_id, []).append({**dict(zip(review_keys, review)),
+                                                        "appeal_drafted": bool(review[10])})
         return [{"file_id": fid, "session_id": sid, "name": name, "content_type": ctype, "size": size,
-                 "sha256": sha, "created_at": created, "path": Path(path)}
-                for fid, sid, name, ctype, size, sha, created, path in rows]
+                 "sha256": sha, "created_at": created, "path": Path(path), "kind": kind, "plan_id": plan_id,
+                 "plan_name": plan_name, "bill_reviews": reviews.get(fid, [])}
+                for fid, sid, name, ctype, size, sha, created, path, kind, plan_id, plan_name in rows]
 
     def upload_of(self, file_id: str, user_id: str) -> dict | None:
         return next((u for u in self.uploads_of(user_id) if u["file_id"] == file_id), None)

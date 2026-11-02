@@ -46,6 +46,13 @@ class AccountStoreTest(unittest.TestCase):
         self.assertIsNone(store.user_for(token))
         self.assertEqual(store.purge(), 1)
 
+    def test_a_chosen_name_survives_signing_in_again(self):
+        user, _ = self.store.sign_in(CLAIMS)
+        self.assertEqual(self.store.set_name(user["user_id"], "Jo")["name"], "Jo")
+        _, token = self.store.sign_in({**CLAIMS, "name": "Joe Google"})
+        self.assertEqual(self.store.user_for(token)["name"], "Jo")
+        self.assertEqual(self.store.set_name(user["user_id"], None)["name"], "Joe Google")
+
     def test_only_the_token_hash_is_stored(self):
         _, token = self.store.sign_in(CLAIMS)
         con = sqlite3.connect(self.path)

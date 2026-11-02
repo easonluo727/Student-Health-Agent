@@ -61,7 +61,7 @@ class AccountStore:
                         "name=excluded.name, picture=excluded.picture, last_login_at=excluded.last_login_at",
                         (f"user_{secrets.token_hex(8)}", claims["sub"], claims["email"], claims.get("name"),
                          claims.get("picture"), now, now))
-            row = con.execute("SELECT user_id, email, name, picture FROM users WHERE google_sub=?",
+            row = con.execute("SELECT user_id, email, COALESCE(display_name, name), picture FROM users WHERE google_sub=?",
                               (claims["sub"],)).fetchone()
             con.execute("INSERT INTO logins (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
                         (_hash(token), row[0], now, now + self.ttl))
@@ -72,7 +72,7 @@ class AccountStore:
         if not token:
             return None
         with transaction(self.path) as con:
-            row = con.execute("SELECT u.user_id, u.email, u.name, u.picture FROM logins l JOIN users u "
+            row = con.execute("SELECT u.user_id, u.email, COALESCE(u.display_name, u.name), u.picture FROM logins l JOIN users u "
                               "ON u.user_id = l.user_id WHERE l.token_hash=? AND l.expires_at > ?",
                               (_hash(token), time.time())).fetchone()
         return public_user(row) if row else None
@@ -82,6 +82,14 @@ class AccountStore:
             return
         with transaction(self.path) as con:
             con.execute("DELETE FROM logins WHERE token_hash=?", (_hash(token),))
+
+    def set_name(self, user_id: str, name: str | None) -> dict | None:
+        """The name shown in the app; None goes back to the Google name. Google sign-ins never overwrite it."""
+        with transaction(self.path) as con:
+            con.execute("UPDATE users SET display_name=? WHERE user_id=?", (name, user_id))
+            row = con.execute("SELECT user_id, email, COALESCE(display_name, name), picture FROM users WHERE user_id=?",
+                              (user_id,)).fetchone()
+        return public_user(row) if row else None
 
     def delete_user(self, user_id: str) -> None:
         """Delete the account; the database cascades to its logins and any conversation rows left.

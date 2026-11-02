@@ -8,8 +8,8 @@
 
 The amount, confirmation and reply checks are guards.ConversationGuard, unchanged. This file
 adds the questionnaire rules, Python filling compare_plans' inputs from the answers (premium inputs: age, ZIP,
-student level; visit counts; priority ratings and the monthly budget), and Python sending a form when a tool needs
-something from the user.
+student level; visit counts; priority ratings and the monthly budget), answers from the user's long-term memory
+(use_memory), and Python sending a form when a tool needs something from the user.
 """
 
 import re
@@ -54,6 +54,18 @@ class Hooks:
         self.guard = ConversationGuard(confirm=_no_confirm)
         self.user_texts = []
         self.answers = {}  # question-bank id -> submitted value (None when the user doesn't know)
+        self.from_memory = set()  # answers that came from the user's memory, not from this chat
+
+    def use_memory(self, answers):
+        """Answers from the user's long-term memory (memory.question_answers), at the start of each turn. An answer
+        given in this chat wins; one that came from memory follows memory, also when the user removed it."""
+        for qid in self.from_memory - answers.keys():
+            self.answers.pop(qid, None)
+        self.from_memory &= answers.keys()
+        for qid, value in answers.items():
+            if qid not in self.answers or qid in self.from_memory:
+                self.answers[qid] = value
+                self.from_memory.add(qid)
 
     # Events ---------------------------------------------------------------
 
@@ -72,6 +84,7 @@ class Hooks:
             value = None if answer.get("unknown") else answer.get("value")
             if q["field"] in BY_ID:
                 self.answers[q["field"]] = value
+                self.from_memory.discard(q["field"])
             if q["kind"] == "number" and value is not None:
                 # Questionnaire numbers are user-stated amounts for the calculator guard.
                 numbers.append(str(value))

@@ -8,6 +8,7 @@ import { ConfirmCard, EmailCard, FormCard, SearchSteps } from "./Cards";
 import { EstimateView, ReportView, SearchView } from "./Canvas";
 import { Composer } from "./Composer";
 import { HistoryButton } from "./HistoryDialog";
+import { SettingsButton } from "./SettingsDialog";
 import { Markdown } from "./Markdown";
 import { SourceContext, SourceDialog } from "./SourceChip";
 
@@ -61,6 +62,7 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
         <div className="flex items-center gap-3">
           <Button variant="ghost" onClick={agent.newChat}>New chat</Button>
           <HistoryButton agent={agent} />
+          <SettingsButton agent={agent} />
           <AccountMenu auth={agent.auth} />
         </div>
       </header>

@@ -11,7 +11,9 @@ they delete it. The plan and rate databases are separate: they hold shared data,
   logins          a signed-in browser: the sha256 of its cookie token
   sessions        one conversation: owner (NULL = anonymous), title, the model's state as JSON
   session_events  what the user saw, in order: their inputs and the server's SSE events, for reopening a chat
-  uploads         one uploaded file; the file itself is in UPLOAD_DIR/<session_id>/
+  uploads         one uploaded file; the file itself is in UPLOAD_DIR/<session_id>/; kind once the agent has read it
+  user_facts      what the user told us that lasts: settings and some questionnaire answers (memory.py)
+  bill_audits     the last review of each bill in a conversation, for the user's file list and the agent's memory
 
 The schema version is SQLite's user_version; migrate() brings a file up to date and is safe to call every start.
 """
@@ -72,6 +74,40 @@ MIGRATIONS = [
         created_at REAL NOT NULL
     );
     CREATE INDEX uploads_by_session ON uploads(session_id);
+    """,
+    # 2: the user's settings and long-term facts, what each upload turned out to be, and bill reviews.
+    """
+    ALTER TABLE users ADD COLUMN display_name TEXT;
+    ALTER TABLE uploads ADD COLUMN kind TEXT CHECK (kind IN ('plan', 'bill'));
+    ALTER TABLE uploads ADD COLUMN plan_id TEXT;
+    ALTER TABLE uploads ADD COLUMN plan_name TEXT;
+    CREATE TABLE user_facts (
+        user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        field TEXT NOT NULL,
+        value TEXT NOT NULL,
+        source TEXT NOT NULL CHECK (source IN ('settings', 'form')),
+        updated_at REAL NOT NULL,
+        PRIMARY KEY (user_id, field)
+    ) WITHOUT ROWID;
+    CREATE TABLE bill_audits (
+        session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+        bill_id TEXT NOT NULL,
+        file_id TEXT REFERENCES uploads(file_id) ON DELETE SET NULL,
+        status TEXT NOT NULL,
+        plan_id TEXT,
+        plan_name TEXT,
+        provider TEXT,
+        statement_date TEXT,
+        billed REAL,
+        you_owe REAL,
+        possible_overcharge REAL,
+        findings INTEGER NOT NULL,
+        appeal_drafted INTEGER NOT NULL DEFAULT 0,
+        created_at REAL NOT NULL,
+        updated_at REAL NOT NULL,
+        PRIMARY KEY (session_id, bill_id)
+    );
+    CREATE INDEX bill_audits_by_file ON bill_audits(file_id);
     """,
 ]
 

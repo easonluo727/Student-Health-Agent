@@ -12,8 +12,9 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "workflow"))
 
 from accounts import AccountStore  # noqa: E402
-from appdb import connect  # noqa: E402
-from sessions import NotYours, Session, SessionStore, compact, upload_folder  # noqa: E402
+from appdb import MIGRATIONS, connect  # noqa: E402
+from sessions import (NotYours, Session, SessionStore, appeal_drafted, bill_review, compact, file_kind,  # noqa: E402
+                      upload_folder)
 
 
 class FakeOutputItem:
@@ -161,7 +162,51 @@ class SessionStoreTest(unittest.TestCase):
         con.close()
 
 
+    def test_tool_records_tag_files_and_keep_bill_reviews(self):
+        self.upload("abc", self.alice, file_id="file_plan")
+        self.upload("abc", self.alice, file_id="file_bill")
+        audit = {"status": "audited", "plan_id": "p1", "plan_name": "UC SHIP", "statement_date": "2026-10-15",
+                 "provider": {"name_on_record": "UCLA Medical Center", "name_on_bill": "UCLA"},
+                 "totals": {"billed": 1200.0, "you_owe_on_checked_lines": 150.0, "possible_overcharge": 80.0},
+                 "findings": [{"kind": "billed_above_your_share"}]}
+        s = Session()
+        s.records = [file_kind("file_plan", "plan", "p1", "UC SHIP"), file_kind("file_bill", "bill"),
+                     bill_review("file_bill", "file_bill", audit)]
+        self.store.save("abc", s, self.alice)
+        s.records = [appeal_drafted("file_bill")]
+        self.store.save("abc", s, self.alice)
+        files = {u["file_id"]: u for u in self.store.uploads_of(self.alice)}
+        self.assertEqual((files["file_plan"]["kind"], files["file_plan"]["plan_name"]), ("plan", "UC SHIP"))
+        [review] = files["file_bill"]["bill_reviews"]
+        self.assertEqual((review["provider"], review["you_owe"], review["findings"], review["appeal_drafted"]),
+                         ("UCLA Medical Center", 150.0, 1, True))
+        # Reviewing the same bill again replaces the review (and the appeal belongs to the old one).
+        s.records = [bill_review("file_bill", "file_bill", {**audit, "findings": []})]
+        self.store.save("abc", s, self.alice)
+        [review] = {u["file_id"]: u for u in self.store.uploads_of(self.alice)}["file_bill"]["bill_reviews"]
+        self.assertEqual((review["findings"], review["appeal_drafted"]), (0, False))
+        # A record can't tag someone else's file.
+        self.upload("bobs", self.bob, file_id="file_bob")
+        s.records = [file_kind("file_bob", "bill")]
+        self.store.save("abc", s, self.alice)
+        self.assertIsNone(self.store.uploads_of(self.bob)[0]["kind"])
+
+
 class MigrationTest(unittest.TestCase):
+    def test_a_version_1_database_upgrades_and_keeps_its_data(self):
+        path = Path(tempfile.mkdtemp()) / "app.sqlite"
+        con = connect(path)
+        con.executescript(f"BEGIN; {MIGRATIONS[0]}; PRAGMA user_version = 1; COMMIT;")
+        con.execute("INSERT INTO users VALUES ('user_1', 'sub1', 'a@example.com', 'A', NULL, 1, 1)")
+        con.execute("INSERT INTO sessions VALUES ('s1', 'user_1', 'hi', '{}', 1, 1)")
+        con.execute("INSERT INTO uploads VALUES ('f1', 's1', 'bill.png', 'image/png', 4, 'ab', '/x', 1)")
+        con.commit()
+        con.close()
+        store = SessionStore(path)
+        [upload] = store.uploads_of("user_1")
+        self.assertEqual((upload["name"], upload["kind"], upload["bill_reviews"]), ("bill.png", None, []))
+
+
     def test_accounts_move_from_users_sqlite_once(self):
         tmp = Path(tempfile.mkdtemp())
         old = sqlite3.connect(tmp / "users.sqlite")  # the 2026-11-01 accounts file
@@ -178,7 +223,7 @@ class MigrationTest(unittest.TestCase):
         with connect(store.path) as con:
             self.assertEqual(con.execute("SELECT email FROM users").fetchall(), [("a@example.com",)])
             self.assertEqual(con.execute("SELECT user_id FROM logins").fetchall(), [("user_1",)])
-            self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 1)
+            self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], len(MIGRATIONS))
         con.close()
 
 

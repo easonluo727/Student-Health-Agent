@@ -271,8 +271,11 @@
 - `GET {API_BASE}/me/sessions` → `{ "sessions": [{ "session_id", "title", "created_at", "updated_at", "uploads" }] }`，最新的在前。`title` 是第一条消息（或第一个附件的文件名），时间是 Unix 秒。
 - `GET {API_BASE}/me/sessions/{session_id}` → `{ "session_id", "events": [{ "event", "data" }], "uploads": [Upload] }`。
 - `DELETE {API_BASE}/me/sessions/{session_id}` → `{ "deleted": session_id }`，连同聊天记录和文件。
-- `GET {API_BASE}/me/uploads` → `{ "uploads": [Upload] }`，`Upload` 是 `{ "file_id", "session_id", "name", "content_type", "size", "sha256", "created_at" }`。
+- `GET {API_BASE}/me/uploads` → `{ "uploads": [Upload] }`，`Upload` 是 `{ "file_id", "session_id", "name", "content_type", "size", "sha256", "created_at", "kind", "plan_id", "plan_name", "bill_reviews" }`。`kind` 是 agent 读过之后 Python 记下的：`"plan"`（`find_plan_match` 或 `extract_plan` 认出的计划，带 `plan_id`）、`"bill"`（`read_bill` 读过），没读过是 `null`。`bill_reviews` 是这张账单最近一次 `audit_bill` 的摘要：`{ "bill_id", "status", "plan_id", "plan_name", "provider", "statement_date", "billed", "you_owe", "possible_overcharge", "findings", "appeal_drafted", "updated_at" }`，数字都来自 Python 的核对。
 - `GET {API_BASE}/me/uploads/{file_id}` → 文件本身。
+- `GET {API_BASE}/me/settings` → `{ "user", "settings": { "zip", "age", "plan_id" } }`，没设的是 `null`。
+- `PUT {API_BASE}/me/settings`，body 是要改的字段（`name` 和上面三个，`null` 表示清空；`name` 为 `null` 时用回 Google 的名字）→ 同上。值不合法（ZIP 不是 5 位数、年龄不在 18–64、计划不存在）或字段不认识，返回 422，`detail` 是给用户看的说明，什么都不保存。
+- 这些设置就是长期记忆：每一轮 Python 用 ZIP 和年龄填好问卷（不会再问），并把设置、过去的账单审核和上传过的计划写成一段 markdown 放进 prompt（`workflow/memory.py`，用户看不到这段）。登录用户在问卷里回答这两题时，答案也会存回设置，新的覆盖旧的。
 - `DELETE {API_BASE}/me` → `{ "user": null, "deleted_sessions" }`：删除账号和它的全部对话、文件、登录记录，并删除 cookie。
 
 ## Gmail 申诉邮件（2026-10-26，前端和 mock 已做，后端待做）

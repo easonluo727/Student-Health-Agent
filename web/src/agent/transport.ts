@@ -1,4 +1,4 @@
-import type { AuthState, Integrations, Plan, ServerEvent, SessionSummary, SessionTranscript, TurnRequest, UploadResult } from "./protocol";
+import type { AuthState, Integrations, Plan, ServerEvent, SessionSummary, SessionTranscript, SettingsState, SettingsUpdate, StoredUpload, TurnRequest, UploadResult } from "./protocol";
 import { API_BASE, MAX_UPLOAD_BYTES, UPLOAD_TYPES } from "./config";
 import { readServerEvents } from "./sse";
 import { createMockTransport } from "./mock/transport";
@@ -15,6 +15,9 @@ export interface AgentTransport {
   listSessions(): Promise<SessionSummary[]>;
   getSession(sessionId: string): Promise<SessionTranscript>;
   deleteSession(sessionId: string): Promise<void>;
+  listUploads(): Promise<StoredUpload[]>;
+  getSettings(): Promise<SettingsState>;
+  saveSettings(update: SettingsUpdate): Promise<SettingsState>;
   /** Where the browser can load one of the user's files (with the login cookie), or null when there is none. */
   fileUrl(fileId: string): string | null;
 }
@@ -96,6 +99,21 @@ export function createHttpTransport(base: string): AgentTransport {
     async deleteSession(sessionId) {
       const res = await fetch(`${base}/me/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
       if (!res.ok) throw await failure(res);
+    },
+    async listUploads() {
+      const res = await fetch(`${base}/me/uploads`);
+      if (!res.ok) throw await failure(res);
+      return (await res.json()).uploads;
+    },
+    async getSettings() {
+      const res = await fetch(`${base}/me/settings`);
+      if (!res.ok) throw await failure(res);
+      return res.json();
+    },
+    async saveSettings(update) {
+      const res = await fetch(`${base}/me/settings`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
+      if (!res.ok) throw await failure(res);
+      return res.json();
     },
     fileUrl(fileId) { return `${base}/me/uploads/${encodeURIComponent(fileId)}`; },
   };

@@ -25,6 +25,9 @@ export function createMockTransport({ delay = 35 }: { delay?: number } = {}): Ag
     async listSessions() { return []; },
     async getSession() { throw new Error("Saved chats need the real backend."); },
     async deleteSession() {},
+    async listUploads() { return []; },
+    async getSettings() { throw new Error("Settings need the real backend."); },
+    async saveSettings() { throw new Error("Settings need the real backend."); },
     fileUrl() { return null; },
     async upload(_session, file) {
       const problem = validateUpload(file);

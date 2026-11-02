@@ -30,7 +30,10 @@ export function useAuth(transport: AgentTransport) {
     setUser(null);
   }, [transport]);
 
-  return useMemo(() => ({ user, clientId, ready, error, signIn, signOut }), [user, clientId, ready, error, signIn, signOut]);
+  // After the user changes their name in Settings.
+  const updateUser = useCallback((u: User) => setUser(u), []);
+
+  return useMemo(() => ({ user, clientId, ready, error, signIn, signOut, updateUser }), [user, clientId, ready, error, signIn, signOut, updateUser]);
 }
 
 export type Auth = ReturnType<typeof useAuth>;
