@@ -155,6 +155,10 @@ plan/row 保持 `verified=0`，但结构完整且没有其他 review flag 的行
   - 并发请求太多会返回 429，所以一次只抽一个 plan，并带退避重试；
   - 温度为 0 时偶尔陷入重复输出的死循环，所以要设 `max_tokens`，并在重试时调高温度。
 
+## 画布页面由 agent 决定（2026-11-02）
+
+以前画布是写死的：`compare_plans` 跑完就发 Arena，`estimate_cost` / `audit_bill` 跑完就发卡片，找医生没有页面，只能在对话里列文字。现在由 agent 用 `show_page` 决定（`harness/skills/pages/`，页面由 `workflow/cards.py` 生成），新增医生页面（Leaflet + OpenStreetMap 地图、agent 的推荐和理由、每个计划下你付多少）。还没做：计划对比页面还不显示 agent 的推荐理由；页面数据在 Python 里生成，还不是 PRODUCT.md 里设想的“agent 现场搭页面”。OpenStreetMap 的公共底图只适合小流量，正式上线要换付费底图。
+
 ## 前端改版后测出的问题（2026-10-24）
 
 - **Python 自动发的表单不预填**：用户在聊天里说了"22 岁、本科生、90024"，`compare_plans` 缺这三项时自动发表单（`server.py` 的 `auto_ask` → `build_form`），但表单是空的，用户得重新填一遍。应该用问卷已有的 `_stated_value` 检查，把用户说过的值预填上。

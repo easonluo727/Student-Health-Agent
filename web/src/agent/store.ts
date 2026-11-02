@@ -1,5 +1,5 @@
 import { summarizeAnswers } from "./answers";
-import type { Confirm, EmailDraft, EmailStatus, Estimate, Form, Report, ReplyTarget, SearchStep, ServerEvent, TranscriptEvent, TurnInput } from "./protocol";
+import type { Confirm, EmailDraft, EmailStatus, Estimate, Form, Page, Report, ReplyTarget, SearchStep, ServerEvent, TranscriptEvent, TurnInput } from "./protocol";
 
 export interface LocalAttachment { file_id: string; name: string; size: number; content_type: string; preview?: string | undefined }
 
@@ -13,7 +13,7 @@ export type TimelineItem =
   | { kind: "email"; id: string; draft: EmailDraft; status?: EmailStatus | undefined; state: "open" | "cancelled" }
   | { kind: "error"; id: string; message: string };
 
-/** Canvas views: "report" | `estimate:${id}` | `search:${id}` */
+/** Canvas views: "report" | `estimate:${id}` | `search:${id}` | `page:${id}` */
 export type CanvasView = string;
 
 export interface AgentState {
@@ -21,6 +21,7 @@ export interface AgentState {
   items: TimelineItem[];
   report: Report | null;
   estimates: Record<string, Estimate>;
+  pages: Record<string, Page>; // opened by the agent with show_page, in order
   busy: boolean;
   canvasOpen: boolean;
   canvasView: CanvasView | null;
@@ -39,7 +40,7 @@ export type AgentAction =
   | { type: "canvas"; open?: boolean | undefined; view?: CanvasView | undefined }
   | { type: "local_error"; message: string };
 
-export const initialState = (sessionId: string): AgentState => ({ sessionId, items: [], report: null, estimates: {}, busy: false, canvasOpen: false, canvasView: null });
+export const initialState = (sessionId: string): AgentState => ({ sessionId, items: [], report: null, estimates: {}, pages: {}, busy: false, canvasOpen: false, canvasView: null });
 
 let seq = 0;
 const uid = (p: string) => `${p}-${++seq}`;
@@ -95,6 +96,7 @@ function applyEvent(state: AgentState, ev: ServerEvent): AgentState {
         ? { ...i, steps: i.steps.some(x => x.step_id === s.step_id) ? i.steps.map(x => x.step_id === s.step_id ? s : x) : [...i.steps, s] } : i) };
     }
     case "report": return { ...state, report: ev.data.report, canvasOpen: true, canvasView: "report" };
+    case "page": return { ...state, pages: { ...state.pages, [ev.data.page_id]: ev.data }, canvasOpen: true, canvasView: `page:${ev.data.page_id}` };
     case "error": return { ...state, items: [...state.items, { kind: "error", id: uid("err"), message: ev.data.message }] };
     case "done": return { ...state, busy: false, items: state.items.map(i => i.kind === "agent" && i.streaming ? { ...i, streaming: false } : i) };
   }

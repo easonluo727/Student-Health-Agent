@@ -7,6 +7,7 @@ import { AccountMenu } from "./AccountMenu";
 import { ConfirmCard, EmailCard, FormCard, SearchSteps } from "./Cards";
 import { EstimateView, ReportView, SearchView } from "./Canvas";
 import { Composer } from "./Composer";
+import { DoctorsView } from "./DoctorsView";
 import { HistoryButton } from "./HistoryDialog";
 import { SettingsButton } from "./SettingsDialog";
 import { Markdown } from "./Markdown";
@@ -37,6 +38,7 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
   const searches = state.items.filter(i => i.kind === "search");
   const views: { id: string; title: string }[] = [
     ...(state.report ? [{ id: "report", title: state.report.title }] : []),
+    ...Object.values(state.pages).map(p => ({ id: `page:${p.page_id}`, title: p.title })),
     ...Object.values(state.estimates).map(e => ({ id: `estimate:${e.estimate_id}`, title: e.title })),
     ...searches.filter(s => s.steps.some(x => x.kind === "web")).map(s => ({ id: `search:${s.searchId}`, title: `Web search · ${s.steps[0]?.title ?? s.steps[0]?.text ?? ""}` })),
   ];
@@ -50,6 +52,7 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
   if (view?.id === "report" && state.report) canvas = <ReportView key={state.report.report_id} report={state.report} plansCatalog={agent.plans} building={building} onAsk={ask}
     onOpenSearch={webSearch && !building ? () => agent.setCanvas(true, `search:${webSearch.searchId}`) : undefined} />;
   else if (view?.id.startsWith("estimate:")) { const e = state.estimates[view.id.slice(9)]; if (e) canvas = <EstimateView estimate={e} />; }
+  else if (view?.id.startsWith("page:")) { const p = state.pages[view.id.slice(5)]; if (p) canvas = <DoctorsView key={p.page_id + JSON.stringify(p.doctors.map(d => d.pick))} page={p} onAsk={ask} />; }
   else if (view?.id.startsWith("search:")) { const s = searches.find(x => `search:${x.searchId}` === view.id); if (s) canvas = <SearchView steps={s.steps} onBack={state.report ? () => agent.setCanvas(true, "report") : undefined} />; }
 
   return <SourceContext.Provider value={setSource}>

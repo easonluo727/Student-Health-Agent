@@ -19,6 +19,7 @@ from . import mcp
 from .hooks import Hooks
 from .skills.bills import skill as bills_skill
 from .skills.documents import skill as documents_skill
+from .skills.pages import skill as pages_skill
 from .skills.plans import skill as plans_skill
 from .skills.providers import skill as providers_skill
 from .skills.questionnaire import skill as questionnaire
@@ -33,12 +34,14 @@ class Harness:
         # Saved with the session (sessions.py); the skills hold these same dicts.
         self.files = {}  # file_id -> {"path", "name", "content_type", "sha256"}: the user's uploads
         self.bills = {}  # bill_id -> {"bill", "name", "file_id", "page", "model", "audit"}
+        self.results = {}  # result_id -> a data tool's result the agent may show as a page (skills/pages)
         self.progress = queue.Queue()  # progress lines from a running tool, shown in the chat as it works
+        self.hooks = Hooks()
         self.skills = [questionnaire.build(), documents_skill.build(self.db, self.files, self.progress.put),
                        plans_skill.build(self.db, directory), providers_skill.build(self.db, directory),
-                       bills_skill.build(self.db, directory, self.bills, self.files)]
+                       bills_skill.build(self.db, directory, self.bills, self.files),
+                       pages_skill.build(self.results, self.hooks.guard)]
         self.tools = mcp.ToolRegistry([tool for skill in self.skills for tool in skill.tools])
-        self.hooks = Hooks()
         plan_context = ("```json\n" + "\n".join(json.dumps(p, ensure_ascii=False)
                                                 for p in plans_skill.plan_summary(self.db)) + "\n```")
         text = PROMPT_PATH.read_text(encoding="utf-8")

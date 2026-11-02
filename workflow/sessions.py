@@ -4,7 +4,7 @@
 
 A session is loaded at the start of every request and saved at the end. Its state is plain data: the model history
 (as dicts), open forms, the home-screen mode, the hooks' state (questionnaire answers, user text, and the guard's
-numbers) and the bills read from photos. The harness itself (prompt, skills, tools) is rebuilt from code each time.
+numbers), the bills read from photos and the tool results the agent may show as pages. The harness itself (prompt, skills, tools) is rebuilt from code each time.
 Uploads are rows of their own, so an upload during a running turn isn't lost when the turn saves.
 
 Who may use a conversation: an anonymous one, anyone who has its id (the frontend's random uuid); a signed-in user
@@ -45,6 +45,8 @@ class Session:
         # turn's tools for the database (see SessionStore._write).
         self.memory = ""
         self.records = []
+        self.turn_results = []  # result ids from this request's tools, for the page check in server.agent_loop
+        self.turn_shown = []  # result ids shown as pages in this request
 
 
 def file_kind(file_id, kind, plan_id=None, plan_name=None):
@@ -80,6 +82,7 @@ def dump(session):
         "attachment_notes": session.attachment_notes,
         "context": session.context,
         "bills": session.harness.bills,
+        "results": session.harness.results,
         "hooks": {"user_texts": hooks.user_texts, "answers": hooks.answers,
                   "from_memory": sorted(hooks.from_memory)},
         "guard": {"user_numbers": sorted(map(str, guard._user_numbers)),
@@ -97,6 +100,7 @@ def load(state):
     session.attachment_notes = state["attachment_notes"]
     session.context = state["context"]
     session.harness.bills.update(state.get("bills") or {})  # the bills skill holds this same dict
+    session.harness.results.update(state.get("results") or {})  # and the pages skill this one
     hooks, guard = session.harness.hooks, session.harness.hooks.guard
     hooks.user_texts, hooks.answers = state["hooks"]["user_texts"], state["hooks"]["answers"]
     hooks.from_memory = set(state["hooks"].get("from_memory") or [])

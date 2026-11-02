@@ -51,7 +51,7 @@ export class SseParser {
   }
 }
 
-const KNOWN = new Set(["message_start", "message_delta", "message_end", "form", "confirm", "estimate", "search_step", "report", "email_draft", "email_status", "error", "done"]);
+const KNOWN = new Set(["message_start", "message_delta", "message_end", "form", "confirm", "estimate", "search_step", "report", "email_draft", "email_status", "page", "error", "done"]);
 
 export function toServerEvent(raw: RawSseEvent): ServerEvent | null {
   if (!KNOWN.has(raw.event)) return null;

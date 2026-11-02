@@ -100,6 +100,21 @@ export interface EmailStatus { request_id: string; status: EmailSendStatus; mess
 // ---- Google sign-in (optional; GET /auth/me, POST /auth/google, POST /auth/logout) ----
 export interface User { user_id: string; email: string; name: string | null; picture: string | null }
 export interface AuthState { user: User | null; google_client_id: string | null } // client id null → sign-in off
+// ---- Pages the agent opens on the canvas with show_page (cards.py builds them; every number is from a tool) ----
+export interface DoctorPrice { patient_cost: number | null; negotiated_rate: number | null; status: string | null }
+export interface PageDoctor {
+  npi: string; name: string; specialty: string | null; address: string; phone: string | null
+  distance_miles: number | null; lat: number | null; lng: number | null; directions_url: string | null
+  pick: number | null; note: string | null // pick: the agent's rank (1 = best); note: its one-line reason
+  prices: Record<string, DoctorPrice> // by plan_id
+}
+export interface DoctorsPage {
+  page_id: string; kind: "doctors"; title: string; scenario: string | null
+  user_position: { lat: number; lng: number; label: string } | null
+  plans: { plan_id: string; name: string }[]; doctors: PageDoctor[]; note: string
+}
+export type Page = DoctorsPage
+
 // ---- The signed-in user's conversations (GET/DELETE /me/sessions[/{id}]) ----
 export interface SessionSummary { session_id: string; title: string | null; created_at: number; updated_at: number; uploads: number } // Unix seconds
 export interface BillReview {
@@ -136,4 +151,5 @@ export type ServerEvent =
   | { event: "email_draft"; data: EmailDraft }
   | { event: "email_status"; data: EmailStatus }
   | { event: "error"; data: { message: string } }
+  | { event: "page"; data: Page }
   | { event: "done"; data: Record<string, never> }

@@ -65,6 +65,7 @@
 | `estimate` | `Estimate` | 对话里的费用结果：一个数字 + 计算过程表格 |
 | `search_step` | `{ search_id, step_id, status, text, url?, title?, screenshot?, kind? }` | 搜索进度：对话里显示一行文字（同一个 `step_id` 再次出现时更新这一行）；带 `screenshot` 时，右侧 “Computer” 面板显示这一步的网页截图 |
 | `report` | `{ report: Report }` | 打开或更新 dashboard 面板（整份替换） |
+| `page` | `Page` | 打开或更新画布上的一页（按 `page_id` 整份替换），见下面的“画布页面” |
 | `email_draft` | `EmailDraft` | 邮件卡片（申诉信）：用户可以改收件人、主题和正文，点 "Send from Gmail" 才发送（后端待做，见下） |
 | `email_status` | `{ request_id, status, message?, sent_at? }` | 邮件发送状态：`sending`、`sent`、`failed` |
 | `error` | `{ message }` | 显示错误，用户可以重试 |
@@ -250,6 +251,21 @@
 - dashboard：收到 `report` 后页面分成两栏，左边是 agent 对话栏（420px），右边是 dashboard（只做桌面 web 端），可以关掉、再用"Open report"打开。点击对比表的某一行或 care 查询栏的某一项，输入框上方会出现“Asking about: …”，下一条消息带上 `reply_target`。
 - 搜索进度：在对话里显示为步骤列表，正在进行的步骤有加载动画。有截图时，右下角出现浮动小窗口，显示最新一页和当前步骤；搜索结束后自动缩成一行。点放大按钮打开完整的 “Computer” 视图：搜索进行中跟随最新一步；结束后显示所有截图的总览；点击某一张可停下来查看，点 “Back to live” / “Overview” 回到跟随。
 - 地图：Leaflet。默认底图是 Esri 浅灰底图加地名层，不需要 key；可以用 `NEXT_PUBLIC_MAP_TILES`、`NEXT_PUBLIC_MAP_LABELS`、`NEXT_PUBLIC_MAP_ATTRIBUTION` 换成别的。
+
+## 画布页面（2026-11-02）
+
+画布上的页面由 agent 决定打不打开：数据工具（`find_providers`、`compare_plans`、`estimate_cost`、`audit_bill`）的结果由 Python 存下并编号（`doctors_1`、`compare_2`……），agent 调 `show_page` 选一个编号、要推荐的项和每项一句理由，Python（`workflow/cards.py`）按结果类型生成页面：
+
+| 结果 | 事件 | 页面 |
+| --- | --- | --- |
+| `doctors_*` | `page`（`kind: "doctors"`） | 地图 + agent 推荐的医生卡片 + 其余医生的表格 |
+| `compare_*` | `report` | Arena |
+| `estimate_*` | `estimate` | 一次看病的费用明细 |
+| `bill_*` | `estimate` | 逐行核对的账单 |
+
+医生、计划对比、账单这三种，这一轮有结果但 agent 没调 `show_page` 时，后端先提醒一次，还不调就自己发出页面（没有推荐项）。单次费用由 agent 决定，简单的 copay 用文字回答就行。
+
+`DoctorsPage`：`{ page_id, kind: "doctors", title, scenario, user_position: { lat, lng, label } | null, plans: [{ plan_id, name }], doctors: [PageDoctor], note }`。`PageDoctor`：`{ npi, name, specialty, address, phone, distance_miles, lat, lng, directions_url, pick, note, prices: { [plan_id]: { patient_cost, negotiated_rate, status } } }`。`pick` 是 agent 的排名（1 最好，`null` 不是推荐），`note` 是它的一句理由；`doctors` 里推荐的在前，其余按距离。价格是这位医生自己的协商价算出的用户应付，没有就是 `null`，前端写“No price data”，不能写 $0。
 
 ## Google 登录（2026-11-01，可选）
 

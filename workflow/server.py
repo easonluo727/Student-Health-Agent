@@ -6,8 +6,8 @@ frontend, built by the Dockerfile) it is served at /, so the deployed product is
 Protocol: docs/frontend-protocol.md. Everything the model sees comes from harness/
 (main prompt, skills, tools, hooks); this file only runs the loop and speaks SSE.
 Form cards pause the turn; the user's answers resume it. Conversations are kept in the app database (sessions.py,
-appdb.py), so a redeploy doesn't lose them; a signed-in user owns theirs and reaches them under /me. Each finished
-compare_plans result is sent as the Arena report (arena_report.py).
+appdb.py), so a redeploy doesn't lose them; a signed-in user owns theirs and reaches them under /me. The agent opens a
+page on the canvas with show_page (harness/skills/pages); cards.py builds it from the stored tool result.
 """
 
 import asyncio
@@ -28,10 +28,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from accounts import COOKIE_NAME, AccountStore, google_client_id, verify_google_token
-from arena_report import arena_report
+from cards import render as render_page
 from llm_client import llm_model, load_env, make_client
 from harness import Harness
 from harness.hooks import MAX_REPLY_RETRIES
+from harness.skills.pages.skill import missing as pages_missing, named as pages_named, store_result
 from harness.skills.questionnaire.skill import answers_message, build_form
 from plan_db import PlanDB
 from memory import FIELDS as MEMORY_FIELDS, QUESTION_FIELDS, MemoryStore, question_answers
@@ -45,7 +46,6 @@ MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 # The frontend's uuid. Only letters, digits and "-", so each id has its own upload folder (upload_folder).
 SESSION_ID = r"^[A-Za-z0-9-]{8,64}$"
 NOT_FOUND = "This conversation was not found. It may belong to another account; start a new chat."
-ESTIMATE_STATUSES = {"estimated", "needs_information", "needs_review", "not_covered", "invalid_input"}
 # The user asks to compare or choose plans: the Arena, whatever mode the home screen set.
 COMPARE_INTENT = re.compile(r"\bcompar(?:e|ing|ison)\b|\bwhich plan\b|\bbest plan\b|\bchoose (?:a |between )?plans?\b"
                             r"|对比|比较|哪个(?:保险|计划)", re.I)
@@ -116,79 +116,6 @@ def tool_output(call, result):
             "output": json.dumps(result, ensure_ascii=False, allow_nan=False)}
 
 
-def estimate_card(result):
-    """One row per benefit the visit is paid under."""
-    prices = result.get("allowed_amount") or {}
-    plan_name = next((p["name"] for p in available_plans() if p["plan_id"] == result.get("plan_id")),
-                     result.get("plan_id"))
-    rows = []
-    doctor = result.get("doctor")
-    if prices.get("total") is not None:
-        spread = (f" (most between ${prices['low']:,.2f} and ${prices['high']:,.2f})"
-                  if prices.get("low") is not None and prices.get("high") is not None else "")
-        note = (f"{doctor['name']}'s own negotiated rate, {doctor['distance_miles']} mi away" if doctor else
-                "Median negotiated rate across Los Angeles providers in the network" + spread)
-        rows.append({"label": "Allowed amount", "amount": prices["total"], "note": note,
-                     "source": {"kind": "mrf", "label": f"{prices.get('network')} price list, {prices.get('mrf_file_date')}"}})
-    for line in result.get("lines") or []:
-        rows.append({"label": line["benefit"], "amount": line["patient_cost"],
-                     "note": (line.get("quote") or "")[:120] or line["status"],
-                     "source": {"kind": "policy", "label": plan_name, "page": line.get("source_page"),
-                                "quote": (line.get("quote") or "")[:300] or None}})
-    cost = result.get("patient_cost")
-    tier = result.get("network_tier")
-    return {
-        "estimate_id": f"est_{uuid.uuid4().hex[:8]}",
-        "title": result.get("scenario_label") or "Estimate",
-        "plan_name": plan_name,
-        "status": result["status"],
-        "patient_cost": {"mid": cost} if result["status"] == "estimated" and cost is not None else None,
-        "rows": rows,
-        "assumptions": [f"Network: {result.get('network')}" + (f" ({tier})" if tier else ""),
-                        *([f"Priced at {doctor['name']}, {doctor['address']}"] if doctor else []),
-                        *([f"Nearby doctors: ${spread['low']:,.2f} to ${spread['high']:,.2f}"]
-                          if (spread := result.get("cost_range")) and spread["low"] != spread["high"] else []),
-                        *([result["doctor_search"]] if result.get("doctor_search") and not doctor else [])],
-        "message": result.get("message"),
-    }
-
-
-def bill_card(result):
-    """The bill review card: one row per line, then the findings; amounts are what the user owes."""
-    rows = []
-    for line in result["lines"]:
-        label = " · ".join(filter(None, [line["code"], line["description"]])) or f"Line {line['line']}"
-        note = line["note"] or (f"Billed ${line['billed']:,.2f}; negotiated rate ${line['negotiated_rate']:,.2f}"
-                                if line["negotiated_rate"] is not None else None)
-        source = ({"kind": "mrf", "label": f"{result['network']} negotiated rate"} if line["negotiated_rate"] is not None
-                  else {"kind": "user_message", "label": "Your bill photo"})
-        rows.append({"label": label, "amount": line["you_owe"], **({"note": note} if note else {}), "source": source})
-    for finding in result["findings"]:
-        if finding["kind"] != "total_mismatch":
-            rows.append({"label": f"Possible overcharge, line {finding['line']}", "amount": finding["amount"],
-                         "note": finding["message"]})
-    totals, provider = result["totals"], result["provider"]
-    return {
-        "estimate_id": f"est_{uuid.uuid4().hex[:8]}",
-        "title": "Bill review",
-        "plan_name": result["plan_name"],
-        "status": "estimated" if result["status"] == "audited" else "needs_review",
-        "patient_cost": {"mid": totals["you_owe_on_checked_lines"]}
-        if result["status"] == "audited" and totals["you_owe_on_checked_lines"] is not None else None,
-        "rows": rows,
-        "assumptions": [
-            f"Provider: {provider['name_on_record'] or provider['name_on_bill']}"
-            + (f" (NPI {provider['npi']})" if provider["npi"] else ""),
-            f"Network: {result['network']}" + (f" ({result['network_tier']})" if result["network_tier"] else ""),
-            f"{totals['lines_checked']} of {totals['lines']} lines checked; you owe "
-            f"${totals['you_owe_on_checked_lines'] or 0:,.2f} on them, "
-            f"${totals['possible_overcharge']:,.2f} possibly overcharged",
-            *[f["message"] for f in result["findings"] if f["kind"] == "total_mismatch"],
-        ],
-        "message": result["message"],
-    }
-
-
 def send_form(session, form):
     session.open_forms[form["request_id"]] = form["questions"]
     return sse("form", form)
@@ -218,6 +145,15 @@ def records_for(session, name, args, result):
     return []
 
 
+def page_event(session, result_id, highlight=(), notes=None, title=None):
+    """The SSE event that opens (or replaces) the page for one stored result (cards.py builds it)."""
+    stored = session.harness.results[result_id]
+    stored["shown"] = True
+    session.turn_shown.append(result_id)
+    plan_names = {p["plan_id"]: p["name"] for p in available_plans()} if stored["kind"] == "estimate" else None
+    return sse(*render_page(stored["kind"], result_id, stored, highlight, notes, title, plan_names))
+
+
 async def run_call(session, call):
     """Run one tool call through hooks and tools, yielding SSE chunks. Raises EndTurn (form card) to pause the turn."""
     harness = session.harness
@@ -239,14 +175,13 @@ async def run_call(session, call):
                                       "status": "failed" if failed else "done", "text": step})
 
     session.records.extend(records_for(session, call.name, args, result))
-    if call.name == "estimate_cost" and result.get("status") in ESTIMATE_STATUSES:
-        yield sse("estimate", estimate_card(result))
-    if call.name == "audit_bill" and result.get("status") in ("audited", "unavailable"):
-        yield sse("estimate", bill_card(result))
+    # A result that can be a page gets an id the model sees; the agent decides with show_page whether to show it.
+    if result_id := store_result(harness.results, call.name, args, result):
+        session.turn_results.append(result_id)
+    if page := result.pop("_page", None):
+        yield page_event(session, page["result_id"], page["highlight"], page["notes"], page["title"])
     if call.name == "draft_appeal" and (draft := result.pop("draft", None)):
         yield sse("email_draft", draft)
-    if call.name == "compare_plans" and "plans" in result and not result.get("auto_ask"):
-        yield sse("report", {"report": arena_report(result)})
 
     if form := result.pop("form", None):  # the model asked with ask_questions
         session.history.append(tool_output(call, result))
@@ -266,7 +201,7 @@ async def run_call(session, call):
 
 async def agent_loop(session):
     harness = session.harness
-    rejected = 0
+    rejected, nudged = 0, False
     for _ in range(MAX_STEPS):
         response = await asyncio.to_thread(
             client.responses.create,
@@ -287,7 +222,19 @@ async def agent_loop(session):
             if not text:
                 raise RuntimeError("The model returned no answer.")
             feedback = harness.hooks.check_reply(text)
+            unshown = pages_missing(harness.results, session.turn_results)
+            unshown += [r for r in pages_named(harness.results, text, session.turn_shown) if r not in unshown]
+            if feedback is None and unshown and not nudged:
+                # Doctors, a comparison or a bill are for the eyes (also doctors named from an earlier search): ask
+                # once for the page, then show it ourselves.
+                nudged = True
+                session.history.append({"role": "user", "content": (
+                    "[Automatic check, not the user] Show " + ", ".join(unshown) + " with show_page (pick and explain "
+                    "the best items for a doctor page), then reply with the conclusion in one or two sentences.")})
+                continue
             if feedback is None:
+                for result_id in unshown:
+                    yield page_event(session, result_id)
                 for chunk in say(text):
                     yield chunk
                 return

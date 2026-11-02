@@ -15,8 +15,8 @@ read wrong, believe the user.
 2. `remaining_deductible`: only as the user stated it, otherwise `null`; `0` when they say it is met. If the result
    is `needs_information`, Python asks the user for it.
 3. Python finds the benefit that pays each line, this provider's **own** negotiated rate for the code in the plan's
-   network, and the user's share through the calculator. The result shows a bill review card; don't repeat every
-   line in your reply.
+   network, and the user's share through the calculator. Show the result with `show_page` (its
+   `result_id`); don't repeat every line in your reply.
 
 Each line's `check`:
 

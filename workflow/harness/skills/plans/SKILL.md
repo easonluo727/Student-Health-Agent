@@ -38,7 +38,7 @@ can differ. Never present the preferred-service price as the price of telehealth
 
 | Status | What to do |
 | --- | --- |
-| `estimated` | Give `patient_cost` as the answer. Name the doctor if one was used. The estimate card already has an expandable price breakdown with the benefit, copay or coinsurance, allowed amount, and sources; explain those numbers in chat only if the user asks. Without a doctor, do not describe a median as one doctor's price. |
+| `estimated` | Give `patient_cost` as the answer. Name the doctor if one was used. If you show it as a page (`show_page`), the page has an expandable price breakdown with the benefit, copay or coinsurance, allowed amount, and sources; explain those numbers in chat only if the user asks. Without a doctor, do not describe a median as one doctor's price. |
 | `needs_information` | Ask for exactly the `missing_fields` (a deductible or ZIP question is sent as a form automatically). |
 | `needs_review` / `not_covered` | Say so plainly with the `message`, and cite the benefit's page. |
 

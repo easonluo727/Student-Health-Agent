@@ -95,7 +95,7 @@ class Prompt(unittest.TestCase):
         names = [t["name"] for t in harness().tools.definitions()]
         self.assertEqual(names, ["ask_questions", "document_overview", "search_document", "read_pages", "view_page",
                                  "find_plan_match", "extract_plan", "list_plans", "estimate_cost", "compare_plans",
-                                 "find_providers", "read_bill", "audit_bill", "draft_appeal"])
+                                 "find_providers", "read_bill", "audit_bill", "draft_appeal", "show_page"])
 
 
 class ToolArguments(unittest.TestCase):
