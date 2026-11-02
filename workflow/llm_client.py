@@ -5,6 +5,10 @@ to the gitignored .env at the repo root. Optional LLM_FALLBACK_MODELS (comma-sep
 in order when the main model answers 404 model_not_found. Optional LLM_EXTRA_BODY (JSON) is sent with
 the fast, no-reasoning calls; for Qwen on vLLM use
 {"chat_template_kwargs": {"enable_thinking": false}}.
+
+Bill photos may be read by a separate model (bill_readers): BILL_BASE_URL, BILL_MODEL and optional BILL_API_KEY,
+for example the fine-tuned Muse Glimmer served by scripts/bills/modal_serve.py. BILL_TIMEOUT (seconds, default 90)
+bounds one attempt there, so a cold or stopped server falls back to the main model instead of stalling the turn.
 """
 
 import json
@@ -84,3 +88,17 @@ def make_client(timeout=90.0, max_retries=3):
         timeout=timeout,
         max_retries=max_retries,
     )
+
+
+def bill_readers():
+    """[(client, model)] to read a bill photo with, in order: the BILL_* model when set, then the main model."""
+    load_env()
+    readers = []
+    if os.environ.get("BILL_BASE_URL") and os.environ.get("BILL_MODEL"):
+        from openai import OpenAI
+
+        readers.append((OpenAI(base_url=os.environ["BILL_BASE_URL"], api_key=os.environ.get("BILL_API_KEY") or "none",
+                               timeout=float(os.environ.get("BILL_TIMEOUT", 90)), max_retries=0),
+                        os.environ["BILL_MODEL"]))
+    readers.append((make_client(timeout=180.0), llm_model()))
+    return readers

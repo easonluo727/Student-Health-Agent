@@ -66,13 +66,14 @@ Covered CA 同一档次的标准计划，各家保险公司的 copay 应该完�
 plan/row 保持 `verified=0`，但结构完整且没有其他 review flag 的行可以计算；每个结果都提示未经人工核对，
 并且新计划会出现在 `/plans` 和比较 UI。生产环境要把 `POLICY_DB` 指向持久卷才能跨部署保留上传计划。
 
-**还剩**：长手册/EOC 没有稳定的自动页定位；当前只有能找到联邦 SBC 固定表头的文件会自动抽取。自动匹配
-MRF 网络也未实现，所以新计划只有固定 copay 能在没有 allowed amount 时直接计算。
+**2026-11-01 改成 agent 自己读**（像 Claude Code 读代码）：上传时不再走固定流程，agent 用 `document_overview`、`search_document`、`read_pages`、`view_page` 自己找到要读的页，任何 PDF 或照片都能处理（保单、完整手册、账单、无关文件）。实测（muse-spark-open）：181 页 Anthem EOC 34 秒答对专科 copay 和免赔额并引页码；`extract_plan` 抽这本手册第 15–58 页 3 分钟得到 426 行，抽查与原文一致；PDF 账单和照片账单都走 `read_bill`；租约被认出不是保险文件。
+**还剩**：自动匹配 MRF 网络未实现，所以新计划只有固定 copay 能在没有 allowed amount 时直接计算；扫描件只能靠 `view_page` 逐页看，`extract_plan` 需要文字层；保险卡照片只能让 agent 按名字对计划列表。
 
 ### 1.6 账单照片和 Gmail 申诉信（2026-10-26）
 
 - **前端和 mock 已做**（Lovable 项目 "Health Coverage Hub"，见 `web/README.md`）：上传照片、账单审核页、可编辑的邮件卡片、"Send from Gmail"。协议见 `docs/frontend-protocol.md` 最后一节。
-- **后端**：`/upload` 已收照片，但模型还读不了照片，现在会如实说读不了，并用问卷问服务、医生和账单金额。待做：多模态逐行读账单（路线图 B），`draft_email` 工具和 `email_draft` / `email_status` 事件，Gmail OAuth（每个用户自己的 token）和 `/integrations` 的真实状态。
+- **后端（2026-11-01 已做读账单、核对和申诉信）**：上传照片后 `workflow/bill_reader.py` 用训练时的同一个提示读出每一行（先试 `BILL_*` 配置的微调 Glimmer，失败退回主模型）；`audit_bill`（`workflow/bill_audit.py`，不用 LLM）按这家医生 NPI 自己的协商价和计划的 benefit 逐行算应付，标出多收、重复和总数对不上，结果推到账单卡片；`draft_appeal` 由 Python 按核对结果写申诉信，推 `email_draft` 卡片，用户复制后自己发。
+- **还没做**：Gmail OAuth 和发信（`email_status`，`/integrations` 仍返回未连接，卡片显示 "Copy letter"）；PDF 账单和 HEIC 照片（现在只读 JPEG、PNG、WebP 照片，PDF 仍按保单处理）；理疗（97110 等）没有对应的 benefit 映射，显示"没有数据"；账单上没有 NPI 时不按名字查医生；微调 Glimmer 的 Modal 服务脚本 `scripts/bills/modal_serve.py` 写好了，还没部署。
 - **对比页的默认数字**：计划卡片显示滑块选中的场景，默认是中间那个（`healthy`，只含保费），不是 `expected`。要改的话在 Lovable 里改。
 
 ### 2. 按具体医生查价

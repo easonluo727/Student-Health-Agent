@@ -31,7 +31,6 @@ from arena_report import arena_report
 from llm_client import llm_model, load_env, make_client
 from harness import Harness
 from harness.hooks import MAX_REPLY_RETRIES
-from harness.reader import db_catalog, read_plan_pdf
 from harness.skills.questionnaire.skill import answers_message, build_form
 from plan_db import PlanDB
 from sessions import SessionStore, upload_folder
@@ -148,9 +147,55 @@ def estimate_card(result):
     }
 
 
+def bill_card(result):
+    """The bill review card: one row per line, then the findings; amounts are what the user owes."""
+    rows = []
+    for line in result["lines"]:
+        label = " · ".join(filter(None, [line["code"], line["description"]])) or f"Line {line['line']}"
+        note = line["note"] or (f"Billed ${line['billed']:,.2f}; negotiated rate ${line['negotiated_rate']:,.2f}"
+                                if line["negotiated_rate"] is not None else None)
+        source = ({"kind": "mrf", "label": f"{result['network']} negotiated rate"} if line["negotiated_rate"] is not None
+                  else {"kind": "user_message", "label": "Your bill photo"})
+        rows.append({"label": label, "amount": line["you_owe"], **({"note": note} if note else {}), "source": source})
+    for finding in result["findings"]:
+        if finding["kind"] != "total_mismatch":
+            rows.append({"label": f"Possible overcharge, line {finding['line']}", "amount": finding["amount"],
+                         "note": finding["message"]})
+    totals, provider = result["totals"], result["provider"]
+    return {
+        "estimate_id": f"est_{uuid.uuid4().hex[:8]}",
+        "title": "Bill review",
+        "plan_name": result["plan_name"],
+        "status": "estimated" if result["status"] == "audited" else "needs_review",
+        "patient_cost": {"mid": totals["you_owe_on_checked_lines"]}
+        if result["status"] == "audited" and totals["you_owe_on_checked_lines"] is not None else None,
+        "rows": rows,
+        "assumptions": [
+            f"Provider: {provider['name_on_record'] or provider['name_on_bill']}"
+            + (f" (NPI {provider['npi']})" if provider["npi"] else ""),
+            f"Network: {result['network']}" + (f" ({result['network_tier']})" if result["network_tier"] else ""),
+            f"{totals['lines_checked']} of {totals['lines']} lines checked; you owe "
+            f"${totals['you_owe_on_checked_lines'] or 0:,.2f} on them, "
+            f"${totals['possible_overcharge']:,.2f} possibly overcharged",
+            *[f["message"] for f in result["findings"] if f["kind"] == "total_mismatch"],
+        ],
+        "message": result["message"],
+    }
+
+
 def send_form(session, form):
     session.open_forms[form["request_id"]] = form["questions"]
     return sse("form", form)
+
+
+def run_tool(tool, args):
+    """A tool's result; an error is a result the model can read and recover from, not a failed turn."""
+    try:
+        return tool.run(args)
+    except ValueError as error:
+        return {"status": "invalid_arguments", "message": str(error)[:500]}
+    except Exception as error:
+        return {"status": "error", "message": f"{type(error).__name__}: {str(error)[:300]}"}
 
 
 async def run_call(session, call):
@@ -160,11 +205,25 @@ async def run_call(session, call):
     if result is None:
         result = harness.hooks.pre_tool(call.name, args)
     if result is None:
-        result = harness.tools[call.name].run(args)
-        result = harness.hooks.post_tool(call.name, args, result)
+        step_id = f"tool_{uuid.uuid4().hex[:8]}"
+        work = asyncio.create_task(asyncio.to_thread(run_tool, harness.tools[call.name], args))
+        while not work.done():  # a long tool (extract_plan) reports each page as it goes
+            await asyncio.wait({work}, timeout=0.5)
+            while not harness.progress.empty():
+                yield sse("search_step", {"search_id": step_id, "kind": "document", "step_id": step_id,
+                                          "status": "running", "text": harness.progress.get_nowait()})
+        result = harness.hooks.post_tool(call.name, args, work.result())
+        if step := result.pop("_step", None):
+            failed = result.get("status") in ("failed", "unreadable", "invalid_arguments", "error")
+            yield sse("search_step", {"search_id": step_id, "kind": "document", "step_id": step_id,
+                                      "status": "failed" if failed else "done", "text": step})
 
     if call.name == "estimate_cost" and result.get("status") in ESTIMATE_STATUSES:
         yield sse("estimate", estimate_card(result))
+    if call.name == "audit_bill" and result.get("status") in ("audited", "unavailable"):
+        yield sse("estimate", bill_card(result))
+    if call.name == "draft_appeal" and (draft := result.pop("draft", None)):
+        yield sse("email_draft", draft)
     if call.name == "compare_plans" and "plans" in result and not result.get("auto_ask"):
         yield sse("report", {"report": arena_report(result)})
 
@@ -231,52 +290,19 @@ async def agent_loop(session):
 
 
 async def read_attachments(session, attachments):
-    """Read each attached PDF and match it against the plan database. Yields SSE chunks."""
+    """A note per attached file. Nothing is read here: the agent looks at each file with the documents tools."""
     notes = []
     for attachment in attachments:
         upload = session.uploads.get(attachment.get("file_id"))
         if upload is None:
             notes.append(f"[An attachment ({attachment.get('name')}) has expired; ask the user to upload it again.]")
             continue
-        if upload.get("content_type", "application/pdf").startswith("image/"):
-            # Bill reading (roadmap step 2) isn't built: the model must not read amounts off the photo itself.
-            notes.append(f"[The user uploaded a photo, {upload['name']}. You can't read photos yet. Say so, and if it "
-                         "is a bill or EOB, ask for the service, the provider and the billed amount with the "
-                         "questionnaire.]")
-            continue
-        search_id = f"doc_{uuid.uuid4().hex[:8]}"
-        result = None
-        sha256 = upload.get("sha256") or hashlib.sha256(upload["path"].read_bytes()).hexdigest()
-        uploaded_plan_id = "upload_" + sha256[:24]
-        policy_db = session.harness.db
-        async for kind, data in read_plan_pdf(
-                client, MODEL, upload["path"], upload["name"], db_catalog(policy_db),
-                policy_db=policy_db, work_dir=upload["path"].parent, plan_id=uploaded_plan_id):
-            if kind == "progress":
-                yield sse("search_step", {**data, "search_id": search_id, "kind": "document"})
-            else:
-                result = data
-        plan, read = result["plan"], json.dumps(result["identity"], ensure_ascii=False)
-        intro = f"[The user uploaded {upload['name']} ({result['pages']} pages). The model read page 1: {read}. "
-        if plan and result["uploaded"] and "benefit_rows" in plan:
-            notes.append(intro + f"It was not in the verified catalog, so {plan['benefit_rows']} benefit rows were "
-                         f"automatically extracted and saved in the shared policy database as plan_id "
-                         f"{plan['plan_id']}. "
-                         f"{plan['calculable_rows']} structurally complete rows can be estimated. The extraction "
-                         "was not human verified; disclose that before every result. It is now available to other "
-                         "users and in plan comparisons. Benefits needing negotiated rates remain unavailable "
-                         "until a confirmed MRF network bridge exists.]")
-        elif plan and result["uploaded"]:
-            notes.append(intro + f"It matches the previously uploaded plan {plan['name']} (plan_id "
-                         f"{plan['plan_id']}) in the shared database. Its extraction is still not human verified; "
-                         "disclose that before every result.]")
-        elif plan:
-            notes.append(intro + f"It matches {plan['name']} in the plan database: use plan_id {plan['plan_id']}. "
-                         "Benefit numbers come from the database, not from the upload.]")
-        else:
-            notes.append(intro + "It doesn't match any plan in the database, so you can't price it or quote its "
-                         "benefits. Describe only what page 1 shows, and offer the plans you can price.]")
+        kind = "a PDF" if upload.get("content_type") == "application/pdf" else "a photo"
+        notes.append(f"[The user attached {kind}, {upload['name']} (file_id {attachment['file_id']}). Look at it with "
+                     "the documents tools before answering.]")
     session.attachment_notes = notes
+    return
+    yield  # an async generator, like the other turn steps
 
 
 def apply_context(session, context):
@@ -340,6 +366,15 @@ async def session_turn(session, request):
                 hooks.on_form_answers(questions, {})
                 session.history.append({"role": "user", "content": (
                     "[The user closed the questionnaire without answering. Continue with what you have.]")})
+        elif kind == "email_response":
+            # Gmail sending isn't built (the card offers Copy instead); a closed draft needs no answer.
+            if data.get("action") == "send":
+                for chunk in say("Sending from Gmail isn't available yet. Copy the letter from the card and send it "
+                                 "from your own email."):
+                    yield chunk
+            session.history.append({"role": "user", "content": f"[The user {'tried to send' if data.get('action') == 'send' else 'closed'} the appeal draft.]"})
+            yield sse("done", {})
+            return
         else:
             for chunk in say("That card has expired. Please type your question instead."):
                 yield chunk

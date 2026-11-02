@@ -87,6 +87,9 @@ class Hooks:
                 args["zip_code"] = str(self.answers["zip"])
             return self.guard.pre_tool("calculate_estimate",
                                        {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
+        if name == "audit_bill":  # like estimate_cost: the remaining deductible is the only amount the model passes
+            return self.guard.pre_tool("calculate_estimate",
+                                       {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
         if name == "compare_plans":  # who the user is and how they use care: only answers they gave, never the model's
             args["profile"] = {field: self.answers.get(qid) for field, qid in PREMIUM_FIELDS.items()}
             args["visits"] = {scenario: self.answers[qid] for qid, scenario in VISIT_FIELDS.items()
@@ -100,6 +103,11 @@ class Hooks:
     def post_tool(self, name, args, result):
         if name == "ask_questions":
             return result
+        if name == "audit_bill":
+            result = self.guard.post_tool(name, args, result, None)
+            ask = [CALCULATOR_FIELDS[f] for f in result.get("missing_fields") or [] if f in CALCULATOR_FIELDS]
+            ask = [qid for qid in ask if qid not in self.answers]
+            return {**result, "auto_ask": ask} if ask and result.get("status") == "needs_information" else result
         if name == "estimate_cost":
             # Inputs are choices from fixed options, so there is nothing to confirm; record the result's
             # numbers so the reply may quote them.

@@ -5,7 +5,7 @@
 
 A session is loaded at the start of every request and saved at the end. What is saved is plain data: the model
 history (as dicts), open forms, uploads, the home-screen mode, and the hooks' state (questionnaire answers, user
-text, and the guard's numbers). The harness itself (prompt, skills, tools) is rebuilt from code each time.
+text, and the guard's numbers) and the bills read from photos. The harness itself (prompt, skills, tools) is rebuilt from code each time.
 """
 
 import json
@@ -28,7 +28,7 @@ class Session:
         self.harness = Harness()
         self.history = []
         self.open_forms = {}  # request_id -> the form's question dicts
-        self.uploads = {}  # file_id -> {"path", "name", "content_type"}
+        self.uploads = self.harness.files  # file_id -> {"path", "name", "content_type", "sha256"}; tools read it
         self.attachment_notes = []
         self.context = None  # the last home-screen mode applied
 
@@ -46,6 +46,7 @@ def dump(session):
         "uploads": {fid: {**u, "path": str(u["path"])} for fid, u in session.uploads.items()},
         "attachment_notes": session.attachment_notes,
         "context": session.context,
+        "bills": session.harness.bills,
         "hooks": {"user_texts": hooks.user_texts, "answers": hooks.answers},
         "guard": {"user_numbers": sorted(map(str, guard._user_numbers)),
                   "tool_numbers": sorted(map(str, guard._tool_numbers)),
@@ -57,9 +58,10 @@ def load(state):
     session = Session()
     session.history = state["history"]
     session.open_forms = state["open_forms"]
-    session.uploads = {fid: {**u, "path": Path(u["path"])} for fid, u in state["uploads"].items()}
+    session.uploads.update({fid: {**u, "path": Path(u["path"])} for fid, u in state["uploads"].items()})
     session.attachment_notes = state["attachment_notes"]
     session.context = state["context"]
+    session.harness.bills.update(state.get("bills") or {})  # the bills skill holds this same dict
     hooks, guard = session.harness.hooks, session.harness.hooks.guard
     hooks.user_texts, hooks.answers = state["hooks"]["user_texts"], state["hooks"]["answers"]
     g = state["guard"]

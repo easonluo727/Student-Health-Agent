@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, ChevronDown, ChevronRight, FileText, Image as ImageIcon, Loader2, Mail, RotateCcw } from "lucide-react";
+import { AlertCircle, Check, ChevronDown, ChevronRight, Copy, FileText, Image as ImageIcon, Loader2, Mail, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Answer, AnswerValue, Confirm, EmailDraft, EmailDraftEdit, EmailStatus, Form, Integrations, Question, SearchStep } from "@/agent/protocol";
 import { SourceChips } from "./SourceChip";
@@ -143,6 +143,7 @@ export function EmailCard({ draft, status, state, disabled, integrations, onRefr
   const [subject, setSubject] = useState(draft.subject);
   const [body, setBody] = useState(draft.body);
   const [connecting, setConnecting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => () => { if (poll.current) clearInterval(poll.current); }, []);
   const from = draft.from ?? (integrations?.gmail.connected ? integrations.gmail.email : null);
@@ -153,6 +154,11 @@ export function EmailCard({ draft, status, state, disabled, integrations, onRefr
   const sending = status?.status === "sending";
   const locked = disabled || sending;
   const edit = (): EmailDraftEdit => ({ to: splitList(to), cc: splitList(cc), subject, body });
+  // Gmail sending isn't built: the user sends the letter from their own email.
+  async function copy() {
+    await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+    setCopied(true);
+  }
   function connect() {
     const url = integrations?.gmail.connect_url;
     if (!url) { void onRefreshIntegrations(); return; }
@@ -180,7 +186,8 @@ export function EmailCard({ draft, status, state, disabled, integrations, onRefr
     <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
       {sending ? <span className="mr-auto inline-flex items-center gap-2 text-sm text-body"><Loader2 className="size-4 animate-spin" />Sending from Gmail…</span> : null}
       <Button variant="ghost" className="action-button" disabled={locked} onClick={onCancel}>Cancel</Button>
-      {!from ? <Button className="action-button" disabled={locked || connecting} onClick={connect}>{connecting ? <Loader2 className="animate-spin" /> : <Mail />}Connect Gmail</Button>
+      {!from && !integrations?.gmail.connect_url ? <Button className="action-button" onClick={copy}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : "Copy letter"}</Button>
+        : !from ? <Button className="action-button" disabled={locked || connecting} onClick={connect}>{connecting ? <Loader2 className="animate-spin" /> : <Mail />}Connect Gmail</Button>
         : <Button className="action-button" disabled={locked || !splitList(to).length || !subject.trim()} onClick={() => onSend(edit())}>{status?.status === "failed" ? <RotateCcw /> : <Mail />}{status?.status === "failed" ? "Retry" : "Send from Gmail"}</Button>}
     </div>
   </div>;

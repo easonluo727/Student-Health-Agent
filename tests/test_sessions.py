@@ -31,7 +31,7 @@ class SessionStoreTest(unittest.TestCase):
         s.harness.hooks.guard.post_tool("compare_plans", {}, {"premium": {"annual": 3886.02}}, None)
         s.history = [{"role": "user", "content": "hi"}, FakeOutputItem()]
         s.open_forms = {"form_1": [{"field": "zip", "kind": "text"}]}
-        s.uploads = {"file_1": {"path": self.tmp / "a.pdf", "name": "a.pdf"}}
+        s.uploads.update({"file_1": {"path": self.tmp / "a.pdf", "name": "a.pdf"}})
         s.context = {"mode": "review", "plan_ids": ["p"]}
         self.store.save("abc", s)
 

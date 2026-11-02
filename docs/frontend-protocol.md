@@ -49,7 +49,7 @@
 
 `POST {API_BASE}/upload`，`multipart/form-data`，字段 `session_id` 和 `file`（PDF，或 JPEG、PNG、WebP、HEIC 照片，最大 25 MB；后端按文件开头的字节判断类型）。返回 `{ "file_id", "name", "size", "content_type" }`。前端把 `file_id` 放进下一条 `message` 的 `attachments`。
 
-后端收到带附件的消息后，先用模型读第 1 页认出计划身份（计划名、保险公司、年份、网络、文件类型），再由 Python 在 `data/plans/policy.sqlite` 里匹配。匹配上就使用已有数据库里的数字。匹配不上时，后端用 `extract_sbc.py` 读取 SBC 的 summary 和 benefit table 页面，生成临时 `plans.csv`、`benefits.csv`，通过 `build_seed.py` 的结构校验后写入共享 policy SQLite。该 plan 会立刻出现在 `/plans` 和比较 UI 中，但保持 `verified=0` 并标明“自动抽取、未经人工核对”。没有确认的 MRF 网络映射时，只能可靠计算不依赖 negotiated rate 的固定 copay。读取和抽取进度用 `search_step` 事件发送，带 `kind: "document"`，截图是 PDF 页面。
+后端收到带附件的消息后不再自动读取（2026-11-01 起）：agent 自己用文档工具查看文件（看目录、搜索、读页、看图），是保单就先在 `data/plans/policy.sqlite` 里匹配，匹配不上且用户要算钱时用 `extract_plan` 抽取它选的页，生成临时 `plans.csv`、`benefits.csv`，通过 `build_seed.py` 的结构校验后写入共享 policy SQLite；是账单就用 `read_bill`。抽取的 plan 会立刻出现在 `/plans` 和比较 UI 中，但保持 `verified=0` 并标明“自动抽取、未经人工核对”。没有确认的 MRF 网络映射时，只能可靠计算不依赖 negotiated rate 的固定 copay。agent 的每个工具步骤（打开、搜索、读页、看图、抽取的每一页）都用 `search_step` 事件发送，带 `kind: "document"`；运行中的步骤 `status: "running"`，同一个 `step_id` 结束时更新为 `done` 或 `failed`。
 
 ### 响应：SSE 事件
 
@@ -267,4 +267,5 @@ agent 起草申诉邮件，从用户自己的 Gmail 发出。**用户不点 "Sen
 - `email_draft`：`{ request_id, title, from, to[], cc?, subject, body, attachments?, sources? }`。`from` 为 `null` 表示没连 Gmail。发出后这一轮结束（和问卷卡片一样）。
 - 用户的回答是新的 `input`：`{ "type": "email_response", "request_id", "action": "send" | "cancel", "draft"?: { to, cc?, subject, body } }`。`draft` 是用户改过的版本，后端按它发送。
 - 后端用每个用户自己的 OAuth token 调 Gmail API 发信，然后发 `email_status`。
+- **现状（2026-11-01）**：后端会发 `email_draft`（`draft_appeal` 工具，信由 Python 按账单核对结果写），但还不能发信：`/integrations` 返回未连接且没有 `connect_url`，这时卡片显示 "Copy letter"，复制主题和正文。账单核对结果用 `estimate` 事件（标题 "Bill review"，每行是一项收费，`amount` 是用户应付）。
 
