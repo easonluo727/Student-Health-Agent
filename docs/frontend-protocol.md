@@ -259,6 +259,22 @@
 - `POST {API_BASE}/auth/google`，body `{ "credential": "<Google ID token>" }` → `{ "user" }`，同时设 cookie。token 无效、过期、不是发给本 client 的，或邮箱没验证，返回 401；没配 client id 返回 503。
 - `POST {API_BASE}/auth/logout` → `{ "user": null }`，删除 cookie 和这条登录记录。
 
+### 对话归属（2026-11-01）
+
+- 登录用户发的 `/turn` 或 `/upload` 会把这段对话归到他的账号下（匿名时开始的对话也一样，登录后的下一轮就归他）。之后只有他能用：别人或者没登录的人用这个 `session_id` 发 `/turn`、`/upload`，返回 404。所以前端在退出登录时开一段新对话。
+- `session_id` 只能是字母、数字和 `-`，8 到 64 个字符（前端的 uuid），否则返回 422。
+- 匿名对话最后一轮之后保留一天；登录用户的对话一直保留，直到他自己删除。
+- 后端把每一轮用户的输入和发出的事件存成聊天记录：`{ "event": "input", "data": <请求里的 input，有 reply_target 时也放在里面> }`，后面跟这一轮的 SSE 事件（同一条消息的 `message_delta` 合并成一条）。前端按顺序把服务器事件交给 reducer，就能把对话重新显示出来；`input` 事件用来画用户那一侧。
+
+### 我的数据（要登录，没登录返回 401；不是自己的一律 404）
+
+- `GET {API_BASE}/me/sessions` → `{ "sessions": [{ "session_id", "title", "created_at", "updated_at", "uploads" }] }`，最新的在前。`title` 是第一条消息（或第一个附件的文件名），时间是 Unix 秒。
+- `GET {API_BASE}/me/sessions/{session_id}` → `{ "session_id", "events": [{ "event", "data" }], "uploads": [Upload] }`。
+- `DELETE {API_BASE}/me/sessions/{session_id}` → `{ "deleted": session_id }`，连同聊天记录和文件。
+- `GET {API_BASE}/me/uploads` → `{ "uploads": [Upload] }`，`Upload` 是 `{ "file_id", "session_id", "name", "content_type", "size", "sha256", "created_at" }`。
+- `GET {API_BASE}/me/uploads/{file_id}` → 文件本身。
+- `DELETE {API_BASE}/me` → `{ "user": null, "deleted_sessions" }`：删除账号和它的全部对话、文件、登录记录，并删除 cookie。
+
 ## Gmail 申诉邮件（2026-10-26，前端和 mock 已做，后端待做）
 
 agent 起草申诉邮件，从用户自己的 Gmail 发出。**用户不点 "Send from Gmail"，就永远不发。**

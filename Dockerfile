@@ -7,8 +7,9 @@
 # Needs LLM_BASE_URL, LLM_API_KEY and LLM_MODEL (any OpenAI-compatible endpoint). Prices come from the 3.1 GB rate
 # store, which is not in the image: on Railway it is the rates-data volume at /data (RATES_DB below); locally mount it
 # with -v "$PWD/data/mrf/rates.sqlite:/data/rates.sqlite:ro". Without it only flat copays are computed.
-# Conversations (SESSIONS_DB) and uploaded PDFs (UPLOAD_DIR) are kept on the same volume for a day, so a redeploy
-# doesn't lose them. Accounts (USERS_DB, Google sign-in, needs GOOGLE_CLIENT_ID) are kept there too, with no expiry.
+# The app database (APP_DB: accounts, conversations, transcripts, upload records) and uploaded files (UPLOAD_DIR) are
+# on the same volume, so a redeploy doesn't lose them. Anonymous conversations are kept a day; a signed-in user's until
+# they delete them (Google sign-in needs GOOGLE_CLIENT_ID).
 
 FROM node:22-slim AS web
 WORKDIR /web
@@ -25,6 +26,6 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 COPY --from=web /web/out ./web/out
-ENV RATES_DB=/data/rates.sqlite SESSIONS_DB=/data/sessions.sqlite USERS_DB=/data/users.sqlite UPLOAD_DIR=/data/uploads PORT=8000
+ENV RATES_DB=/data/rates.sqlite APP_DB=/data/app.sqlite UPLOAD_DIR=/data/uploads PORT=8000
 WORKDIR /app/workflow
 CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port ${PORT}"]

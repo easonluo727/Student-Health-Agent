@@ -2,26 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, ChevronDown, ChevronRight, Copy, FileText, Image as ImageIcon, Loader2, Mail, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Answer, AnswerValue, Confirm, EmailDraft, EmailDraftEdit, EmailStatus, Form, Integrations, Question, SearchStep } from "@/agent/protocol";
+import { DONT_KNOW, summarizeAnswers } from "@/agent/answers";
 import { SourceChips } from "./SourceChip";
 
-const DONT_KNOW = "I don't know";
 
 // ---------- Questionnaire ----------
 type Draft = Record<string, { value: AnswerValue; unknown: boolean }>;
 
 function initialDraft(form: Form): Draft {
   return Object.fromEntries(form.questions.map(q => [q.field, { value: q.prefill?.value ?? (q.kind === "multi" ? [] : null), unknown: false }]));
-}
-
-export function summarizeAnswers(form: Form, answers: Record<string, Answer>): string {
-  return form.questions.map(q => {
-    const a = answers[q.field];
-    if (!a || a.unknown) return DONT_KNOW;
-    const label = (v: string) => q.options?.find(o => o.value === v)?.label ?? v;
-    if (Array.isArray(a.value)) return a.value.map(label).join(", ") || DONT_KNOW;
-    if (typeof a.value === "number") return q.kind === "weight" ? `${q.label}: ${a.value}/5` : `${a.value.toLocaleString("en-US")}${q.unit && !/budget/i.test(q.unit) ? ` ${q.unit}` : ""}`;
-    return a.value ? label(a.value) : DONT_KNOW;
-  }).join(" · ");
 }
 
 function QuestionField({ q, value, onChange }: { q: Question; value: Draft[string]; onChange: (v: Draft[string]) => void }) {

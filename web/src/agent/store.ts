@@ -1,4 +1,5 @@
-import type { Confirm, EmailDraft, EmailStatus, Estimate, Form, Report, ReplyTarget, SearchStep, ServerEvent } from "./protocol";
+import { summarizeAnswers } from "./answers";
+import type { Confirm, EmailDraft, EmailStatus, Estimate, Form, Report, ReplyTarget, SearchStep, ServerEvent, TranscriptEvent, TurnInput } from "./protocol";
 
 export interface LocalAttachment { file_id: string; name: string; size: number; content_type: string; preview?: string | undefined }
 
@@ -27,6 +28,8 @@ export interface AgentState {
 
 export type AgentAction =
   | { type: "reset"; sessionId: string }
+  /** Reopen a saved chat: replay its transcript; files maps file_id to what is known about each upload. */
+  | { type: "restore"; sessionId: string; events: TranscriptEvent[]; files: Record<string, LocalAttachment> }
   | { type: "server"; event: ServerEvent }
   | { type: "user"; item: Extract<TimelineItem, { kind: "user" }> }
   | { type: "busy"; busy: boolean }
@@ -44,6 +47,13 @@ const uid = (p: string) => `${p}-${++seq}`;
 export function agentReducer(state: AgentState, action: AgentAction): AgentState {
   switch (action.type) {
     case "reset": return initialState(action.sessionId);
+    case "restore": {
+      let restored = initialState(action.sessionId);
+      action.events.forEach((ev, index) => {
+        restored = ev.event === "input" ? applyInput(restored, ev.data, `u-saved-${index}`, action.files) : applyEvent(restored, ev);
+      });
+      return { ...restored, busy: false };
+    }
     case "busy": return { ...state, busy: action.busy };
     case "user": return { ...state, items: [...state.items, action.item] };
     case "local_error": return { ...state, items: [...state.items, { kind: "error", id: uid("err"), message: action.message }] };
@@ -87,5 +97,27 @@ function applyEvent(state: AgentState, ev: ServerEvent): AgentState {
     case "report": return { ...state, report: ev.data.report, canvasOpen: true, canvasView: "report" };
     case "error": return { ...state, items: [...state.items, { kind: "error", id: uid("err"), message: ev.data.message }] };
     case "done": return { ...state, busy: false, items: state.items.map(i => i.kind === "agent" && i.streaming ? { ...i, streaming: false } : i) };
+  }
+}
+
+/** A saved user input, drawn the way it was when the user sent it (see sendMessage, submitForm, ... in useAgent). */
+function applyInput(state: AgentState, input: TurnInput & { reply_target?: ReplyTarget }, id: string, files: Record<string, LocalAttachment>): AgentState {
+  const user = (text: string, attachments: LocalAttachment[] = [], replyTarget?: ReplyTarget) =>
+    agentReducer(state, { type: "user", item: { kind: "user", id, text, attachments, replyTarget } });
+  switch (input.type) {
+    case "message":
+      return user(input.text, (input.attachments ?? []).map(a => files[a.file_id] ?? { file_id: a.file_id, name: a.name, size: 0, content_type: "" }), input.reply_target);
+    case "form_response": {
+      const card = state.items.find(i => i.kind === "form" && i.form.request_id === input.request_id);
+      if (card?.kind !== "form") return state;
+      const summary = summarizeAnswers(card.form, input.answers);
+      return agentReducer(agentReducer(state, { type: "form", requestId: input.request_id, state: "submitted", summary }),
+        { type: "user", item: { kind: "user", id, text: summary, attachments: [] } });
+    }
+    case "form_dismiss": return agentReducer(state, { type: "form", requestId: input.request_id, state: "dismissed" });
+    case "confirm_response": return agentReducer(state, { type: "confirm", requestId: input.request_id, state: input.confirmed ? "confirmed" : "corrected", correction: input.correction });
+    case "email_response": return agentReducer(state, input.action === "cancel"
+      ? { type: "email", requestId: input.request_id, state: "cancelled" }
+      : { type: "email", requestId: input.request_id, draft: input.draft });
   }
 }

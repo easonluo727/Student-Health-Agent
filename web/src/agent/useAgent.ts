@@ -102,6 +102,35 @@ export function useAgent(transport: AgentTransport) {
     dispatch({ type: "reset", sessionId });
   }, [stop]);
 
+  // A signed-in user's conversation is theirs alone (the backend answers 404 to anyone else), so signing out starts
+  // a new chat. Signing in keeps the current one: the backend gives it to the account on the next turn.
+  const userId = auth.user?.user_id ?? null;
+  const previousUserId = useRef(userId);
+  useEffect(() => {
+    if (previousUserId.current !== null && previousUserId.current !== userId) newChat();
+    previousUserId.current = userId;
+  }, [userId, newChat]);
+
+  /** Reopen one of the signed-in user's saved chats; the next message continues it. Throws if it can't be loaded. */
+  const openSession = useCallback(async (sessionId: string) => {
+    const saved = await transport.getSession(sessionId);
+    stop();
+    setReplyTarget(null);
+    setMode("chat");
+    setPlanIds([]);
+    const files = Object.fromEntries(saved.uploads.map(u => [u.file_id, {
+      file_id: u.file_id, name: u.name, size: u.size, content_type: u.content_type,
+      preview: u.content_type.startsWith("image/") ? transport.fileUrl(u.file_id) ?? undefined : undefined,
+    }]));
+    sessionRef.current = sessionId;
+    dispatch({ type: "restore", sessionId, events: saved.events, files });
+  }, [transport, stop]);
+  const listSessions = useCallback(() => transport.listSessions(), [transport]);
+  const deleteSession = useCallback(async (sessionId: string) => {
+    await transport.deleteSession(sessionId);
+    if (sessionId === sessionRef.current) newChat();
+  }, [transport, newChat]);
+
   /** Dev/mock only: replay recorded events into a fresh conversation without a network call. */
   const replay = useCallback((events: ServerEvent[], opts: { userText?: string | undefined; attachments?: LocalAttachment[] | undefined; busy?: boolean | undefined; view?: string | undefined } = {}) => {
     stop();
@@ -118,7 +147,8 @@ export function useAgent(transport: AgentTransport) {
     setReplyTarget, setMode, setPlanIds, refreshIntegrations,
     setCanvas: (open?: boolean, view?: string) => dispatch({ type: "canvas", open, view }),
     sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay,
-  }), [state, auth, plans, integrations, replyTarget, mode, planIds, refreshIntegrations, sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay]);
+    openSession, listSessions, deleteSession,
+  }), [state, auth, plans, integrations, replyTarget, mode, planIds, refreshIntegrations, sendMessage, submitForm, dismissForm, respondConfirm, sendEmail, cancelEmail, upload, stop, newChat, replay, openSession, listSessions, deleteSession]);
 }
 
 export type Agent = ReturnType<typeof useAgent>;

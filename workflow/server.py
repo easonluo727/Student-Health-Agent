@@ -5,8 +5,9 @@ The API is served at /turn, /upload, /plans and again under /api/; when web/out 
 frontend, built by the Dockerfile) it is served at /, so the deployed product is this one service.
 Protocol: docs/frontend-protocol.md. Everything the model sees comes from harness/
 (main prompt, skills, tools, hooks); this file only runs the loop and speaks SSE.
-Form cards pause the turn; the user's answers resume it. Conversations are kept in SQLite (sessions.py), so a
-redeploy doesn't lose them. Each finished compare_plans result is sent as the Arena report (arena_report.py).
+Form cards pause the turn; the user's answers resume it. Conversations are kept in the app database (sessions.py,
+appdb.py), so a redeploy doesn't lose them; a signed-in user owns theirs and reaches them under /me. Each finished
+compare_plans result is sent as the Arena report (arena_report.py).
 """
 
 import asyncio
@@ -22,9 +23,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from accounts import COOKIE_NAME, AccountStore, google_client_id, verify_google_token
 from arena_report import arena_report
@@ -33,13 +34,16 @@ from harness import Harness
 from harness.hooks import MAX_REPLY_RETRIES
 from harness.skills.questionnaire.skill import answers_message, build_form
 from plan_db import PlanDB
-from sessions import SessionStore, upload_folder
+from sessions import NotYours, SessionStore, upload_folder
 
 load_env()
 ROOT = Path(__file__).resolve().parents[1]
 MAX_STEPS = 8
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", ROOT / "data" / "uploads"))  # /data/uploads on Railway
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+# The frontend's uuid. Only letters, digits and "-", so each id has its own upload folder (upload_folder).
+SESSION_ID = r"^[A-Za-z0-9-]{8,64}$"
+NOT_FOUND = "This conversation was not found. It may belong to another account; start a new chat."
 ESTIMATE_STATUSES = {"estimated", "needs_information", "needs_review", "not_covered", "invalid_input"}
 # The user asks to compare or choose plans: the Arena, whatever mode the home screen set.
 COMPARE_INTENT = re.compile(r"\bcompar(?:e|ing|ison)\b|\bwhich plan\b|\bbest plan\b|\bchoose (?:a |between )?plans?\b"
@@ -49,7 +53,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(","),
-    allow_methods=["GET", "POST"],  # /plans, /turn, /upload and /auth
+    allow_methods=["GET", "POST", "DELETE"],  # /plans, /turn, /upload, /auth and /me
     allow_headers=["*"],
     allow_credentials=True,  # the login cookie, when the frontend runs on another port in development
 )
@@ -76,7 +80,7 @@ class EndTurn(Exception):
 
 
 class TurnRequest(BaseModel):
-    session_id: str
+    session_id: str = Field(pattern=SESSION_ID)
     input: dict
     reply_target: dict | None = None
     context: dict | None = None  # {"mode": "calculate" | "review", "plan_ids": [...]} from the home screen
@@ -323,13 +327,22 @@ def apply_context(session, context):
     return None
 
 
-async def turn_events(request):
-    session = STORE.get(request.session_id)
+def sse_event(chunk):
+    """An SSE chunk (from sse()) back as {"event", "data"}, to keep in the transcript."""
+    event, data = chunk.split("\n", 1)
+    return {"event": event.removeprefix("event: "), "data": json.loads(data.removeprefix("data: "))}
+
+
+async def turn_events(session, request, user_id):
+    # What the user did (with the item they asked about), then what they saw.
+    events = [{"event": "input", "data": {**request.input, **({"reply_target": request.reply_target}
+                                                               if request.reply_target else {})}}]
     try:
         async for chunk in session_turn(session, request):
+            events.append(sse_event(chunk))
             yield chunk
     finally:  # also when the client goes away mid-stream
-        STORE.save(request.session_id, session)
+        STORE.save(request.session_id, session, user_id, events)
 
 
 async def session_turn(session, request):
@@ -424,7 +437,7 @@ class GoogleSignIn(BaseModel):
 @app.get("/auth/me")
 async def auth_me(request: Request):
     # The client id is sent here rather than built into the frontend, so it is set once, on the server.
-    return {"user": ACCOUNTS.user_for(request.cookies.get(COOKIE_NAME)), "google_client_id": google_client_id()}
+    return {"user": current_user(request), "google_client_id": google_client_id()}
 
 
 @app.post("/auth/google")
@@ -451,8 +464,23 @@ async def auth_logout(request: Request, response: Response):
     return {"user": None}
 
 
+def current_user(request: Request) -> dict | None:
+    return ACCOUNTS.user_for(request.cookies.get(COOKIE_NAME))
+
+
+def current_user_id(request: Request) -> str | None:
+    return (current_user(request) or {}).get("user_id")
+
+
+def signed_in(request: Request) -> str:
+    """The user id, or 401: the /me routes are only for a signed-in user's own data."""
+    if (user_id := current_user_id(request)) is None:
+        raise HTTPException(401, "Sign in to see your conversations and files.")
+    return user_id
+
+
 @app.post("/upload")
-async def upload(session_id: str = Form(...), file: UploadFile = File(...)):
+async def upload(request: Request, session_id: str = Form(..., pattern=SESSION_ID), file: UploadFile = File(...)):
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, "The file is larger than 25 MB.")
@@ -460,23 +488,83 @@ async def upload(session_id: str = Form(...), file: UploadFile = File(...)):
     if kind is None:
         raise HTTPException(415, "Only PDF files and photos (JPEG, PNG, WebP, HEIC) can be uploaded.")
     content_type, suffix = kind
-    session = STORE.get(session_id)
+    user_id = current_user_id(request)
     file_id = f"file_{uuid.uuid4().hex[:12]}"
     folder = upload_folder(UPLOAD_DIR, session_id)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{file_id}{suffix}"
     path.write_bytes(data)
     name = Path(file.filename or f"upload{suffix}").name
-    session.uploads[file_id] = {"path": path, "name": name, "content_type": content_type,
-                                "sha256": hashlib.sha256(data).hexdigest()}
-    STORE.save(session_id, session)
+    try:
+        STORE.add_upload(session_id, user_id, file_id, path, name, content_type, len(data),
+                         hashlib.sha256(data).hexdigest())
+    except NotYours:  # checked with the write, in one transaction; the file must not stay in their folder
+        path.unlink(missing_ok=True)
+        raise HTTPException(404, NOT_FOUND)
     return {"file_id": file_id, "name": name, "size": len(data), "content_type": content_type}
 
 
 @app.post("/turn")
-async def turn(request: TurnRequest):
-    return StreamingResponse(turn_events(request), media_type="text/event-stream",
+async def turn(body: TurnRequest, request: Request):
+    user_id = current_user_id(request)
+    try:  # checked before the stream starts, so the frontend gets a plain 404
+        session = STORE.get(body.session_id, user_id)
+    except NotYours:
+        raise HTTPException(404, NOT_FOUND)
+    return StreamingResponse(turn_events(session, body, user_id), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache, no-transform"})
+
+
+# The signed-in user's own data: their conversations (to reopen or delete) and their files. Anything that isn't
+# theirs is a 404, the same as something that doesn't exist.
+
+def public_upload(upload):
+    return {k: v for k, v in upload.items() if k != "path"}  # the server's file path isn't the user's business
+
+
+@app.get("/me/sessions")
+async def my_sessions(request: Request):
+    return {"sessions": STORE.sessions_of(signed_in(request))}
+
+
+@app.get("/me/sessions/{session_id}")
+async def my_session(session_id: str, request: Request):
+    user_id = signed_in(request)
+    events = STORE.transcript(session_id, user_id)
+    if events is None:
+        raise HTTPException(404, NOT_FOUND)
+    return {"session_id": session_id, "events": events,
+            "uploads": [public_upload(u) for u in STORE.uploads_of(user_id, session_id)]}
+
+
+@app.delete("/me/sessions/{session_id}")
+async def delete_my_session(session_id: str, request: Request):
+    if not STORE.delete(session_id, signed_in(request)):
+        raise HTTPException(404, NOT_FOUND)
+    return {"deleted": session_id}
+
+
+@app.get("/me/uploads")
+async def my_uploads(request: Request):
+    return {"uploads": [public_upload(u) for u in STORE.uploads_of(signed_in(request))]}
+
+
+@app.get("/me/uploads/{file_id}")
+async def my_upload(file_id: str, request: Request):
+    upload = STORE.upload_of(file_id, signed_in(request))
+    if upload is None or not upload["path"].is_file():
+        raise HTTPException(404, "File not found.")
+    return FileResponse(upload["path"], media_type=upload["content_type"], filename=upload["name"])
+
+
+@app.delete("/me")
+async def delete_me(request: Request, response: Response):
+    """Delete the account and everything in it: conversations, transcripts, files, logins."""
+    user_id = signed_in(request)
+    sessions = STORE.delete_user(user_id)
+    ACCOUNTS.delete_user(user_id)
+    response.delete_cookie(COOKIE_NAME, path="/")
+    return {"user": None, "deleted_sessions": sessions}
 
 
 # One service for the whole product: the API under /api (the built frontend calls it on the same origin), and the
@@ -485,7 +573,13 @@ for _path, _endpoint, _methods in (("/api/turn", turn, ["POST"]), ("/api/upload"
                                    ("/api/plans", plans, ["GET"]),
                                    ("/api/integrations", integrations, ["GET"]),
                                    ("/api/auth/me", auth_me, ["GET"]), ("/api/auth/google", auth_google, ["POST"]),
-                                   ("/api/auth/logout", auth_logout, ["POST"])):
+                                   ("/api/auth/logout", auth_logout, ["POST"]),
+                                   ("/api/me/sessions", my_sessions, ["GET"]),
+                                   ("/api/me/sessions/{session_id}", my_session, ["GET"]),
+                                   ("/api/me/sessions/{session_id}", delete_my_session, ["DELETE"]),
+                                   ("/api/me/uploads", my_uploads, ["GET"]),
+                                   ("/api/me/uploads/{file_id}", my_upload, ["GET"]),
+                                   ("/api/me", delete_me, ["DELETE"])):
     app.add_api_route(_path, _endpoint, methods=_methods)
 WEB_DIR = Path(os.environ.get("WEB_DIR", ROOT / "web" / "out"))
 if WEB_DIR.is_dir():

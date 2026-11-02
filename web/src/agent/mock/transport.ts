@@ -21,6 +21,11 @@ export function createMockTransport({ delay = 35 }: { delay?: number } = {}): Ag
     async getAuth() { return { user: null, google_client_id: null }; },
     async signInWithGoogle() { throw new Error("Sign-in needs the real backend."); },
     async signOut() {},
+    // Nobody is signed in to the mock, so there is no saved history.
+    async listSessions() { return []; },
+    async getSession() { throw new Error("Saved chats need the real backend."); },
+    async deleteSession() {},
+    fileUrl() { return null; },
     async upload(_session, file) {
       const problem = validateUpload(file);
       if (problem) throw new Error(problem);

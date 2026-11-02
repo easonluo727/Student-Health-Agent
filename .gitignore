@@ -52,9 +52,10 @@ data/providers/
 data/policy_pdfs/
 # PDFs users upload to the agent service
 data/uploads/
-# Conversation state (workflow/sessions.py)
+# The app database: accounts, conversations, uploads (workflow/appdb.py)
+data/app.sqlite*
+# Before 2026-11-01 the same data was in these two files; users.sqlite is imported into app.sqlite once
 data/sessions.sqlite*
-# Accounts (workflow/accounts.py)
 data/users.sqlite*
 
 # --- Fine-tuning runs (predictions and upload scripts, local only) ---

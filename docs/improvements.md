@@ -30,7 +30,7 @@
 1.5. **账单审核（看病后）**：用户上传账单或 EOB，多模态模型只抽取每一行（医生、日期、收费编号、金额，JSON schema 约束），Python 用第 1 步的按 NPI 查价和计算器逐行核对，标出多收、差价、重复收费、急诊按网外收费；agent 解释并起草申诉信。价格库里没有的编号或医生如实标"没有数据"。产品说明见 `PRODUCT.md` 的"账单审核"。测试用程序生成的样例账单，答案已知，同时也是微调的评测集。
 2. **医生水平（rate my doctor）**：给每位医生建一份档案，每一项都有公开来源，agent 按用户在意的点比较。具体做法再商量。候选来源：加州医学委员会（处分记录，按执照号）、CMS Care Compare（MIPS 绩效分，不是每个医生都有，例如 NPI 1205190659 Jun Chung 就没有；医学院和毕业年份）、Medicare 服务量、CMS 医院星级、搜索（职称、执业医院）。查不到的项说"没有公开数据"，不能编。水平低的医生要如实告诉用户。
 3. **更深的 computer search**：用 Computer Use 查医生和医院的评价（例如 Google 评价）。注意网站条款对自动抓取的限制。
-4. **登录**：2026-11-01 做了第一步，用 Google 账号登录（可选，不登录照样能用）。`workflow/accounts.py` 校验 Google 的 ID token，用户（Google ID、邮箱、名字、头像）和登录记录存在 `USERS_DB`（Railway 上是 `/data/users.sqlite`），cookie 30 天有效。还没做：对话和上传还没和用户关联，也还没有"我的计划"之类的个人数据。
+4. **登录**：2026-11-01 做了第一步，用 Google 账号登录（可选，不登录照样能用）。`workflow/accounts.py` 校验 Google 的 ID token，用户（Google ID、邮箱、名字、头像）和登录记录存在 `USERS_DB`（Railway 上是 `/data/users.sqlite`），cookie 30 天有效。同一天把账号、对话、聊天记录和上传记录放进一个数据库 `APP_DB`（`workflow/appdb.py`，Railway 上是 `/data/app.sqlite`，外键级联删除，第一次启动时从 `users.sqlite` 导入账号）：登录用户的对话归他所有，别人拿到 `session_id` 也用不了，不过期；`/me` 下能列出、打开、删除自己的对话和文件，也能删除账号（`docs/frontend-protocol.md`）。旧的 `sessions.sqlite` 没有导入（匿名对话本来只保留一天）。前端登录后顶栏有 History：列出自己的对话，点开按聊天记录回放（`restore`，`web/src/agent/store.ts`）并能接着聊，也能删除。还没做："我的计划"之类的个人数据（第 5 步）。
 5. **个人信息的长期记忆**：登录以后，记住用户的病情、常看的医生、计划等，下次不用再问。
 
 前提：桥 1（计划对网络）必须先全部确认。2026-10-20 已完成：当时的 11 个计划都有证据（`data/plans/plan_networks.csv` 的 `notes`）。以后加计划按 `db/README.md` 的"Adding a plan"。

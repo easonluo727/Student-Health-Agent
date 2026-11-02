@@ -1,7 +1,6 @@
-"""Accounts: sign in with Google. Users and their login sessions in SQLite; signing in is optional.
+"""Accounts: sign in with Google. Users and their logins in the app database (appdb.py); signing in is optional.
 
   GOOGLE_CLIENT_ID   the OAuth web client id (Google Cloud console); unset → sign-in is off and the button is hidden
-  USERS_DB           default data/users.sqlite; /data/users.sqlite on Railway (the volume)
   LOGIN_TTL          seconds a login lasts (default 30 days)
 
 The frontend shows Google's own button (Google Identity Services), which hands it an ID token. The frontend posts the
@@ -12,12 +11,11 @@ a random token. Only the token's sha256 is stored, so a copy of the database can
 import hashlib
 import os
 import secrets
-import sqlite3
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-USERS_DB = Path(os.environ.get("USERS_DB", ROOT / "data" / "users.sqlite"))
+from appdb import APP_DB, migrate, transaction
+
 LOGIN_TTL = int(os.environ.get("LOGIN_TTL", 30 * 24 * 3600))
 COOKIE_NAME = "th_login"
 GOOGLE_ISSUERS = {"accounts.google.com", "https://accounts.google.com"}
@@ -49,27 +47,15 @@ def public_user(row) -> dict:
 
 
 class AccountStore:
-    def __init__(self, path: Path = USERS_DB, ttl: int = LOGIN_TTL):
-        path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, path: Path = APP_DB, ttl: int = LOGIN_TTL):
+        migrate(path)
         self.path, self.ttl = path, ttl
-        with self._connect() as con:
-            con.execute("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, google_sub TEXT NOT NULL UNIQUE, "
-                        "email TEXT NOT NULL, name TEXT, picture TEXT, created_at REAL NOT NULL, "
-                        "last_login_at REAL NOT NULL)")
-            con.execute("CREATE TABLE IF NOT EXISTS logins (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL "
-                        "REFERENCES users(user_id), created_at REAL NOT NULL, expires_at REAL NOT NULL)")
-        con.close()
-
-    def _connect(self):
-        con = sqlite3.connect(self.path, timeout=10)
-        con.execute("PRAGMA journal_mode=WAL")
-        return con
 
     def sign_in(self, claims: dict) -> tuple[dict, str]:
         """Create or update the user from verified Google claims; return (user, login token for the cookie)."""
         now = time.time()
         token = secrets.token_urlsafe(32)
-        with self._connect() as con:
+        with transaction(self.path) as con:
             con.execute("INSERT INTO users (user_id, google_sub, email, name, picture, created_at, last_login_at) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(google_sub) DO UPDATE SET email=excluded.email, "
                         "name=excluded.name, picture=excluded.picture, last_login_at=excluded.last_login_at",
@@ -79,30 +65,31 @@ class AccountStore:
                               (claims["sub"],)).fetchone()
             con.execute("INSERT INTO logins (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
                         (_hash(token), row[0], now, now + self.ttl))
-        con.close()
         return public_user(row), token
 
     def user_for(self, token: str | None) -> dict | None:
         """The signed-in user for a cookie token, or None when it is missing, unknown or expired."""
         if not token:
             return None
-        with self._connect() as con:
+        with transaction(self.path) as con:
             row = con.execute("SELECT u.user_id, u.email, u.name, u.picture FROM logins l JOIN users u "
                               "ON u.user_id = l.user_id WHERE l.token_hash=? AND l.expires_at > ?",
                               (_hash(token), time.time())).fetchone()
-        con.close()
         return public_user(row) if row else None
 
     def sign_out(self, token: str | None) -> None:
         if not token:
             return
-        with self._connect() as con:
+        with transaction(self.path) as con:
             con.execute("DELETE FROM logins WHERE token_hash=?", (_hash(token),))
-        con.close()
+
+    def delete_user(self, user_id: str) -> None:
+        """Delete the account; the database cascades to its logins and any conversation rows left.
+        Delete the conversations with SessionStore.delete_user first, which also removes their files."""
+        with transaction(self.path) as con:
+            con.execute("DELETE FROM users WHERE user_id=?", (user_id,))
 
     def purge(self) -> int:
         """Delete expired logins; return how many."""
-        with self._connect() as con:
-            count = con.execute("DELETE FROM logins WHERE expires_at < ?", (time.time(),)).rowcount
-        con.close()
-        return count
+        with transaction(self.path) as con:
+            return con.execute("DELETE FROM logins WHERE expires_at < ?", (time.time(),)).rowcount

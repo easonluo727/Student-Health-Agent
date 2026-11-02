@@ -1,26 +1,35 @@
-"""Conversation state in SQLite, so a redeploy doesn't lose a conversation and several instances can share them.
+"""Conversations in the app database (appdb.py), so a redeploy doesn't lose them and a signed-in user can reopen them.
 
-  SESSIONS_DB   default data/sessions.sqlite; /data/sessions.sqlite on Railway (the volume)
-  SESSION_TTL   seconds a conversation is kept after its last turn (default one day); its uploads go with it
+  SESSION_TTL   seconds an anonymous conversation is kept after its last turn (default one day); its uploads go with it
 
-A session is loaded at the start of every request and saved at the end. What is saved is plain data: the model
-history (as dicts), open forms, uploads, the home-screen mode, and the hooks' state (questionnaire answers, user
-text, and the guard's numbers) and the bills read from photos. The harness itself (prompt, skills, tools) is rebuilt from code each time.
+A session is loaded at the start of every request and saved at the end. Its state is plain data: the model history
+(as dicts), open forms, the home-screen mode, the hooks' state (questionnaire answers, user text, and the guard's
+numbers) and the bills read from photos. The harness itself (prompt, skills, tools) is rebuilt from code each time.
+Uploads are rows of their own, so an upload during a running turn isn't lost when the turn saves.
+
+Who may use a conversation: an anonymous one, anyone who has its id (the frontend's random uuid); a signed-in user
+who uses it claims it. An owned one, only its owner; to everyone else it doesn't exist (NotYours). Owned
+conversations never expire; the owner deletes them.
+
+Each save also appends what the user saw that turn (their input and the SSE events), so a chat can be shown again.
 """
 
 import json
 import os
 import shutil
-import sqlite3
 import time
 from decimal import Decimal
 from pathlib import Path
 
+from appdb import APP_DB, migrate, transaction
 from harness import Harness
 
-ROOT = Path(__file__).resolve().parents[1]
-SESSIONS_DB = Path(os.environ.get("SESSIONS_DB", ROOT / "data" / "sessions.sqlite"))
 SESSION_TTL = int(os.environ.get("SESSION_TTL", 24 * 3600))
+TITLE_CHARS = 80
+
+
+class NotYours(LookupError):
+    """The conversation belongs to another user (or the caller is signed out). Report it as not found."""
 
 
 class Session:
@@ -43,7 +52,6 @@ def dump(session):
     return {
         "history": [_plain(item) for item in session.history],
         "open_forms": session.open_forms,
-        "uploads": {fid: {**u, "path": str(u["path"])} for fid, u in session.uploads.items()},
         "attachment_notes": session.attachment_notes,
         "context": session.context,
         "bills": session.harness.bills,
@@ -56,9 +64,10 @@ def dump(session):
 
 def load(state):
     session = Session()
+    if not state:  # the row was made by an upload before the first turn
+        return session
     session.history = state["history"]
     session.open_forms = state["open_forms"]
-    session.uploads.update({fid: {**u, "path": Path(u["path"])} for fid, u in state["uploads"].items()})
     session.attachment_notes = state["attachment_notes"]
     session.context = state["context"]
     session.harness.bills.update(state.get("bills") or {})  # the bills skill holds this same dict
@@ -72,47 +81,167 @@ def load(state):
     return session
 
 
+def compact(events):
+    """The turn's events with each message's text deltas joined into one, which is how they are stored."""
+    out = []
+    for e in events:
+        last = out[-1] if out else None
+        if (e["event"] == "message_delta" and last and last["event"] == "message_delta"
+                and last["data"]["message_id"] == e["data"]["message_id"]):
+            out[-1] = {**last, "data": {**last["data"], "text": last["data"]["text"] + e["data"]["text"]}}
+        else:
+            out.append(e)
+    return out
+
+
+def title_of(events):
+    """The conversation's title: the user's first message, or the first file they attached."""
+    for e in events:
+        if e["event"] == "input" and e["data"].get("type") == "message":
+            text = " ".join((e["data"].get("text") or "").split())
+            names = [a.get("name") for a in e["data"].get("attachments") or [] if a.get("name")]
+            if text or names:
+                return (text or names[0])[:TITLE_CHARS]
+    return None
+
+
+# Claim an anonymous conversation for the user, keep an owned one with its owner, refuse anyone else: when the WHERE
+# fails the upsert changes no row, and the caller raises NotYours.
+_OWNER_MAY_WRITE = "WHERE sessions.user_id IS NULL OR sessions.user_id IS excluded.user_id"
+
+
 class SessionStore:
-    def __init__(self, path: Path = SESSIONS_DB, ttl: int = SESSION_TTL, upload_dir: Path | None = None):
-        path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, path: Path = APP_DB, ttl: int = SESSION_TTL, upload_dir: Path | None = None):
+        migrate(path)
         self.path, self.ttl, self.upload_dir = path, ttl, upload_dir
-        with self._connect() as con:
-            con.execute("CREATE TABLE IF NOT EXISTS sessions (session_id TEXT PRIMARY KEY, state TEXT NOT NULL, "
-                        "updated_at REAL NOT NULL)")
 
-    def _connect(self):
-        con = sqlite3.connect(self.path, timeout=10)
-        con.execute("PRAGMA journal_mode=WAL")
-        return con
-
-    def get(self, session_id: str) -> Session:
-        """The saved session, or a new one when there is none or it has expired."""
-        with self._connect() as con:
-            row = con.execute("SELECT state, updated_at FROM sessions WHERE session_id=?", (session_id,)).fetchone()
-        con.close()
-        if row is None or time.time() - row[1] > self.ttl:
+    def get(self, session_id: str, user_id: str | None = None) -> Session:
+        """The saved session with its uploads; a new one when there is none or an anonymous one has expired.
+        Raises NotYours when it belongs to someone other than user_id."""
+        with transaction(self.path) as con:
+            row = con.execute("SELECT user_id, state, updated_at FROM sessions WHERE session_id=?",
+                              (session_id,)).fetchone()
+            uploads = con.execute("SELECT file_id, path, name, content_type, sha256 FROM uploads WHERE session_id=? "
+                                  "ORDER BY created_at", (session_id,)).fetchall()
+        if row is None:
             return Session()
-        return load(json.loads(row[0]))
+        owner, state, updated_at = row
+        if owner is not None and owner != user_id:
+            raise NotYours(session_id)
+        if owner is None and time.time() - updated_at > self.ttl:
+            self._delete([session_id])  # so its old transcript and files don't come back with the new chat
+            return Session()
+        session = load(json.loads(state))
+        session.uploads.update({fid: {"path": Path(path), "name": name, "content_type": ctype, "sha256": sha}
+                                for fid, path, name, ctype, sha in uploads})
+        return session
 
-    def save(self, session_id: str, session: Session) -> None:
+    def save(self, session_id: str, session: Session, user_id: str | None = None, events=()) -> None:
+        """Save the state and append the turn's events; a signed-in user claims an anonymous conversation."""
+        now = time.time()
+        events = compact(list(events))
         state = json.dumps(dump(session), ensure_ascii=False, allow_nan=False)
-        with self._connect() as con:
-            con.execute("INSERT INTO sessions (session_id, state, updated_at) VALUES (?, ?, ?) ON CONFLICT"
-                        "(session_id) DO UPDATE SET state=excluded.state, updated_at=excluded.updated_at",
-                        (session_id, state, time.time()))
-        con.close()
+        with transaction(self.path) as con:
+            changed = con.execute(
+                "INSERT INTO sessions (session_id, user_id, title, state, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(session_id) DO UPDATE SET "
+                "user_id=COALESCE(sessions.user_id, excluded.user_id), title=COALESCE(sessions.title, excluded.title), "
+                "state=excluded.state, updated_at=excluded.updated_at " + _OWNER_MAY_WRITE,
+                (session_id, user_id, title_of(events), state, now, now)).rowcount
+            if not changed:
+                raise NotYours(session_id)
+            seq = con.execute("SELECT COALESCE(MAX(seq), 0) FROM session_events WHERE session_id=?",
+                              (session_id,)).fetchone()[0]
+            con.executemany("INSERT INTO session_events (session_id, seq, event, data, created_at) "
+                            "VALUES (?, ?, ?, ?, ?)",
+                            [(session_id, seq + i, e["event"], json.dumps(e["data"], ensure_ascii=False), now)
+                             for i, e in enumerate(events, start=1)])
+
+    def add_upload(self, session_id: str, user_id: str | None, file_id: str, path: Path, name: str,
+                   content_type: str, size: int, sha256: str) -> None:
+        """Record a file already written to path, creating the conversation if this is its first request."""
+        now = time.time()
+        with transaction(self.path) as con:
+            changed = con.execute(
+                "INSERT INTO sessions (session_id, user_id, title, state, created_at, updated_at) "
+                "VALUES (?, ?, NULL, '{}', ?, ?) ON CONFLICT(session_id) DO UPDATE SET "
+                "user_id=COALESCE(sessions.user_id, excluded.user_id), updated_at=excluded.updated_at "
+                + _OWNER_MAY_WRITE, (session_id, user_id, now, now)).rowcount
+            if not changed:
+                raise NotYours(session_id)
+            con.execute("INSERT INTO uploads (file_id, session_id, name, content_type, size, sha256, path, created_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (file_id, session_id, name, content_type, size, sha256, str(path), now))
+
+    # The signed-in user's own data. Anything not theirs is None / False, never an error that says it exists.
+
+    def sessions_of(self, user_id: str) -> list[dict]:
+        """The user's conversations, newest first."""
+        with transaction(self.path) as con:
+            rows = con.execute("SELECT s.session_id, s.title, s.created_at, s.updated_at, "
+                               "(SELECT COUNT(*) FROM uploads u WHERE u.session_id = s.session_id) "
+                               "FROM sessions s WHERE s.user_id=? ORDER BY s.updated_at DESC", (user_id,)).fetchall()
+        return [{"session_id": sid, "title": title, "created_at": created, "updated_at": updated, "uploads": n}
+                for sid, title, created, updated, n in rows]
+
+    def transcript(self, session_id: str, user_id: str) -> list[dict] | None:
+        """What the user saw in their conversation, in order: [{"event", "data"}]; None if it isn't theirs."""
+        with transaction(self.path) as con:
+            if not con.execute("SELECT 1 FROM sessions WHERE session_id=? AND user_id=?",
+                               (session_id, user_id)).fetchone():
+                return None
+            rows = con.execute("SELECT event, data FROM session_events WHERE session_id=? ORDER BY seq",
+                               (session_id,)).fetchall()
+        return [{"event": event, "data": json.loads(data)} for event, data in rows]
+
+    def uploads_of(self, user_id: str, session_id: str | None = None) -> list[dict]:
+        """The user's uploaded files, newest first; only one conversation's when session_id is given."""
+        sql = ("SELECT u.file_id, u.session_id, u.name, u.content_type, u.size, u.sha256, u.created_at, u.path "
+               "FROM uploads u JOIN sessions s ON s.session_id = u.session_id WHERE s.user_id=?")
+        params = [user_id]
+        if session_id is not None:
+            sql, params = sql + " AND u.session_id=?", params + [session_id]
+        with transaction(self.path) as con:
+            rows = con.execute(sql + " ORDER BY u.created_at DESC", params).fetchall()
+        return [{"file_id": fid, "session_id": sid, "name": name, "content_type": ctype, "size": size,
+                 "sha256": sha, "created_at": created, "path": Path(path)}
+                for fid, sid, name, ctype, size, sha, created, path in rows]
+
+    def upload_of(self, file_id: str, user_id: str) -> dict | None:
+        return next((u for u in self.uploads_of(user_id) if u["file_id"] == file_id), None)
+
+    def delete(self, session_id: str, user_id: str) -> bool:
+        """Delete one of the user's conversations with its transcript and files; False if it isn't theirs."""
+        with transaction(self.path) as con:
+            mine = con.execute("SELECT 1 FROM sessions WHERE session_id=? AND user_id=?",
+                               (session_id, user_id)).fetchone()
+        if mine:
+            self._delete([session_id])
+        return bool(mine)
+
+    def delete_user(self, user_id: str) -> int:
+        """Delete all the user's conversations and their files (before AccountStore.delete_user); return how many."""
+        with transaction(self.path) as con:
+            ids = [r[0] for r in con.execute("SELECT session_id FROM sessions WHERE user_id=?", (user_id,))]
+        self._delete(ids)
+        return len(ids)
 
     def purge(self) -> int:
-        """Delete expired sessions and their uploaded files; return how many."""
+        """Delete expired anonymous conversations and their uploaded files; return how many."""
         cutoff = time.time() - self.ttl
-        with self._connect() as con:
-            expired = [r[0] for r in con.execute("SELECT session_id FROM sessions WHERE updated_at < ?", (cutoff,))]
-            con.execute("DELETE FROM sessions WHERE updated_at < ?", (cutoff,))
-        con.close()
+        with transaction(self.path) as con:
+            ids = [r[0] for r in con.execute("SELECT session_id FROM sessions WHERE user_id IS NULL AND "
+                                             "updated_at < ?", (cutoff,))]
+        self._delete(ids)
+        return len(ids)
+
+    def _delete(self, session_ids) -> None:
+        """Rows first (events and upload records cascade), then the files, so no row ever points at a missing file."""
+        with transaction(self.path) as con:
+            con.executemany("DELETE FROM sessions WHERE session_id=?", [(sid,) for sid in session_ids])
         if self.upload_dir is not None:
-            for session_id in expired:
-                shutil.rmtree(upload_folder(self.upload_dir, session_id), ignore_errors=True)
-        return len(expired)
+            for sid in session_ids:
+                shutil.rmtree(upload_folder(self.upload_dir, sid), ignore_errors=True)
 
 
 def upload_folder(upload_dir: Path, session_id: str) -> Path:

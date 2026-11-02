@@ -1,4 +1,4 @@
-import type { AuthState, Integrations, Plan, ServerEvent, TurnRequest, UploadResult } from "./protocol";
+import type { AuthState, Integrations, Plan, ServerEvent, SessionSummary, SessionTranscript, TurnRequest, UploadResult } from "./protocol";
 import { API_BASE, MAX_UPLOAD_BYTES, UPLOAD_TYPES } from "./config";
 import { readServerEvents } from "./sse";
 import { createMockTransport } from "./mock/transport";
@@ -11,6 +11,12 @@ export interface AgentTransport {
   signOut(): Promise<void>;
   upload(sessionId: string, file: File): Promise<UploadResult>;
   turn(request: TurnRequest, signal?: AbortSignal): AsyncIterable<ServerEvent>;
+  // The signed-in user's saved conversations.
+  listSessions(): Promise<SessionSummary[]>;
+  getSession(sessionId: string): Promise<SessionTranscript>;
+  deleteSession(sessionId: string): Promise<void>;
+  /** Where the browser can load one of the user's files (with the login cookie), or null when there is none. */
+  fileUrl(fileId: string): string | null;
 }
 
 export function validateUpload(file: File): string | null {
@@ -77,6 +83,21 @@ export function createHttpTransport(base: string): AgentTransport {
       if (!res.ok || !res.body) throw await failure(res);
       yield* readServerEvents(res.body, signal);
     },
+    async listSessions() {
+      const res = await fetch(`${base}/me/sessions`);
+      if (!res.ok) throw await failure(res);
+      return (await res.json()).sessions;
+    },
+    async getSession(sessionId) {
+      const res = await fetch(`${base}/me/sessions/${encodeURIComponent(sessionId)}`);
+      if (!res.ok) throw await failure(res);
+      return res.json();
+    },
+    async deleteSession(sessionId) {
+      const res = await fetch(`${base}/me/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+      if (!res.ok) throw await failure(res);
+    },
+    fileUrl(fileId) { return `${base}/me/uploads/${encodeURIComponent(fileId)}`; },
   };
 }
 

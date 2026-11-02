@@ -100,6 +100,12 @@ export interface EmailStatus { request_id: string; status: EmailSendStatus; mess
 // ---- Google sign-in (optional; GET /auth/me, POST /auth/google, POST /auth/logout) ----
 export interface User { user_id: string; email: string; name: string | null; picture: string | null }
 export interface AuthState { user: User | null; google_client_id: string | null } // client id null → sign-in off
+// ---- The signed-in user's conversations (GET/DELETE /me/sessions[/{id}]) ----
+export interface SessionSummary { session_id: string; title: string | null; created_at: number; updated_at: number; uploads: number } // Unix seconds
+export interface StoredUpload { file_id: string; session_id: string; name: string; content_type: string; size: number; sha256: string; created_at: number }
+/** One step of a saved chat: what the user sent (with the item they asked about), or an event the server sent. */
+export type TranscriptEvent = ServerEvent | { event: "input"; data: TurnInput & { reply_target?: ReplyTarget } }
+export interface SessionTranscript { session_id: string; events: TranscriptEvent[]; uploads: StoredUpload[] }
 
 export interface Integrations { gmail: { connected: boolean; email: string | null; connect_url: string | null } }
 
