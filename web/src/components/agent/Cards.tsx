@@ -105,7 +105,7 @@ export function SearchSteps({ steps, onOpen }: { steps: SearchStep[]; onOpen?: (
   const running = steps.some(s => s.status === "running");
   const web = steps.some(s => s.kind === "web");
   const summary = steps.length === 1 && steps[0]!.title ? steps[0]!.title
-    : web ? `Searched the web · ${steps.filter(s => s.url).length} pages` : `What I did · ${steps.length} steps`;
+    : web ? `Searched the web · ${steps.filter(s => s.url).length} pages` : `What I did · ${steps.length} ${steps.length === 1 ? "step" : "steps"}`;
   const open = expanded || running;
   return <div className="my-6">
     <Button variant="ghost" className="step-summary" aria-expanded={open} onClick={() => setExpanded(v => !v)}>{open ? <ChevronDown /> : <ChevronRight />}{summary}</Button>

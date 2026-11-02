@@ -7,3 +7,4 @@ httpx2
 python-multipart
 jsonschema
 google-auth
+pypdf>=4

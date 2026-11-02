@@ -28,6 +28,8 @@ from openai import RateLimitError
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "workflow"))
 from llm_client import fast_extra_body, llm_model, make_client  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pdf_text  # noqa: E402
 
 POPPLER_TIMEOUT = 120
 
@@ -118,9 +120,7 @@ benefit heading the row sits under. For an EPO/HMO, out-of-network cells that sa
 
 
 def page_texts(pdf):
-    out = subprocess.run(["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True,
-                         timeout=POPPLER_TIMEOUT).stdout
-    return out.split("\f")
+    return pdf_text.page_texts(pdf)  # pypdf where pdftotext can't read a page
 
 
 def find_pages(texts):

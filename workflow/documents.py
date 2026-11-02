@@ -1,7 +1,8 @@
 """Read any uploaded file the way a coding agent reads a repository: overview first, then search, then read only the
 pages that matter. No LLM here; the documents skill puts a model in front of these functions.
 
-A document is a PDF (text from pdftotext, page images from pdftoppm) or a photo (one page, no text layer). Everything
+A document is a PDF (text from pdftotext, or pypdf where pdftotext can't read a page: scripts/policy/pdf_text.py;
+page images from pdftoppm) or a photo (one page, no text layer). Everything
 returned is bounded, because each tool result stays in the conversation history and is resent on every later call.
 """
 
@@ -9,9 +10,13 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 import tempfile
 from functools import lru_cache
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "policy"))
+from pdf_text import page_texts  # noqa: E402
 
 POPPLER_TIMEOUT = 60
 SCANNED_CHARS = 30         # a page with less text than this is an image (scan, photo, chart)
@@ -24,12 +29,7 @@ HEADING_CHARS = 80
 
 @lru_cache(maxsize=16)
 def _page_texts(path: str, mtime: float) -> tuple[str, ...]:
-    out = subprocess.run(["pdftotext", "-layout", path, "-"], capture_output=True, text=True,
-                         timeout=POPPLER_TIMEOUT).stdout
-    pages = out.split("\f")
-    if pages and not pages[-1].strip():
-        pages = pages[:-1]  # pdftotext ends with a form feed
-    return tuple(pages)
+    return tuple(page_texts(path))
 
 
 def _squeeze(text: str) -> str:

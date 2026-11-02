@@ -47,6 +47,7 @@ class Session:
         self.records = []
         self.turn_results = []  # result ids from this request's tools, for the page check in server.agent_loop
         self.turn_shown = []  # result ids shown as pages in this request
+        self.step_group = "steps"  # the search_id of this turn's tool steps (server.agent_loop)
 
 
 def file_kind(file_id, kind, plan_id=None, plan_name=None):

@@ -40,7 +40,7 @@ from sessions import NotYours, SessionStore, appeal_drafted, bill_review, file_k
 
 load_env()
 ROOT = Path(__file__).resolve().parents[1]
-MAX_STEPS = 8
+MAX_STEPS = 12  # model calls in one turn; then it must answer with what it has (agent_loop)
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", ROOT / "data" / "uploads"))  # /data/uploads on Railway
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 # The frontend's uuid. Only letters, digits and "-", so each id has its own upload folder (upload_folder).
@@ -162,16 +162,17 @@ async def run_call(session, call):
         result = harness.hooks.pre_tool(call.name, args)
     if result is None:
         step_id = f"tool_{uuid.uuid4().hex[:8]}"
+        group = session.step_group  # every step of one turn in one "What I did" group
         work = asyncio.create_task(asyncio.to_thread(run_tool, harness.tools[call.name], args))
         while not work.done():  # a long tool (extract_plan) reports each page as it goes
             await asyncio.wait({work}, timeout=0.5)
             while not harness.progress.empty():
-                yield sse("search_step", {"search_id": step_id, "kind": "document", "step_id": step_id,
+                yield sse("search_step", {"search_id": group, "kind": "document", "step_id": step_id,
                                           "status": "running", "text": harness.progress.get_nowait()})
         result = harness.hooks.post_tool(call.name, args, work.result())
         if step := result.pop("_step", None):
             failed = result.get("status") in ("failed", "unreadable", "invalid_arguments", "error")
-            yield sse("search_step", {"search_id": step_id, "kind": "document", "step_id": step_id,
+            yield sse("search_step", {"search_id": group, "kind": "document", "step_id": step_id,
                                       "status": "failed" if failed else "done", "text": step})
 
     session.records.extend(records_for(session, call.name, args, result))
@@ -199,20 +200,32 @@ async def run_call(session, call):
     session.history.append(tool_output(call, result))
 
 
+def ask_model(session, tools=True):
+    """One model call over the conversation; tools=False makes it answer in text (the step limit was reached)."""
+    harness = session.harness
+    return client.responses.create(
+        model=MODEL,
+        instructions="\n\n".join(filter(None, [harness.system_prompt, session.memory])),
+        input=session.history,
+        tools=harness.tools.definitions(),
+        tool_choice="auto" if tools else "none",
+        parallel_tool_calls=False,
+        max_output_tokens=6000,
+        store=False,
+    )
+
+
 async def agent_loop(session):
     harness = session.harness
     rejected, nudged = 0, False
-    for _ in range(MAX_STEPS):
-        response = await asyncio.to_thread(
-            client.responses.create,
-            model=MODEL,
-            instructions="\n\n".join(filter(None, [harness.system_prompt, session.memory])),
-            input=session.history,
-            tools=harness.tools.definitions(),
-            parallel_tool_calls=False,
-            max_output_tokens=6000,
-            store=False,
-        )
+    session.step_group = f"steps_{uuid.uuid4().hex[:8]}"
+    for step in range(MAX_STEPS + 1):
+        last = step == MAX_STEPS
+        if last:  # out of steps: answer with what was found instead of failing the turn
+            session.history.append({"role": "user", "content": (
+                "[Automatic check, not the user] You have used every tool step for this turn. Answer now with what "
+                "you found so far, and say plainly what you couldn't finish and what the user can ask next.")})
+        response = await asyncio.to_thread(ask_model, session, not last)
         if response.status != "completed":
             raise RuntimeError("The model response was incomplete.")
         session.history.extend(response.output)
@@ -224,7 +237,7 @@ async def agent_loop(session):
             feedback = harness.hooks.check_reply(text)
             unshown = pages_missing(harness.results, session.turn_results)
             unshown += [r for r in pages_named(harness.results, text, session.turn_shown) if r not in unshown]
-            if feedback is None and unshown and not nudged:
+            if feedback is None and unshown and not nudged and not last:
                 # Doctors, a comparison or a bill are for the eyes (also doctors named from an earlier search): ask
                 # once for the page, then show it ourselves.
                 nudged = True
@@ -254,7 +267,13 @@ async def agent_loop(session):
                     yield chunk
             except EndTurn:
                 return
-    raise RuntimeError("Tool-loop limit reached. Please try a more specific request.")
+        if last:  # it called a tool anyway (the call ran, so the history stays well formed)
+            break
+    reply = ("I ran out of steps before I could finish this. Ask me about one part at a time, for example one "
+             "benefit or one page of your document.")
+    session.history.append({"role": "assistant", "content": reply})
+    for chunk in say(reply):
+        yield chunk
 
 
 async def read_attachments(session, attachments):
