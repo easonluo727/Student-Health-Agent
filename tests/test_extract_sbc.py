@@ -30,7 +30,7 @@ class ExtractSbc(unittest.TestCase):
         r = rows[0]
         self.assertEqual((r["copay_usd"], r["coinsurance_pct"], r["deductible_applies"], r["covered"]),
                          ("NOT FOUND", 20, "no", "yes"))
-        self.assertEqual((r["component"], r["limits_conditions"], r["source_page"], r["verified"]), ("", "", 2, ""))
+        self.assertEqual((r["component"], r["limits_conditions"], r["source_page"]), ("", "", 2))
 
     def test_services_covered_before_the_deductible_unless_the_cell_says_otherwise(self):
         rows = [{"network": "in", "service": "primary_care_visit", "deductible_applies": "yes", "quote": "$50 copay"},

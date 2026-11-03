@@ -34,11 +34,10 @@ import pdf_text  # noqa: E402
 POPPLER_TIMEOUT = 120
 
 PLAN_COLUMNS = ["plan_id", "insurer", "plan_name", "plan_year", "plan_type", "network_name", "deductible_in_usd",
-                "deductible_out_usd", "oop_max_in_usd", "oop_max_out_usd", "coinsurance_in_pct", "source_url",
-                "verified"]
+                "deductible_out_usd", "oop_max_in_usd", "oop_max_out_usd", "coinsurance_in_pct", "source_url"]
 BENEFIT_COLUMNS = ["plan_id", "section", "service", "service_as_printed", "component", "network", "network_tier",
                    "copay_usd", "coinsurance_pct", "deductible_applies", "prior_auth", "covered", "limits_conditions",
-                   "quote", "source_url", "source_page", "verified"]
+                   "quote", "source_url", "source_page"]
 ROW_FIELDS = BENEFIT_COLUMNS[1:14]  # what the model fills per row
 SERVICES = ("primary_care_visit, specialist_visit, telehealth_visit, urgent_care, emergency_room, ambulance, "
             "lab_tests, xray, "
@@ -200,7 +199,7 @@ def tier_name(tier):
 def assemble(plan_id, source_url, summary, pages):
     """Plan row + benefit rows from model output; drop exact repeats (tables continued across pages)."""
     plan = {k: csv_value((summary.get("plan") or {}).get(k)) for k in PLAN_COLUMNS}
-    plan.update(plan_id=plan_id, source_url=source_url or "NOT FOUND", verified="")
+    plan.update(plan_id=plan_id, source_url=source_url or "NOT FOUND")
     rows, seen, dropped = [], set(), 0
     for page, rows_out in pages:
         for r in rows_out:
@@ -214,8 +213,7 @@ def assemble(plan_id, source_url, summary, pages):
                 dropped += 1
                 continue
             seen.add(key)
-            rows.append({**row, "plan_id": plan_id, "source_url": source_url or "NOT FOUND", "source_page": page,
-                         "verified": ""})
+            rows.append({**row, "plan_id": plan_id, "source_url": source_url or "NOT FOUND", "source_page": page})
     return plan, rows, dropped
 
 
@@ -268,7 +266,7 @@ def extract(client, model, pdf, plan_id, *, source_url="", out=None, pages=None,
     """Extract one PDF into CSV-shaped dictionaries and optionally write plans.csv and benefits.csv.
 
     The offline reviewed build and runtime upload workflow share this function. SQLite storage is left to the caller,
-    which decides whether the normalized rows belong in the reviewed seed or the shared unverified runtime catalog.
+    which decides whether the normalized rows belong in the committed seed or in one user's private runtime plan.
     """
     pdf = Path(pdf)
     out = Path(out) if out else None

@@ -1,11 +1,12 @@
-"""Plan uploads: match an uploaded document to the plan database, or extract it into a new unverified plan.
+"""Plan uploads: match an uploaded document to the plan database, or extract it into a new plan only its uploader sees.
 
 The agent decides what an upload is and which pages hold the plan's cost sharing (skills/documents); this module
 holds the deterministic parts it calls:
 - match_plan / db_catalog: a plan whose printed name and insurer appear in the document's text is the database's
   plan, priced from the database, never from the upload.
 - extract_uploaded_plan: extract_sbc on the chosen pages into temporary plans.csv and benefits.csv, validated by
-  build_seed.py, then persisted in the shared policy database with verified=0.
+  build_seed.py, then persisted in the policy database with owner = the conversation it was uploaded in
+  (PlanDB.owners: nobody else sees it).
 """
 
 import sys
@@ -34,7 +35,7 @@ def db_catalog(db=None):
         name = p["plan_name"].split(" - ")[0].strip()
         required = [name] + (["Los Angeles"] if "Los Angeles" in p["plan_name"] else [])
         catalog.append({"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"],
-                        "plan_year": p["plan_year"], "verified": bool(p["verified"]),
+                        "plan_year": p["plan_year"],
                         "uploaded": p["plan_id"].startswith("upload_"),
                         "match": {"all": required, "any": [p["insurer"].split()[0]]}})
     # Longer names first, so "Silver 70 Ambetter HMO" is tried before a shorter name it contains.
@@ -43,7 +44,7 @@ def db_catalog(db=None):
 
 def extract_uploaded_plan(client, model, pdf, name, identity, db, work_dir, plan_id, progress=None, *, pages=None,
                           summary_pages=None, max_benefit_pages=20):
-    """Extract, validate, and persist an uploaded PDF in the shared policy database."""
+    """Extract, validate, and persist an uploaded PDF in the policy database, owned by db.owner."""
     scripts = Path(__file__).resolve().parents[2] / "scripts" / "policy"
     if str(scripts) not in sys.path:
         sys.path.insert(0, str(scripts))
@@ -60,14 +61,13 @@ def extract_uploaded_plan(client, model, pdf, name, identity, db, work_dir, plan
                 "summary_pages": [], "benefit_pages": []}
 
     out = Path(work_dir) / "extracted" / plan_id
-    # Keep the content-derived ID for provenance without persisting a user-supplied filename in the shared database.
+    # Keep the content-derived ID for provenance without persisting a user-supplied filename in the database.
     source = f"uploaded-pdf://{plan_id}"
     extracted = extract_sbc.extract(
         client, model, pdf, plan_id, source_url=source, out=out, identity=identity,
         eoc=identity.get("document_type") in {"benefit booklet", "certificate"}, progress=progress,
         pages=pages, summary_pages=summary_pages, max_benefit_pages=max_benefit_pages)
-    plan, benefits, problems = build_seed.build_plan(out, blanket_verified=False,
-                                                     allow_unverified_calculation=True)
+    plan, benefits, problems = build_seed.build_plan(out)
     if problems:
         raise ValueError("; ".join(problems[:5]))
     if plan is None or not benefits:

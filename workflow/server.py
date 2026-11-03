@@ -62,7 +62,8 @@ client = make_client(timeout=300.0)  # a shared endpoint can be slow under load
 MODEL = llm_model()
 # Price every scenario component in the rate store once, in the background (a few minutes), so turns don't wait.
 threading.Thread(target=lambda: PlanDB().warm(), name="warm-rates", daemon=True).start()
-STORE = SessionStore(upload_dir=UPLOAD_DIR)
+STORE = SessionStore(upload_dir=UPLOAD_DIR, on_delete=lambda ids: PlanDB().delete_uploaded(ids))
+PlanDB().claim_uploaded(STORE.uploaded_plan_sessions())  # uploads from before plans had owners
 ACCOUNTS = AccountStore()
 MEMORY = MemoryStore()
 
@@ -88,11 +89,13 @@ class TurnRequest(BaseModel):
     context: dict | None = None  # {"mode": "calculate" | "review", "plan_ids": [...]} from the home screen
 
 
-def available_plans():
+def available_plans(owners=()):
+    """The plan list: every database plan, and the plans uploaded in these conversations (PlanDB.owners)."""
     db = PlanDB()
+    db.owners = tuple(owners)
     try:
         return [{"plan_id": p["plan_id"], "name": p["plan_name"], "insurer": p["insurer"],
-                 "plan_year": p["plan_year"], "verified": bool(p["verified"]),
+                 "plan_year": p["plan_year"],
                  "uploaded": p["plan_id"].startswith("upload_")} for p in db.plans()]
     finally:
         db.con.close()
@@ -150,7 +153,8 @@ def page_event(session, result_id, highlight=(), notes=None, title=None):
     stored = session.harness.results[result_id]
     stored["shown"] = True
     session.turn_shown.append(result_id)
-    plan_names = {p["plan_id"]: p["name"] for p in available_plans()} if stored["kind"] == "estimate" else None
+    plan_names = ({p["plan_id"]: p["name"] for p in available_plans(session.harness.db.owners)}
+                  if stored["kind"] == "estimate" else None)
     return sse(*render_page(stored["kind"], result_id, stored, highlight, notes, title, plan_names))
 
 
@@ -297,7 +301,7 @@ def apply_context(session, context):
     if not context or context == session.context:
         return None
     session.context = context
-    plans = {plan["plan_id"]: plan for plan in available_plans()}
+    plans = {plan["plan_id"]: plan for plan in available_plans(session.harness.db.owners)}
     chosen = [plans[pid] for pid in context.get("plan_ids") or [] if pid in plans]
     names = "; ".join(f"{p['name']} (plan_id {p['plan_id']})" for p in chosen) or "any plans in the plan list"
     if context.get("mode") == "calculate":
@@ -388,10 +392,13 @@ async def session_turn(session, request, user_id=None):
 
 
 @app.get("/plans")
-async def plans():
+async def plans(request: Request):
+    """Every database plan, and a signed-in user's own uploaded plans; nobody else's."""
+    user_id = current_user_id(request)
+    owners = [s["session_id"] for s in STORE.sessions_of(user_id)] if user_id else []
     return [{"plan_id": plan["plan_id"], "name": plan["name"], "insurer": plan["insurer"],
-             "plan_year": plan["plan_year"], "verified": plan["verified"], "uploaded": plan["uploaded"]}
-            for plan in available_plans()]
+             "plan_year": plan["plan_year"], "uploaded": plan["uploaded"]}
+            for plan in available_plans(owners)]
 
 
 def sniff_upload(data):
@@ -497,9 +504,11 @@ async def turn(body: TurnRequest, request: Request):
         session = STORE.get(body.session_id, user_id)
     except NotYours:
         raise HTTPException(404, NOT_FOUND)
+    session.harness.set_viewer(body.session_id, STORE.plan_owners(body.session_id, user_id))
     if user:  # what the user told us before: fills the questionnaire, and the agent reads it (memory.py)
         session.harness.hooks.use_memory(question_answers(MEMORY.facts(user_id)))
-        session.memory = MEMORY.memory(user, {p["plan_id"]: p["name"] for p in available_plans()})
+        session.memory = MEMORY.memory(user, {p["plan_id"]: p["name"]
+                                              for p in available_plans(session.harness.db.owners)})
     return StreamingResponse(turn_events(session, body, user_id), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache, no-transform"})
 
@@ -581,7 +590,8 @@ async def update_my_settings(body: dict, request: Request):
     if name is not None and (not isinstance(name, str) or len(name.strip()) > 80):
         raise HTTPException(422, "Name must be text of at most 80 characters.")
     try:
-        MEMORY.remember(user_id, facts, "settings", plan_ids={p["plan_id"] for p in available_plans()})
+        mine = [s["session_id"] for s in STORE.sessions_of(user_id)]
+        MEMORY.remember(user_id, facts, "settings", plan_ids={p["plan_id"] for p in available_plans(mine)})
     except ValueError as error:
         raise HTTPException(422, str(error))
     user = ACCOUNTS.set_name(user_id, (name or "").strip() or None) if "name" in body else current_user(request)

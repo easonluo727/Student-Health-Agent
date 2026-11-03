@@ -27,6 +27,7 @@ import sqlite3
 import sys
 import threading
 from collections import OrderedDict
+from contextlib import closing
 from dataclasses import dataclass
 from decimal import Decimal
 from functools import lru_cache
@@ -149,6 +150,25 @@ def _component_at(rates_path: str, plan_key: str, code: str, billing_class: str,
                              as_of=as_of, strict_npi=True)
 
 
+def _migrate(path: Path) -> None:
+    """Bring a runtime database made by an older version up to db/schema.sql (2026-11-03): plans.owner (old uploads
+    get none, so nobody sees them until claim_uploaded), and no verified columns (uploads count like any plan)."""
+    def outdated(con):
+        plans = {r[1] for r in con.execute("PRAGMA table_info(plans)")}
+        benefits = {r[1] for r in con.execute("PRAGMA table_info(benefits)")}
+        return "owner" not in plans or "verified" in plans or "verified" in benefits
+
+    with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as con:
+        if not outdated(con):
+            return
+    with _POLICY_WRITE_LOCK, closing(sqlite3.connect(path, timeout=30)) as write, write:
+        if "owner" not in {r[1] for r in write.execute("PRAGMA table_info(plans)")}:
+            write.execute("ALTER TABLE plans ADD COLUMN owner TEXT")
+        for table in ("plans", "benefits"):
+            if "verified" in {r[1] for r in write.execute(f"PRAGMA table_info({table})")}:
+                write.execute(f"ALTER TABLE {table} DROP COLUMN verified")
+
+
 class PlanDB:
     def __init__(self, path: Path = POLICY_DB, rates_path: Path = RATES_DB,
                  connection: sqlite3.Connection | None = None):
@@ -158,20 +178,29 @@ class PlanDB:
                 if not path.exists():
                     path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(POLICY_SEED_DB, path)
+        if connection is None:
+            _migrate(path)
         self.con = connection or sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
         self.path = None if connection is not None else Path(path)
         self.con.row_factory = sqlite3.Row
+        # Uploaded plans are private: plans() shows only those whose owner (the conversation they were uploaded in)
+        # is in owners, and a new upload is saved under owner. Harness.set_viewer sets both for each request.
+        self.owners: tuple[str, ...] = ()
+        self.owner: str | None = None
         # Without the rate store only flat copays can be computed.
         self.rates_path = str(rates_path) if Path(rates_path).exists() else None
 
     def add_uploaded_plan(self, plan: dict, benefits: list[dict]) -> bool:
-        """Persist one normalized PDF extraction in the shared policy database.
+        """Persist one normalized PDF extraction in the policy database, owned by self.owner (only its owner sees it).
 
         The regular connection remains read-only. This method opens a short, serialized write transaction so
-        concurrent uploads cannot interleave. Returns False when the same content-derived plan_id already exists.
+        concurrent uploads cannot interleave. Returns False when the same plan_id already exists.
         """
         if self.path is None:
             raise ValueError("A database path is required to persist an uploaded plan.")
+        if not self.owner:
+            raise ValueError("An uploaded plan needs an owner (the conversation it was uploaded in).")
+        plan = {**plan, "owner": self.owner}
         plan_id = plan.get("plan_id")
         if not plan_id or not str(plan_id).startswith("upload_"):
             raise ValueError("Uploaded plan_id must start with 'upload_'.")
@@ -192,6 +221,27 @@ class PlanDB:
                               f"VALUES ({', '.join('?' * len(benefit_columns))})",
                               [values(row, benefit_columns) for row in benefits])
         return True
+
+    def delete_uploaded(self, owners) -> int:
+        """Delete the plans uploaded in these conversations (when they are deleted or expire); return how many."""
+        owners = list(owners)
+        if self.path is None or not owners:
+            return 0
+        marks = ",".join("?" * len(owners))
+        with _POLICY_WRITE_LOCK, sqlite3.connect(self.path, timeout=30) as write:
+            ids = [r[0] for r in write.execute(f"SELECT plan_id FROM plans WHERE owner IN ({marks})", owners)]
+            for table in ("benefits", "plan_networks", "premiums", "plans"):
+                write.executemany(f"DELETE FROM {table} WHERE plan_id=?", [(i,) for i in ids])
+        return len(ids)
+
+    def claim_uploaded(self, owner_of: dict[str, str]) -> int:
+        """Give uploads saved before plans had owners (owner NULL, seen by nobody) to the conversation that uploaded
+        them: owner_of is plan_id -> session_id, from the app database's upload records. Return how many."""
+        if self.path is None or not owner_of:
+            return 0
+        with _POLICY_WRITE_LOCK, sqlite3.connect(self.path, timeout=30) as write:
+            return sum(write.execute("UPDATE plans SET owner=? WHERE plan_id=? AND owner IS NULL AND plan_id LIKE "
+                                     "'upload_%'", (owner, plan_id)).rowcount for plan_id, owner in owner_of.items())
 
     def rate_networks(self) -> dict[str, str | None]:
         """plan_key -> its network name in the rate store (None when the files name several), for the keys an
@@ -242,7 +292,10 @@ class PlanDB:
     # ------------------------------------------------------------------ catalog
     def plans(self) -> list[dict]:
         out = []
-        for p in self.con.execute("SELECT * FROM plans ORDER BY plan_id"):
+        # An uploaded plan only for its owners; one without an owner (saved before owners) for nobody.
+        marks = ",".join("?" * len(self.owners)) or "NULL"
+        for p in self.con.execute(f"SELECT * FROM plans WHERE plan_id NOT LIKE 'upload_%' OR owner IN ({marks}) "
+                                  "ORDER BY plan_id", self.owners):
             # A plan's tiers are the ones its benefits are priced under. A tier name only on plan_level rows (an
             # extraction that labelled the deductible "Preferred" but no visit) is not a tier: those rows apply to
             # the whole plan (_plan_level).
@@ -452,7 +505,7 @@ class PlanDB:
         value = Decimal(str(amount)).quantize(Decimal("0.01"))
         annual = float(value * 12 if period == "month" else value)
         amount = float(value)
-        where = (f"as printed in the uploaded document {document} (not verified)" if document else
+        where = (f"as printed in the user's document {document}" if document else
                  "as the user stated (not checked against the insurer)")
         return {"status": "priced", "annual": annual, "period": period, "amount": amount,
                 "monthly": amount if period == "month" else None,
@@ -488,18 +541,12 @@ class PlanDB:
         plan = self.plan(plan_id)
         if plan is None:
             return {"status": "invalid_input", "message": f"Unknown plan {plan_id!r}.", "patient_cost": None}
-        notice = ("Automatically extracted from an uploaded PDF; not human verified. "
-                  if not plan.get("verified", True) else "")
-
-        def msg(text):
-            return notice + (text or "")
-
         if scenario not in SCENARIOS or scenario not in _encounters():
-            return {"status": "invalid_input", "message": msg(f"Unknown scenario {scenario!r}."),
+            return {"status": "invalid_input", "message": f"Unknown scenario {scenario!r}.",
                     "patient_cost": None}
         if network == "in" and tier is None and plan["in_network_tiers"]:
             return {"status": "needs_information", "missing_fields": ["network_tier"], "patient_cost": None,
-                    "message": msg("This plan has several in-network tiers; choose one."),
+                    "message": "This plan has several in-network tiers; choose one.",
                     "options": plan["in_network_tiers"]}
         tier = tier if network == "in" else None
         label = _encounters()[scenario][0]
@@ -517,7 +564,7 @@ class PlanDB:
             if row is None and part.fallback:
                 row = self.benefit(plan_id, part.fallback, network, tier, part.component, scenario)
             if row is None:
-                return self._result("needs_review", msg(f"The plan has no {part.service} benefit for this network/tier."),
+                return self._result("needs_review", f"The plan has no {part.service} benefit for this network/tier.",
                                     plan_id, scenario, label, network, tier, prices, [])
             g = groups.setdefault(row["benefit_id"], {"row": row, "components": [], "allowed": Decimal(0),
                                                       "priced": True})
@@ -542,23 +589,23 @@ class PlanDB:
                           "missing_fields": result["missing_fields"], "rule": rule_text(row),
                           "source_page": row["source_page"], "source_url": row["source_url"],
                           "quote": row["quote"], "limits": row["limits_conditions"],
-                          "review_flags": row["review_flags"], "verified": bool(row.get("verified", True))})
+                          "review_flags": row["review_flags"]})
             if result["status"] == "not_covered":
-                return self._result("not_covered", msg(f"{row['service_as_printed']} is not covered."), plan_id, scenario,
+                return self._result("not_covered", f"{row['service_as_printed']} is not covered.", plan_id, scenario,
                                     label, network, tier, prices, lines)
             if result["status"] != "estimated":
                 missing = result["missing_fields"]
                 if "allowed_amount" in missing and prices.get("status") in ("no_rates", "partial"):
-                    return self._result("needs_review", msg(prices.get("message", "No price data.")), plan_id, scenario,
+                    return self._result("needs_review", prices.get("message", "No price data."), plan_id, scenario,
                                         label, network, tier, prices, lines)
-                return self._result(result["status"], msg(result["message"]), plan_id, scenario, label, network, tier,
+                return self._result(result["status"], result["message"] or "", plan_id, scenario, label, network, tier,
                                     prices, lines, missing)
             total += Decimal(str(result["patient_cost"]))
             if uses_deductible and remaining is not None:
                 paid += min(remaining, g["allowed"])
                 remaining -= min(remaining, g["allowed"])
-        return self._result("estimated", msg("Estimate for one occurrence; excludes balance billing and the out-of-pocket "
-                            "maximum. Not a coverage guarantee."), plan_id, scenario, label, network, tier, prices,
+        return self._result("estimated", ("Estimate for one occurrence; excludes balance billing and the out-of-pocket "
+                             "maximum. Not a coverage guarantee."), plan_id, scenario, label, network, tier, prices,
                             lines, patient_cost=float(total.quantize(Decimal("0.01"))), deductible_paid=float(paid))
 
     @staticmethod

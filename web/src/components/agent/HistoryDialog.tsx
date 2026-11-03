@@ -124,8 +124,7 @@ export function HistoryButton({ agent }: { agent: Agent }) {
             {section("Plans", plans, u => <>
               <p className="flex items-center gap-2 text-sm font-semibold"><FileText className="size-4 shrink-0" />
                 <span className="truncate">{planOf(u.plan_id)?.name ?? u.plan_name ?? u.name}</span></p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{u.name} · uploaded {day(u.created_at)}
-                {planOf(u.plan_id)?.verified === false && <> · <span className="text-warning-content">extracted automatically, not checked by a person</span></>}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{u.name} · uploaded {day(u.created_at)}</p>
             </>)}
             {section("Other files", other, u => <>
               <p className="flex items-center gap-2 text-sm font-semibold">{u.content_type.startsWith("image/") ? <ImageIcon className="size-4 shrink-0" /> : <FileText className="size-4 shrink-0" />}

@@ -92,6 +92,21 @@ class SessionStoreTest(unittest.TestCase):
         self.assertEqual(len(self.store.sessions_of(self.alice)), 1)  # a signed-in user's chat never expires
         self.assertEqual(self.store.get("mine", self.alice).history, [])
 
+    def test_deleting_a_conversation_deletes_the_plans_uploaded_in_it(self):
+        deleted = []
+        self.store.on_delete = deleted.extend
+        for sid, user in [("old", None), ("chat-a", self.alice), ("chat-b", self.alice), ("bobs", self.bob)]:
+            self.store.save(sid, Session(), user)
+        # Whose uploaded plans each user sees: this chat, and every chat of a signed-in user; never someone else's.
+        self.assertEqual(sorted(self.store.plan_owners("chat-a", self.alice)), ["chat-a", "chat-b"])
+        self.assertEqual(self.store.plan_owners("old", None), ["old"])
+        self.age("old")
+        self.store.purge()
+        self.store.delete("chat-a", self.alice)
+        self.store.delete("bobs", self.alice)  # not Alice's: nothing deleted
+        self.store.delete_user(self.bob)
+        self.assertEqual(deleted, ["old", "chat-a", "bobs"])
+
     def test_an_owned_session_is_only_the_owners(self):
         s = Session()
         s.history = [{"role": "user", "content": "my deductible"}]

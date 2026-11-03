@@ -15,7 +15,7 @@ CREATE TABLE plans (
     oop_max_out_usd    REAL CHECK (oop_max_out_usd >= 0),
     coinsurance_in_pct REAL CHECK (coinsurance_in_pct BETWEEN 0 AND 100),
     source_url         TEXT,
-    verified           INTEGER NOT NULL DEFAULT 0
+    owner              TEXT  -- uploaded plans only: the conversation (session_id) it was uploaded in; only its owner sees it
 );
 
 CREATE TABLE benefits (
@@ -42,9 +42,8 @@ CREATE TABLE benefits (
     quote              TEXT,
     source_url         TEXT,
     source_page        INTEGER,
-    verified           INTEGER NOT NULL DEFAULT 0,
     review_flags       TEXT NOT NULL DEFAULT '',   -- comma-separated: why the calculator must not use the row as-is
-    calculable         INTEGER NOT NULL DEFAULT 0  -- trusted: verified and flag-free; uploads may be unverified but structurally complete
+    calculable         INTEGER NOT NULL DEFAULT 0  -- no review_flags
 );
 CREATE INDEX ix_benefits_lookup ON benefits (plan_id, service, network, network_tier);
 CREATE INDEX ix_benefits_category ON benefits (category, service);

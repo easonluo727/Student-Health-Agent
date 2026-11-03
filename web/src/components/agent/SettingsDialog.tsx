@@ -65,7 +65,7 @@ export function SettingsButton({ agent }: { agent: Agent }) {
             <Row label="Age" help="Premiums depend on age."><input className={field} value={draft.age} onChange={set("age")} type="number" min={18} max={64} /></Row>
           </div>
           <Row label="Current plan"><select className={field} value={draft.plan_id} onChange={set("plan_id")}>
-            <option value="">Not set</option>{agent.plans.map(p => <option key={p.plan_id} value={p.plan_id}>{p.name}{p.uploaded && !p.verified ? " (uploaded)" : ""}</option>)}
+            <option value="">Not set</option>{agent.plans.map(p => <option key={p.plan_id} value={p.plan_id}>{p.name}{p.uploaded ? " (uploaded)" : ""}</option>)}
           </select></Row>
           {error && <p role="alert" className="text-sm text-negative-deep">{error}</p>}
           <div className="flex items-center justify-end gap-3">

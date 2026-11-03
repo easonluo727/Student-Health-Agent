@@ -4,17 +4,15 @@
 
 Input, under <src>:
   extracted/<plan_id>/plans.csv + benefits.csv   in the format of the SBC extraction prompt, kept as extracted
-  sources.csv                                    one row per source document; a non-empty verified_by marks the
-                                                 whole plan verified (rows can still opt out with verified=no)
+  sources.csv                                    one row per source document (provenance; not read by the build)
   plan_networks.csv                              the bridge to the MRF rates; rows for plans not extracted yet wait
   premiums.csv, age_curve.csv, rating_regions.csv  written by scripts/policy/extract_premiums.py from official PDFs
 Output: <out>, rebuilt from scratch each run (small, committed, deployed with the code).
 
 Normalizing: NOT FOUND / blank / "none" -> NULL; yes/no -> 1/0; a component other than
 office_visit/facility/provider (e.g. "asc") becomes the row's setting. Each benefit row gets a category from its
-SBC section and review_flags for what the calculator cannot handle; the trusted seed is calculable only when
-verified and flag-free. The runtime upload path can explicitly allow structurally complete, unverified rows while
-keeping verified=false and adding a user-facing disclosure.
+SBC section and review_flags for what the calculator cannot handle; a row is calculable when it has no flag. A user's
+upload goes through the same build_plan() and is treated the same way.
 Bad rows are listed and skipped. A duplicate natural key skips the whole plan, since the rows can't be told apart.
 """
 from __future__ import annotations
@@ -47,11 +45,10 @@ FLAG_PATTERNS = {"cap": r"maximum of \$|up to \$|allowance", "penalty": r"penalt
                  "balance_billing": r"(over|above) the allowed amount"}
 OUT_OF_NETWORK_NOTE = r"out-of-network|non-contracting"
 PLAN_COLUMNS = ["plan_id", "insurer", "plan_name", "plan_year", "plan_type", "network_name", "deductible_in_usd",
-                "deductible_out_usd", "oop_max_in_usd", "oop_max_out_usd", "coinsurance_in_pct", "source_url",
-                "verified"]
+                "deductible_out_usd", "oop_max_in_usd", "oop_max_out_usd", "coinsurance_in_pct", "source_url"]
 BENEFIT_COLUMNS = ["benefit_id", "plan_id", "category", "section", "service", "service_as_printed", "component",
                    "setting", "network", "network_tier", "copay_usd", "coinsurance_pct", "deductible_applies",
-                   "prior_auth", "covered", "limits_conditions", "quote", "source_url", "source_page", "verified",
+                   "prior_auth", "covered", "limits_conditions", "quote", "source_url", "source_page",
                    "review_flags", "calculable"]
 NETWORK_COLUMNS = ["plan_id", "network_tier", "mrf_plan_key", "mrf_network", "notes", "confirmed"]
 PREMIUM_COLUMNS = ["plan_id", "rating_region", "age", "enrollee", "period", "amount_usd", "annual_usd", "basis",
@@ -92,10 +89,8 @@ def category(section, service):
     return next((c for key, c in CATEGORIES if key in s), "other")
 
 
-def flags(row, verified, allow_unverified_calculation=False):
-    # Runtime uploads are stored separately from the reviewed CSV seed and explicitly shown as model-extracted. They may be
-    # calculated when structurally complete without falsely marking the source as human-verified.
-    out = [] if verified or allow_unverified_calculation else ["unverified"]
+def flags(row):
+    out = []
     if row["service"] == "plan_level" or row["covered"] is False:
         return out
     if row["covered"] is None:
@@ -116,7 +111,7 @@ def flags(row, verified, allow_unverified_calculation=False):
     return out
 
 
-def build_plan(folder, blanket_verified=False, allow_unverified_calculation=False):
+def build_plan(folder):
     """Return (plan, benefits, problems) for one extracted plan folder; plan is None if it can't be used."""
     problems = []
     plan_rows = read(folder / "plans.csv")
@@ -131,7 +126,7 @@ def build_plan(folder, blanket_verified=False, allow_unverified_calculation=Fals
                                                "source_url")},
                 **{k: num(r.get(k), k) for k in ("deductible_in_usd", "deductible_out_usd", "oop_max_in_usd",
                                                  "oop_max_out_usd", "coinsurance_in_pct")},
-                "plan_type": plan_type, "verified": blanket_verified or yes(r.get("verified")) is True}
+                "plan_type": plan_type}
         if not plan["insurer"] or not plan["plan_name"]:
             raise ValueError("insurer and plan_name are required")
     except ValueError as e:
@@ -167,11 +162,9 @@ def build_plan(folder, blanket_verified=False, allow_unverified_calculation=Fals
         key = tuple(row[k] or "" for k in ("section", "service", "service_as_printed", "component", "setting",
                                            "network", "network_tier"))
         keys[key] += 1
-        row_verified = yes(b.get("verified"))
-        verified = plan["verified"] and (row_verified is True or (blanket_verified and row_verified is not False))
-        row_flags = flags(row, verified, allow_unverified_calculation)
+        row_flags = flags(row)
         row.update(benefit_id=hashlib.sha1("|".join((folder.name, *key)).encode()).hexdigest()[:16],
-                   category=category(row["section"], row["service"]), verified=verified,
+                   category=category(row["section"], row["service"]),
                    review_flags=row_flags, calculable=not row_flags)
         benefits.append(row)
     dupes = [k for k, n in keys.items() if n > 1]
@@ -242,10 +235,9 @@ def premiums(src, plans):
 
 def main(src, out):
     src, out = Path(src), Path(out)
-    sources = {r["plan_id"]: r for r in read(src / "sources.csv")} if (src / "sources.csv").exists() else {}
     plans, benefits, problems = [], [], []
     for folder in sorted(p for p in (src / "extracted").iterdir() if p.is_dir()):
-        plan, rows, errs = build_plan(folder, bool(text(sources.get(folder.name, {}).get("verified_by"))))
+        plan, rows, errs = build_plan(folder)
         problems += errs
         if plan:
             plans.append(plan)

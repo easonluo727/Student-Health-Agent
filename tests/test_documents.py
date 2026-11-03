@@ -99,6 +99,7 @@ class DocumentToolsTest(unittest.TestCase):
         self.harness = Harness()
         self.harness.files["f1"] = {"path": self.tmp / "plan.pdf", "name": "plan.pdf",
                                     "content_type": "application/pdf", "sha256": "ab" * 32}
+        self.harness.set_viewer("session-1")
 
     def run_tool(self, name, **args):
         parsed, error = self.harness.tools.parse(name, __import__("json").dumps(args))
@@ -129,7 +130,9 @@ class DocumentToolsTest(unittest.TestCase):
         kwargs = extract.call_args.kwargs
         self.assertEqual((kwargs["pages"], kwargs["summary_pages"]), ([3, 4], [3]))
         self.assertEqual(extract.call_args.args[4]["document_type"], "benefit booklet")
-        self.assertEqual(extract.call_args.args[7], "upload_" + "ab" * 12)
+        # Per conversation: someone else uploading the same file gets their own private plan.
+        self.assertEqual(extract.call_args.args[7],
+                         "upload_" + __import__("hashlib").sha256(("session-1:" + "ab" * 32).encode()).hexdigest()[:24])
 
     def test_extract_rejects_pages_outside_the_file(self):
         with self.assertRaises(ValueError):

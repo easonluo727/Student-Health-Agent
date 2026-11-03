@@ -30,7 +30,8 @@ PROMPT_PATH = Path(__file__).with_name("prompts") / "system.md"
 class Harness:
     def __init__(self, db: PlanDB | None = None):
         self.db = db or PlanDB()
-        directory = ProviderDirectory(policy_path=self.db.path) if self.db.path else ProviderDirectory()
+        self.directory = directory = (ProviderDirectory(policy_path=self.db.path) if self.db.path
+                                      else ProviderDirectory())
         # Saved with the session (sessions.py); the skills hold these same dicts.
         self.files = {}  # file_id -> {"path", "name", "content_type", "sha256"}: the user's uploads
         self.bills = {}  # bill_id -> {"bill", "name", "file_id", "page", "model", "audit"}
@@ -42,6 +43,16 @@ class Harness:
                        bills_skill.build(self.db, directory, self.bills, self.files),
                        pages_skill.build(self.results, self.hooks.guard)]
         self.tools = mcp.ToolRegistry([tool for skill in self.skills for tool in skill.tools])
+        self._prompt()
+
+    def set_viewer(self, session_id: str, owners=()) -> None:
+        """Who is asking, before each request: uploads are saved under this conversation, and the user sees the
+        plans uploaded in it and in their other conversations (owners), never anyone else's."""
+        self.db.owner = session_id
+        self.db.owners = self.directory.plan_owners = tuple(dict.fromkeys([session_id, *owners]))
+        self._prompt()
+
+    def _prompt(self) -> None:
         plan_context = ("```json\n" + "\n".join(json.dumps(p, ensure_ascii=False)
                                                 for p in plans_skill.plan_summary(self.db)) + "\n```")
         text = PROMPT_PATH.read_text(encoding="utf-8")

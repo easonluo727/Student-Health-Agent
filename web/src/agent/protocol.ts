@@ -20,7 +20,7 @@ export interface TurnContext { mode: Mode; plan_ids?: string[] }
 export interface TurnRequest { session_id: string; input: TurnInput; reply_target?: ReplyTarget; context?: TurnContext }
 export interface Plan {
   plan_id: string; name: string; insurer: string; plan_year: string
-  verified: boolean; uploaded: boolean
+  uploaded: boolean
 }
 
 export interface Option { value: string; label: string }

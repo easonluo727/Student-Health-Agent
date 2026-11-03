@@ -8,8 +8,12 @@
 
 The policy catalog is read-only for normal queries, but an unknown uploaded SBC is normalized and inserted through
 one short write transaction. Set `POLICY_DB` to a durable volume path in production if uploaded plans must survive a
-redeploy; on first start the app copies the committed seed database there automatically. Uploaded rows remain
-`verified=0`; `plan_networks` is not guessed from the PDF. On Railway, `/data/policy.sqlite` is initialized from the
+redeploy; on first start the app copies the committed seed database there automatically. For an uploaded plan
+`plans.owner` is the conversation (session_id) they were uploaded in: `PlanDB.plans()` shows an
+uploaded plan only to its owners (that conversation and the signed-in user's other conversations), an upload with no
+owner to nobody, and deleting or expiring the conversation deletes the plan (`PlanDB.delete_uploaded`). Uploads saved
+before owners are given to the conversation that recorded them at startup (`PlanDB.claim_uploaded`).
+`plan_networks` is not guessed from the PDF. On Railway, `/data/policy.sqlite` is initialized from the
 committed seed automatically. Running `build_seed.py`
 replaces its output database from the reviewed CSV sources, so do not point `--out` at a live upload database unless
 you intentionally want to reset those runtime additions.
@@ -25,7 +29,7 @@ from ② at runtime (`workflow/plan_db.py` → `scripts/mrf/allowed.py`). Python
 ```
 plan SBC PDF ──scripts/policy/extract_sbc.py (LLM) or the Perplexity prompt──>
                                     data/plans/extracted/<plan_id>/{plans,benefits}.csv   (raw, kept as extracted)
-                                    data/plans/sources.csv        (verified_by set → the whole plan is verified)
+                                    data/plans/sources.csv        (provenance: URL, SHA-256, who extracted it)
                                     data/plans/plan_networks.csv  (bridge to the MRF rates)
                                             ▼
                      python scripts/policy/build_seed.py
@@ -34,7 +38,7 @@ plan SBC PDF ──scripts/policy/extract_sbc.py (LLM) or the Perplexity prompt�
                                data/plans/policy.sqlite   (rebuilt from scratch; commit it)
 
 unknown uploaded SBC ──extract_sbc.extract() ──> temporary plans.csv + benefits.csv
-                     ──build_seed.build_plan() ──> shared runtime policy.sqlite (`verified=0`)
+                     ──build_seed.build_plan() ──> runtime policy.sqlite (`owner` = the uploader's conversation)
 ```
 
 `extract_sbc.py` finds an SBC's pages itself (page 1 "Important Questions" + the "What You Will Pay" table pages;
@@ -43,9 +47,9 @@ off (`LLM_EXTRA_BODY`); a plan takes about 3 minutes. Python then splits nothing
 source_url / source_page, unifies tier spellings ("UC Family Provider" → "UC Family") and drops rows repeated
 across pages.
 
-`data/plans/sources.csv` lists every source document (URL, SHA-256, who extracted it, when, who verified it). Team
-decision 2026-10-17: every extraction CSV the team hands over counts as verified, recorded as `verified_by`; a single
-row can still opt out with `verified=no`. The PDFs themselves stay out of git (`data/policy_pdfs/`).
+`data/plans/sources.csv` lists every source document (URL, SHA-256, who extracted it, when, who checked it). It is a
+record only: the build doesn't read it, and since 2026-11-03 there is no verified/unverified distinction (a `verified`
+column left in an extraction CSV is ignored). The PDFs themselves stay out of git (`data/policy_pdfs/`).
 
 ## Benefit rows
 
@@ -56,8 +60,8 @@ One row = one price: plan × SBC section × service × component × setting × n
 | `category` | grouping from the SBC "Common Medical Event": `office_visits`, `tests`, `drugs`, `outpatient_surgery`, `emergency`, `hospital_stay`, `mental_health`, `pregnancy`, `recovery`, `pediatric`, `plan_level`, `excluded`, `other` |
 | `service` | the calculator's service key (including distinct office and telehealth benefits), `plan_level`, or `other` |
 | `network` / `network_tier` | `in`/`out`; tier as printed (e.g. `Ashe Center`, `UC Family`, `Network`) |
-| `review_flags` | comma-separated reasons the calculator must not use the row as-is: `unverified`, `coverage_unknown`, `missing_cost`, `missing_deductible`, `cap`, `penalty`, `balance_billing` |
-| `calculable` | 1 for a verified, flag-free seed row, or for a structurally complete runtime upload. Uploaded rows remain `verified=0` and every result carries an unverified disclosure. |
+| `review_flags` | comma-separated reasons the calculator must not use the row as-is: `coverage_unknown`, `missing_cost`, `missing_deductible`, `cap`, `penalty`, `balance_billing` |
+| `calculable` | 1 when the row has no review flag; the same for the seed and for a user's upload. |
 
 `plan_level` rows hold each tier's individual deductible and out-of-pocket limit in `copay_usd`.
 
@@ -80,8 +84,8 @@ Every step leaves evidence a person can check. A coding assistant may run the sc
    Covered California. Add a row to `data/plans/sources.csv`: URL, SHA-256, download date. PDFs stay in
    `data/policy_pdfs/` (not in git).
 2. **Extract the benefits (Branch A).** `python scripts/policy/extract_sbc.py <pdf> <plan_id>` writes
-   `data/plans/extracted/<plan_id>/{plans,benefits}.csv`. A person checks them against the PDF and sets
-   `verified_by` in `sources.csv`.
+   `data/plans/extracted/<plan_id>/{plans,benefits}.csv`. A person checks them against the PDF and records it
+   in `verified_by` in `sources.csv`.
 3. **Find the plan's official ID.** Individual and Covered California plans have a 14-character HIOS ID
    (e.g. `92815CA001000` for L.A. Care Covered at product level); employer plans use the employer's EIN
    (e.g. `943067788` for UC SHIP). It is rarely printed on the SBC; the insurer's TOC lists it with the plan name.

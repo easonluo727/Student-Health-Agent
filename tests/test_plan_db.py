@@ -330,15 +330,17 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
         with sqlite3.connect(policy) as con:
             con.execute("CREATE TEMP TABLE p AS SELECT * FROM plans WHERE plan_id='healthnet_silver70_hmo_2026'")
-            con.execute("UPDATE p SET plan_id='upload_medicover', verified=0")
+            con.execute("UPDATE p SET plan_id='upload_medicover', owner='session-1'")
             con.execute("INSERT INTO plans SELECT * FROM p")
             con.execute("CREATE TEMP TABLE b AS SELECT * FROM benefits WHERE plan_id='healthnet_silver70_hmo_2026' "
                         "AND network='in'")
-            con.execute("UPDATE b SET plan_id='upload_medicover', benefit_id='u' || benefit_id, verified=0, "
+            con.execute("UPDATE b SET plan_id='upload_medicover', benefit_id='u' || benefit_id, "
                         "network_tier=CASE WHEN service='plan_level' THEN 'Preferred' END")
             con.execute("INSERT INTO benefits SELECT * FROM b")
         con.close()
-        return PlanDB(policy, Path(self.tmp) / "rates.sqlite")
+        db = PlanDB(policy, Path(self.tmp) / "rates.sqlite")
+        db.owners = ("session-1",)
+        return db
 
     def test_a_tier_named_only_on_plan_level_rows_is_not_a_tier(self):
         db = self._uploaded_copy()
@@ -396,29 +398,90 @@ class PlanDbWithoutRateStore(unittest.TestCase):
         self.assertEqual(db.estimate("healthnet_silver70_hmo_2026", "specialist_followup")["patient_cost"], 90)
         self.assertEqual(db.allowed_amounts("healthnet_silver70_hmo_2026", None, "knee_mri")["status"], "no_rates")
 
-    def test_uploaded_plan_is_persisted_and_disclosed(self):
+    def test_uploaded_plan_is_persisted_and_priced_like_any_plan(self):
         with tempfile.TemporaryDirectory() as tmp:
             policy = Path(tmp) / "policy.sqlite"
             shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
             db = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+            db.owner, db.owners = "session-1", ("session-1",)
             plan = dict(db.con.execute(
                 "SELECT * FROM plans WHERE plan_id='healthnet_silver70_hmo_2026'").fetchone())
-            plan.update(plan_id="upload_test", plan_name="Uploaded Test Plan", verified=0)
+            plan.update(plan_id="upload_test", plan_name="Uploaded Test Plan")
             benefit = dict(db.con.execute(
                 "SELECT * FROM benefits WHERE plan_id='healthnet_silver70_hmo_2026' "
                 "AND service='primary_care_visit' AND network='in' LIMIT 1").fetchone())
-            benefit.update(benefit_id="uploadbenefit1", plan_id="upload_test", verified=0, calculable=1,
+            benefit.update(benefit_id="uploadbenefit1", plan_id="upload_test", calculable=1,
                            review_flags="")
             self.assertTrue(db.add_uploaded_plan(plan, [benefit]))
             self.assertFalse(db.add_uploaded_plan(plan, [benefit]))
             self.assertIsNotNone(db.plan("upload_test"))
             persistent = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+            persistent.owners = ("session-1",)
             result = persistent.estimate("upload_test", "office_visit_established")
             self.assertEqual((result["status"], result["patient_cost"]), ("estimated", 50))
-            self.assertIn("not human verified", result["message"])
             self.assertIsNotNone(persistent.plan("upload_test"))
             db.con.close()
             persistent.con.close()
+
+    def test_an_older_runtime_database_is_brought_up_to_date(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy = Path(tmp) / "policy.sqlite"
+            shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
+            with sqlite3.connect(policy) as con:  # as deployed before 2026-11-03
+                con.execute("ALTER TABLE plans DROP COLUMN owner")
+                con.execute("ALTER TABLE plans ADD COLUMN verified INTEGER NOT NULL DEFAULT 0")
+                con.execute("ALTER TABLE benefits ADD COLUMN verified INTEGER NOT NULL DEFAULT 0")
+                con.execute("INSERT INTO plans (plan_id, insurer, plan_name) VALUES ('upload_old', 'X', 'Old')")
+            con.close()
+            db = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+            columns = {t: {r[1] for r in db.con.execute(f"PRAGMA table_info({t})")} for t in ("plans", "benefits")}
+            self.assertIn("owner", columns["plans"])
+            self.assertNotIn("verified", columns["plans"] | columns["benefits"])
+            db.owners = ("anyone",)
+            self.assertIsNone(db.plan("upload_old"))  # no owner: nobody sees it
+            self.assertIsNotNone(db.plan("healthnet_silver70_hmo_2026"))
+            db.con.close()
+
+    def test_an_uploaded_plan_is_seen_only_by_its_owner_and_deleted_with_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy = Path(tmp) / "policy.sqlite"
+            shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
+            db = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+            plan = dict(db.con.execute("SELECT * FROM plans WHERE plan_id='healthnet_silver70_hmo_2026'").fetchone())
+            benefit = dict(db.con.execute("SELECT * FROM benefits WHERE plan_id='healthnet_silver70_hmo_2026' "
+                                          "LIMIT 1").fetchone())
+            with self.assertRaises(ValueError):  # never saved without an owner
+                db.add_uploaded_plan({**plan, "plan_id": "upload_a"}, [{**benefit, "plan_id": "upload_a"}])
+            db.owner = "alice-chat"
+            db.add_uploaded_plan({**plan, "plan_id": "upload_a"},
+                                 [{**benefit, "benefit_id": "ua", "plan_id": "upload_a"}])
+
+            def visible(*owners):
+                viewer = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+                viewer.owners = owners
+                ids = {p["plan_id"] for p in viewer.plans()}
+                viewer.con.close()
+                self.assertIn("healthnet_silver70_hmo_2026", ids)  # database plans are for everyone
+                return "upload_a" in ids
+            self.assertTrue(visible("alice-chat"))
+            self.assertTrue(visible("bob-chat", "alice-chat"))  # Alice signed in, in another chat
+            self.assertFalse(visible("bob-chat"))
+            self.assertFalse(visible())
+
+            # An upload saved before owners is seen by nobody until its conversation claims it.
+            with sqlite3.connect(policy) as con:
+                con.execute("UPDATE plans SET owner=NULL WHERE plan_id='upload_a'")
+            con.close()
+            self.assertFalse(visible("alice-chat"))
+            self.assertEqual(db.claim_uploaded({"upload_a": "alice-chat", "healthnet_silver70_hmo_2026": "x"}), 1)
+            self.assertTrue(visible("alice-chat"))
+            self.assertFalse(visible("x"))  # a database plan is never claimed
+
+            self.assertEqual(db.delete_uploaded(["bob-chat"]), 0)
+            self.assertEqual(db.delete_uploaded(["alice-chat"]), 1)
+            self.assertFalse(visible("alice-chat"))
+            self.assertEqual(db.con.execute("SELECT COUNT(*) FROM benefits WHERE plan_id='upload_a'").fetchone()[0], 0)
+            db.con.close()
 
 
 class Premiums(unittest.TestCase):

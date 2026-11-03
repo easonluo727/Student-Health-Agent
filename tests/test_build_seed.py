@@ -40,18 +40,17 @@ def run(benefits, plan=PLAN, sources=None, networks=None, premiums=None):
 
 
 class BuildSeed(unittest.TestCase):
-    def test_session_extraction_can_calculate_without_being_marked_verified(self):
+    def test_an_upload_is_built_like_any_plan(self):
         src = Path(tempfile.mkdtemp()) / "session_plan"
         src.mkdir()
         (src / "plans.csv").write_text("plan_id,insurer,plan_name,verified\n"
                                        "session_plan,Uploaded,Uploaded Plan,\n")
         (src / "benefits.csv").write_text(
             HEAD + f"session_plan,{OFFICE},primary_care_visit,PCP,office_visit,in,,25,,no,,yes,,$25,\n")
-        plan, rows, problems = build_seed.build_plan(src, allow_unverified_calculation=True)
+        plan, rows, problems = build_seed.build_plan(src)
         self.assertEqual(problems, [])
-        self.assertEqual(plan["verified"], False)
-        self.assertEqual((rows[0]["verified"], rows[0]["calculable"], rows[0]["review_flags"]),
-                         (False, True, []))
+        self.assertNotIn("verified", plan)
+        self.assertEqual((rows[0]["calculable"], rows[0]["review_flags"]), (True, []))
 
     def test_normalizes_and_classifies(self):
         code, plans, rows, _ = run(
@@ -67,7 +66,7 @@ class BuildSeed(unittest.TestCase):
         fee = rows["Facility feein"]
         self.assertEqual((fee["component"], fee["setting"], fee["category"]), (None, "ASC", "outpatient_surgery"))
         self.assertEqual((rows["Overall deductiblein"]["category"], rows["Overall deductiblein"]["review_flags"]),
-                         ("plan_level", "unverified"))
+                         ("plan_level", ""))
 
     def test_out_of_network_notes_flag_only_out_of_network_rows(self):
         note = '"An additional 25% penalty is assessed by a Non-Contracting Hospital."'
@@ -85,15 +84,12 @@ class BuildSeed(unittest.TestCase):
         self.assertEqual(rows["UCin"]["review_flags"], "coverage_unknown,missing_cost,missing_deductible")
         self.assertEqual(rows["UCin"]["calculable"], 0)
 
-    def test_verified_by_in_sources_verifies_the_whole_plan_unless_a_row_opts_out(self):
-        unverified_plan = "plan_id,insurer,plan_name,verified\np,Co,Plan,\n"
+    def test_a_verified_column_in_the_csvs_changes_nothing(self):
         rows_csv = (f"p,{OFFICE},primary_care_visit,PCP,,in,,25,,no,,yes,,$25,\n"
                     f"p,{OFFICE},specialist_visit,Spec,,in,,40,,no,,yes,,$40,no\n")
-        _, plans, rows, _ = run(rows_csv, plan=unverified_plan)
-        self.assertEqual((plans[0]["verified"], rows["PCPin"]["calculable"]), (0, 0))
-        _, plans, rows, _ = run(rows_csv, plan=unverified_plan, sources="plan_id,verified_by\np,team\n")
-        self.assertEqual((plans[0]["verified"], rows["PCPin"]["calculable"]), (1, 1))
-        self.assertEqual(rows["Specin"]["review_flags"], "unverified")
+        _, plans, rows, _ = run(rows_csv, plan="plan_id,insurer,plan_name,verified\np,Co,Plan,\n")
+        self.assertNotIn("verified", plans[0])
+        self.assertEqual((rows["PCPin"]["calculable"], rows["Specin"]["calculable"]), (1, 1))
 
     def test_plan_networks_need_an_existing_in_network_tier(self):
         code, _, _, links = run(f"p,{OFFICE},primary_care_visit,PCP,,in,UC Family,25,,no,,yes,,$25,yes\n",

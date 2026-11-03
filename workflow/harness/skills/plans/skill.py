@@ -143,7 +143,7 @@ def link(db, files, args):
     return {"status": "linked", "plan_id": args["plan_id"], "network_tier": args["network_tier"], "network": name,
             "message": (f"Visits under this plan are now priced from {name}'s negotiated rates. Run estimate_cost or "
                         "compare_plans again. Tell the user the prices come from that network's published rates "
-                        "and the plan itself is still unverified."),
+                        "and the plan's benefits come from their document."),
             "_step": f"Linked the plan to {name} prices"}
 
 
@@ -173,7 +173,7 @@ def set_premium(db, files, hooks, args):
     hooks.premium_overrides[args["plan_id"]] = premium
     return {"status": "saved", "plan_id": args["plan_id"], "premium": premium,
             "message": ("Saved for this conversation only; compare_plans now uses it for this plan, labelled as "
-                        + (f"printed in {name} (unverified)" if name else "provided by the user")
+                        + (f"printed in {name}" if name else "provided by the user")
                         + ". Run compare_plans again to update the ranking.")}
 
 
@@ -181,7 +181,7 @@ def plan_summary(db):
     out = []
     for p in db.plans():
         summary = {k: p[k] for k in ("plan_id", "plan_name", "insurer", "plan_year", "plan_type", "deductible_in_usd",
-                                     "oop_max_in_usd", "in_network_tiers", "verified")}
+                                     "oop_max_in_usd", "in_network_tiers")}
         summary["uploaded"] = p["plan_id"].startswith("upload_")
         if summary["uploaded"]:
             summary["price_network_linked"] = bool(p["priced_tiers"])

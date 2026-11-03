@@ -100,7 +100,7 @@ def find_match(db, files, args):
         return {"status": "no_match", "message": "Not in the plan database. If the user wants costs from this plan, "
                                                  "find its cost-sharing pages and use extract_plan.",
                 "_step": f"{doc.name} isn't in the plan database yet"}
-    return {"status": "matched", "plan_id": plan["plan_id"], "name": plan["name"], "verified": plan["verified"],
+    return {"status": "matched", "plan_id": plan["plan_id"], "name": plan["name"],
             "message": "Use this plan_id; its benefits come from the plan database, not from the upload.",
             "_step": f"Matched {plan['name']} in the plan database"}
 
@@ -118,7 +118,10 @@ def extract(db, files, progress, args):
         raise ValueError(f"At most {MAX_EXTRACT_PAGES} benefit pages; choose the cost-sharing table only.")
     upload = files[args["file_id"]]
     sha256 = upload.get("sha256") or hashlib.sha256(Path(upload["path"]).read_bytes()).hexdigest()
-    plan_id = "upload_" + sha256[:24]
+    if not db.owner:
+        raise ValueError("This conversation can't save a plan yet; ask the user to send their message again.")
+    # Per conversation: the same PDF uploaded by someone else is their own private copy.
+    plan_id = "upload_" + hashlib.sha256(f"{db.owner}:{sha256}".encode()).hexdigest()[:24]
     client, model = _model()
     identity = {"plan_name": args["plan_name"], "insurer": args["insurer"], "plan_year": args["plan_year"],
                 "document_type": "benefit booklet" if args["document_kind"] == "booklet" else
@@ -131,9 +134,8 @@ def extract(db, files, progress, args):
     except ValueError as error:
         return {"status": "failed", "message": str(error)[:500], "_step": f"Couldn't structure {doc.name}"}
     return {"status": "extracted", **plan,
-            "message": "Saved in the shared plan database as unverified (not checked by a person); disclose that "
-                       "before every result. Benefits needing negotiated rates stay unavailable until a confirmed "
-                       "price network is linked.",
+            "message": "Saved for this user only. Benefits needing negotiated rates stay unavailable until a "
+                       "confirmed price network is linked.",
             "_step": f"Structured {plan['benefit_rows']} benefit rows from {doc.name}"}
 
 
@@ -158,7 +160,7 @@ def build(db: PlanDB, files: dict, progress):
         Tool("find_plan_match", "Whether an uploaded insurance document is a plan already in the plan database.",
              schema(file_id=FILE_ID), lambda a: find_match(db, files, a)),
         Tool("extract_plan", "Turn an uploaded plan's cost-sharing pages into benefit rows Python can price, saved "
-                             "as an unverified plan. Slow: about 10 seconds a page.",
+                             "as a plan only this user sees. Slow: about 10 seconds a page.",
              schema(file_id=FILE_ID, document_kind={"type": "string", "enum": ["sbc", "booklet"]},
                     benefit_pages={"type": "array", "items": {"type": "integer"}},
                     summary_pages={"type": "array", "items": {"type": "integer"}},

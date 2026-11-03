@@ -91,6 +91,7 @@ class ProviderDirectory:
                  rates_path: Path = RATES_DB):
         self.providers_path = Path(providers_path)
         self.policy_path = Path(policy_path)
+        self.plan_owners: tuple[str, ...] = ()  # whose uploaded plans this user may see (PlanDB.owners)
         self.rates_path = Path(rates_path)
 
     def search(self, *, latitude: float | None = None, longitude: float | None = None,
@@ -134,6 +135,7 @@ class ProviderDirectory:
             items, candidate_truncated = self._locations(directory, latitude, longitude, zip_code,
                                                           radius_miles, scenario, taxonomy)
         policy = PlanDB(self.policy_path, self.rates_path)
+        policy.owners = self.plan_owners
         try:
             all_plans = {p["plan_id"]: p for p in policy.plans()}
             requested = list(dict.fromkeys(plan_ids or []))
@@ -193,6 +195,7 @@ class ProviderDirectory:
         else:
             items = cache[key]
         policy = PlanDB(self.policy_path, self.rates_path)
+        policy.owners = self.plan_owners
         try:
             column = self._plan_column(policy, policy.plan(plan_id), tier or "")
             doctors, seen, checked = [], set(), 0

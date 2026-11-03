@@ -144,9 +144,11 @@ _OWNER_MAY_WRITE = "WHERE sessions.user_id IS NULL OR sessions.user_id IS exclud
 
 
 class SessionStore:
-    def __init__(self, path: Path = APP_DB, ttl: int = SESSION_TTL, upload_dir: Path | None = None):
+    def __init__(self, path: Path = APP_DB, ttl: int = SESSION_TTL, upload_dir: Path | None = None,
+                 on_delete=None):
+        """on_delete(session_ids): also delete what lives outside this database (the plans uploaded in them)."""
         migrate(path)
-        self.path, self.ttl, self.upload_dir = path, ttl, upload_dir
+        self.path, self.ttl, self.upload_dir, self.on_delete = path, ttl, upload_dir, on_delete
 
     def get(self, session_id: str, user_id: str | None = None) -> Session:
         """The saved session with its uploads; a new one when there is none or an anonymous one has expired.
@@ -242,6 +244,19 @@ class SessionStore:
         return [{"session_id": sid, "title": title, "created_at": created, "updated_at": updated, "uploads": n}
                 for sid, title, created, updated, n in rows]
 
+    def plan_owners(self, session_id: str, user_id: str | None) -> list[str]:
+        """The conversations whose uploaded plans this user may see: this one, and all of a signed-in user's."""
+        if user_id is None:
+            return [session_id]
+        return list(dict.fromkeys([session_id, *(s["session_id"] for s in self.sessions_of(user_id))]))
+
+    def uploaded_plan_sessions(self) -> dict[str, str]:
+        """plan_id -> the conversation that first recorded it as its upload (PlanDB.claim_uploaded)."""
+        with transaction(self.path) as con:
+            rows = con.execute("SELECT plan_id, session_id FROM uploads WHERE kind='plan' AND plan_id LIKE 'upload_%' "
+                               "ORDER BY created_at DESC").fetchall()
+        return dict(rows)  # the earliest wins: it is written last
+
     def transcript(self, session_id: str, user_id: str) -> list[dict] | None:
         """What the user saw in their conversation, in order: [{"event", "data"}]; None if it isn't theirs."""
         with transaction(self.path) as con:
@@ -309,6 +324,8 @@ class SessionStore:
         """Rows first (events and upload records cascade), then the files, so no row ever points at a missing file."""
         with transaction(self.path) as con:
             con.executemany("DELETE FROM sessions WHERE session_id=?", [(sid,) for sid in session_ids])
+        if self.on_delete is not None and session_ids:
+            self.on_delete(session_ids)
         if self.upload_dir is not None:
             for sid in session_ids:
                 shutil.rmtree(upload_folder(self.upload_dir, sid), ignore_errors=True)

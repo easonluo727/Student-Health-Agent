@@ -31,7 +31,7 @@ say so; never fill a gap from memory.
   - `summary_pages`: the page(s) with the deductible and out-of-pocket limit (an SBC's page 1, "Important Questions").
   - `document_kind`: `sbc` for a Summary of Benefits and Coverage, otherwise `booklet`.
   - `plan_name`, `insurer`, `plan_year`: as printed in the document, or `null`.
-  It takes about 10 seconds a page; tell the user it is working. The result is a new `plan_id`, unverified.
+  It takes about 10 seconds a page; tell the user it is working. The result is a new `plan_id` that only this user sees.
 - **A medical bill or explanation of benefits (EOB)**: read it with `read_bill` (the bills skill), then check it
   with `audit_bill`.
 - **An insurance card**: `view_page` for the insurer, plan name and group number; then `find_plan_match` can't

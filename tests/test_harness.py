@@ -295,7 +295,7 @@ class QuestionnaireHooks(unittest.TestCase):
         self.assertIn("brochure.pdf", out["message"])
         out = call(h, "compare_plans", plan_ids=[gold], scenarios=["routine_labs"], specialty=None)
         self.assertEqual(out["plans"][0]["premium"]["annual"], 2890.0)
-        self.assertEqual(arena_report(out)["plans"][0]["source"]["label"], "brochure.pdf (uploaded, unverified)")
+        self.assertEqual(arena_report(out)["plans"][0]["source"]["label"], "From your document: brochure.pdf")
 
     def test_unknown_premium_inputs_are_not_asked_again(self):
         h = harness()
