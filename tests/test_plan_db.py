@@ -423,6 +423,37 @@ class PlanDbWithoutRateStore(unittest.TestCase):
             db.con.close()
             persistent.con.close()
 
+    def test_warming_the_rates_does_not_block_writes(self):
+        """warm() runs for minutes at startup; an open read on the policy database would make every write in that time
+        fail with "database is locked" (the 2026-11-03 deploy crashed on claim_uploaded this way)."""
+        import threading
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            policy = Path(tmp) / "policy.sqlite"
+            shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
+            rates = Path(tmp) / "rates.sqlite"
+            rates.touch()
+            db = PlanDB(path=policy, rates_path=rates)
+            pricing, release = threading.Event(), threading.Event()
+
+            def slow_price(*args):
+                pricing.set()
+                release.wait(10)
+            with patch.object(PlanDB, "_price", slow_price):
+                warm = threading.Thread(target=db.warm)
+                warm.start()
+                self.assertTrue(pricing.wait(10))
+                writer = PlanDB(path=policy, rates_path=Path("/nonexistent/rates.sqlite"))
+                try:
+                    connect = sqlite3.connect  # wait 1 second for the lock, not 30
+                    with patch("plan_db.sqlite3.connect", lambda *a, **k: connect(*a, **{**k, "timeout": 1})):
+                        self.assertEqual(writer.claim_uploaded({"upload_x": "s"}), 0)  # would raise if locked
+                finally:
+                    release.set()
+                    warm.join()
+            db.con.close()
+            writer.con.close()
+
     def test_an_older_runtime_database_is_brought_up_to_date(self):
         with tempfile.TemporaryDirectory() as tmp:
             policy = Path(tmp) / "policy.sqlite"

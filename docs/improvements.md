@@ -75,6 +75,8 @@ plan/row 保持 `verified=0`，但结构完整且没有其他 review flag 的行
 **2026-11-03 上传计划只给上传者看，不再标 unverified**：之前上传的计划写进共享 policy 数据库，所有用户都能在计划列表里看到、拿来比较，这不行。现在 `plans.owner` 记上传时的对话（session_id），`PlanDB.plans()` 只给 owner 看：那条对话，加上登录用户自己的其他对话；没有 owner 的旧上传谁也看不到，启动时按 app 数据库的上传记录还给原来的对话（`claim_uploaded`）。对话删除、过期或账号删除时，它上传的计划一起删掉（`SessionStore(on_delete=...)` → `PlanDB.delete_uploaded`）。同一个 PDF 不同人上传是各自的私有副本（plan_id 含 session_id）。显示上不再写 "unverified"：agent 说数字来自用户自己的文件并给页码，UI 标 "Your upload"；不用来训练。
 
 **2026-11-03 去掉 verified / unverified 逻辑**：用户上传的数据和数据库的计划一样对待。去掉了 `build_seed.flags()` 的 `unverified` flag 和 `allow_unverified_calculation`、`blanket_verified`（`sources.csv` 的 `verified_by` 只是记录，不再影响计算）、估算结果里的上传提示、`/plans`、`list_plans`、`find_plan_match` 返回的 `verified`，以及 `plans`、`benefits` 表的 `verified` 列（生产库启动时自动删列）。种子数据从 CSV 重建，9 个计划、818 行和之前完全一样。保留的只有用户之间的隔离（`plans.owner`）。计算器的 `needs_review`（cap、penalty、缺金额等）是计算安全检查，不是 verify 逻辑，保留。
+
+**2026-11-03 部署启动崩溃（database is locked）**：上面这次部署启动时，后台线程 `PlanDB.warm()` 在整个预热（几分钟）里一直开着 policy 库的读游标，主线程的 `claim_uploaded()` 要写，等 30 秒后报 `database is locked`，服务没起来，healthcheck 失败。现在 `warm()` 先把网络列表读完再算（不留游标），`server.py` 先做启动时的写（迁移、认领旧上传）再开预热线程。测试 `test_warming_the_rates_does_not_block_writes` 复现了这个锁。
 **还剩**：`link_network` 只能连价格库里已有的网络（UHC Choice Plus、Cigna PPO、Anthem 三个、Health Net、L.A. Care），别的网络（如 Aetna、First Health）要先下载它的 MRF；租用网络（别家保险公司用 UHC 的网络）按网络本身公布的价格算，实际付的可能略有不同；用户在对话里描述、没有文件的计划还不能进数据库；扫描件只能靠 `view_page` 逐页看，`extract_plan` 需要文字层；保险卡照片只能让 agent 按名字对计划列表。
 
 ### 1.6 账单照片和 Gmail 申诉信（2026-10-26）

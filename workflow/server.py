@@ -60,10 +60,11 @@ app.add_middleware(
 )
 client = make_client(timeout=300.0)  # a shared endpoint can be slow under load
 MODEL = llm_model()
+STORE = SessionStore(upload_dir=UPLOAD_DIR, on_delete=lambda ids: PlanDB().delete_uploaded(ids))
+# The startup writes (PlanDB's migration, then uploads from before plans had owners) before the warm-up starts.
+PlanDB().claim_uploaded(STORE.uploaded_plan_sessions())
 # Price every scenario component in the rate store once, in the background (a few minutes), so turns don't wait.
 threading.Thread(target=lambda: PlanDB().warm(), name="warm-rates", daemon=True).start()
-STORE = SessionStore(upload_dir=UPLOAD_DIR, on_delete=lambda ids: PlanDB().delete_uploaded(ids))
-PlanDB().claim_uploaded(STORE.uploaded_plan_sessions())  # uploads from before plans had owners
 ACCOUNTS = AccountStore()
 MEMORY = MemoryStore()
 
