@@ -95,7 +95,7 @@ class Prompt(unittest.TestCase):
         names = [t["name"] for t in harness().tools.definitions()]
         self.assertEqual(names, ["ask_questions", "document_overview", "search_document", "read_pages", "view_page",
                                  "find_plan_match", "extract_plan", "list_plans", "estimate_cost", "compare_plans",
-                                 "link_network", "find_providers", "read_bill", "audit_bill", "draft_appeal", "show_page"])
+                                 "link_network", "set_premium", "find_providers", "read_bill", "audit_bill", "draft_appeal", "show_page"])
 
 
 class ToolArguments(unittest.TestCase):
@@ -231,6 +231,45 @@ class QuestionnaireHooks(unittest.TestCase):
         h = harness()
         h.hooks.on_form_answers(form_questions(["primary_care_visits"]), {})
         self.assertIsNone(h.hooks.answers["primary_care_visits"])
+
+    def test_a_premium_the_user_states_is_used_in_this_conversation_only(self):
+        import hashlib
+        import sessions
+        from arena_report import arena_report
+        from plan_db import POLICY_DB
+
+        policy_before = hashlib.sha256(Path(POLICY_DB).read_bytes()).hexdigest()
+        h = harness()
+        h.hooks.on_user_message("Bronze 60 is $139.20 per month for me, and Platinum is $612 a month.")
+        bronze, platinum = "lacare_bronze60_hmo_2026", "lacare_platinum90_hmo_2026"
+
+        def premium(**args):
+            return h.tools.parse("set_premium", json.dumps({"period": "month", "quote": "Bronze 60 is $139.20 per "
+                                                            "month", **args}))[1]["message"]
+        self.assertIn("does not contain", premium(plan_id=bronze, amount=150))           # not what they wrote
+        self.assertIn("own words", premium(plan_id=bronze, amount=150, quote="Bronze is $150 per month"))
+        self.assertIn("Unknown plan_id", premium(plan_id="nope", amount=139.2))
+        self.assertIn("at most", premium(plan_id=bronze, amount=13920))                   # a typo, not a premium
+        out = call(h, "set_premium", plan_id=bronze, amount=139.2, period="month", quote="Bronze 60 is $139.20 per month")
+        self.assertEqual((out["premium"]["annual"], out["premium"]["basis"]), (1670.4, "user_provided"))
+        call(h, "set_premium", plan_id=platinum, amount=612, period="month", quote="Platinum is $612 a month")
+
+        out = call(h, "compare_plans", plan_ids=[bronze, platinum], scenarios=["routine_labs"], specialty=None)
+        self.assertEqual(out["ranked_by"], "year_total")  # no age or ZIP needed: both premiums are the user's
+        entries = {e["plan_id"]: e for e in out["plans"]}
+        self.assertEqual(entries[bronze]["premium"]["annual"], 1670.4)
+        self.assertEqual(entries[bronze]["year_total"], round(1670.4 + entries[bronze]["care"]["total"], 2))
+        self.assertEqual(entries[bronze]["rank"], 1)
+        report = {p["plan_id"]: p for p in arena_report(out)["plans"]}
+        self.assertEqual(report[bronze]["source"]["kind"], "user_message")
+        self.assertEqual(report[bronze]["source"]["label"], "User provided")
+
+        # Kept when the conversation is reopened; absent from a new one; the policy database is untouched.
+        session = sessions.Session()
+        session.harness = h
+        self.assertIn(bronze, sessions.load(sessions.dump(session)).harness.hooks.premium_overrides)
+        self.assertEqual(harness().hooks.premium_overrides, {})
+        self.assertEqual(hashlib.sha256(Path(POLICY_DB).read_bytes()).hexdigest(), policy_before)
 
     def test_unknown_premium_inputs_are_not_asked_again(self):
         h = harness()

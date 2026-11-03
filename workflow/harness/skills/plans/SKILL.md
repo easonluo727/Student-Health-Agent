@@ -108,6 +108,13 @@ Office and specialist visits are priced at the nearest doctor with their own neg
 specialist visit, pass `specialty`; otherwise `null`. When you explain a plan's visit cost, name that doctor and their
 distance. `visits[].doctor_search` says when no nearby doctor in a plan's network has a rate.
 
+**A premium the user tells you** ("Prime 100 is $139.20 a month", "after my subsidy I pay $85"): call
+`set_premium` with that plan, the amount and period as they wrote them, and their exact words; then run
+`compare_plans` again. It holds for this conversation only and replaces the database's premium for that plan, so use
+it when the plan has no published premium (`premium.status` `unavailable`) or the user's price differs (a subsidy).
+Never pass an amount the user didn't write, and never convert months to years yourself. When you mention it, say it
+is the premium they gave you.
+
 Quote premiums exactly as returned (`premium.amount` per `premium.period`, `premium.annual`); never divide, round or
 convert them yourself. Say premiums are before any subsidy: Covered California plans may cost much less after the
 premium tax credit, which is not computed. When `premium.scaled_from_age` is set, say the premium was scaled from the
