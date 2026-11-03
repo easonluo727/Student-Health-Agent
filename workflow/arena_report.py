@@ -55,6 +55,9 @@ def arena_report(result):
             "source": ({"kind": "user_message", "label": "User provided", "page": None,
                         "quote": premium["quote"][:300], "url": None}
                        if premium.get("basis") == "user_provided" else
+                       {"kind": "policy", "label": f"{premium['document']} (uploaded, unverified)", "page": None,
+                        "quote": premium["quote"][:300], "url": None}
+                       if premium.get("basis") == "uploaded_document" else
                        _source(f"{e['plan_name']} premium", premium.get("source_page"), premium.get("quote"),
                                premium.get("source_url")) if premium.get("annual") is not None else None),
         })

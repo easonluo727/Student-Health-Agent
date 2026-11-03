@@ -245,14 +245,16 @@ class QuestionnaireHooks(unittest.TestCase):
 
         def premium(**args):
             return h.tools.parse("set_premium", json.dumps({"period": "month", "quote": "Bronze 60 is $139.20 per "
-                                                            "month", **args}))[1]["message"]
+                                                            "month", "file_id": None, **args}))[1]["message"]
         self.assertIn("does not contain", premium(plan_id=bronze, amount=150))           # not what they wrote
         self.assertIn("own words", premium(plan_id=bronze, amount=150, quote="Bronze is $150 per month"))
         self.assertIn("Unknown plan_id", premium(plan_id="nope", amount=139.2))
         self.assertIn("at most", premium(plan_id=bronze, amount=13920))                   # a typo, not a premium
-        out = call(h, "set_premium", plan_id=bronze, amount=139.2, period="month", quote="Bronze 60 is $139.20 per month")
+        out = call(h, "set_premium", plan_id=bronze, amount=139.2, period="month", file_id=None,
+                   quote="Bronze 60 is $139.20 per month")
         self.assertEqual((out["premium"]["annual"], out["premium"]["basis"]), (1670.4, "user_provided"))
-        call(h, "set_premium", plan_id=platinum, amount=612, period="month", quote="Platinum is $612 a month")
+        call(h, "set_premium", plan_id=platinum, amount=612, period="month", file_id=None,
+             quote="Platinum is $612 a month")
 
         out = call(h, "compare_plans", plan_ids=[bronze, platinum], scenarios=["routine_labs"], specialty=None)
         self.assertEqual(out["ranked_by"], "year_total")  # no age or ZIP needed: both premiums are the user's
@@ -270,6 +272,30 @@ class QuestionnaireHooks(unittest.TestCase):
         self.assertIn(bronze, sessions.load(sessions.dump(session)).harness.hooks.premium_overrides)
         self.assertEqual(harness().hooks.premium_overrides, {})
         self.assertEqual(hashlib.sha256(Path(POLICY_DB).read_bytes()).hexdigest(), policy_before)
+
+    def test_a_premium_printed_in_an_uploaded_document(self):
+        from arena_report import arena_report
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from test_documents import make_pdf
+
+        tmp = Path(tempfile.mkdtemp())
+        make_pdf(tmp / "brochure.pdf", [["Student Plan 2026-2027", "Annual premium: $2,890 per student"]])
+        h = harness()
+        h.files["f1"] = {"path": tmp / "brochure.pdf", "name": "brochure.pdf", "content_type": "application/pdf",
+                         "sha256": "ab" * 32}
+        gold = "lacare_gold80_hmo_2026"
+
+        def premium(**args):
+            return h.tools.parse("set_premium", json.dumps({"plan_id": gold, "period": "year", "file_id": "f1", **args}))[1]
+        self.assertIn("not in the document", premium(amount=2890, quote="Annual premium: $2,990")["message"])
+        self.assertIn("Unknown file_id", premium(amount=2890, quote="Annual premium: $2,890", file_id="f9")["message"])
+        out = call(h, "set_premium", plan_id=gold, amount=2890, period="year", file_id="f1",
+                   quote="Annual premium: $2,890 per student")
+        self.assertEqual((out["premium"]["annual"], out["premium"]["basis"]), (2890.0, "uploaded_document"))
+        self.assertIn("brochure.pdf", out["message"])
+        out = call(h, "compare_plans", plan_ids=[gold], scenarios=["routine_labs"], specialty=None)
+        self.assertEqual(out["plans"][0]["premium"]["annual"], 2890.0)
+        self.assertEqual(arena_report(out)["plans"][0]["source"]["label"], "brochure.pdf (uploaded, unverified)")
 
     def test_unknown_premium_inputs_are_not_asked_again(self):
         h = harness()

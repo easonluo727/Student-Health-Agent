@@ -446,15 +446,20 @@ class PlanDB:
                 "notes": row["notes"]}
 
     @staticmethod
-    def user_premium(amount: float, period: str, quote: str) -> dict:
-        """A premium the user stated, in premium()'s shape, labelled user_provided. Python does the arithmetic."""
+    def user_premium(amount: float, period: str, quote: str, document: str | None = None) -> dict:
+        """A premium the user stated (or, with document, printed in a file they uploaded), in premium()'s shape,
+        labelled user_provided / uploaded_document. Python does the arithmetic."""
         value = Decimal(str(amount)).quantize(Decimal("0.01"))
         annual = float(value * 12 if period == "month" else value)
         amount = float(value)
+        where = (f"as printed in the uploaded document {document} (not verified)" if document else
+                 "as the user stated (not checked against the insurer)")
         return {"status": "priced", "annual": annual, "period": period, "amount": amount,
-                "monthly": amount if period == "month" else None, "basis": "user_provided",
-                "message": f"${amount:,.2f} per {period}, ${annual:,.2f} a year, as the user stated (not checked "
-                           "against the insurer).", "source_kind": "user_message", "quote": quote,
+                "monthly": amount if period == "month" else None,
+                "basis": "uploaded_document" if document else "user_provided",
+                "message": (f"${amount:,.2f} per month, ${annual:,.2f} a year, {where}." if period == "month" else
+                            f"${annual:,.2f} a year, {where}."),
+                "source_kind": "document" if document else "user_message", "document": document, "quote": quote,
                 "source_url": None, "source_page": None}
 
     # ------------------------------------------------------------------ costing

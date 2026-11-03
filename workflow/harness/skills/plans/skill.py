@@ -10,8 +10,9 @@
                   priorities and budget come from the questionnaire answers (hooks.py), never from the model
   link_network    links an uploaded plan to a network in the rate store, only with a quote (from the document or the
                   user's own message) that names the network (plan_db.PRINTED_NETWORKS); Python checks both
-  set_premium     a premium the user stated for one plan, for this conversation only (Hooks.premium_overrides, saved
-                  with the session, never in the policy database); compare_plans uses it, labelled "User provided"
+  set_premium     a premium for one plan that the user stated or their uploaded plan prints, for this conversation
+                  only (Hooks.premium_overrides, saved with the session, never in the policy database); compare_plans
+                  uses it, labelled "User provided" or with the document's name
 
 The model chooses from fixed options (plan ids, scenario keys, specialty); every amount comes from the databases.
 """
@@ -86,9 +87,16 @@ def compare(db, directory, args):
         def taxonomies(scenario):
             return visit_taxonomies(scenario, args["specialty"] if scenario == "specialist_followup" else None)
         find = doctor_finder(directory, str(profile["zip"]), taxonomies)
-    return db.compare(args["plan_ids"], args["scenarios"], profile, args.get("visits"), args.get("preferences"),
-                      args.get("preferred_tiers"), find_doctor=find,
-                      premium_overrides=args.get("premium_overrides"))
+    result = db.compare(args["plan_ids"], args["scenarios"], profile, args.get("visits"), args.get("preferences"),
+                        args.get("preferred_tiers"), find_doctor=find,
+                        premium_overrides=args.get("premium_overrides"))
+    if unpriced := [e["plan_id"] for e in result["plans"]
+                    if e.get("premium", {}).get("status") == "unavailable" and e["plan_id"].startswith("upload_")]:
+        result["premium_next_step"] = (
+            f"No premium is on file for {', '.join(unpriced)}. If the user uploaded that plan, search_document for "
+            "its premium (premium, rate, cost per year/month); when printed, call set_premium with the file_id and "
+            "the exact wording, then compare_plans again. Otherwise ask the user what they pay.")
+    return result
 
 
 def _said(texts, quote):
@@ -139,7 +147,7 @@ def link(db, files, args):
             "_step": f"Linked the plan to {name} prices"}
 
 
-def _validate_premium(db, hooks, args):
+def _validate_premium(db, files, hooks, args):
     if db.plan(args["plan_id"]) is None:
         raise ValueError(f"Unknown plan_id {args['plan_id']!r}; use one from list_plans.")
     amount = args["amount"]
@@ -147,18 +155,26 @@ def _validate_premium(db, hooks, args):
         raise ValueError(f"amount must be one person's premium per {args['period']}, above 0 and at most "
                          f"${MAX_PREMIUM[args['period']]:,}.")
     quote = args["quote"].strip()
-    if not quote or len(quote) > MAX_QUOTE or not _said(hooks.user_texts, quote):
-        raise ValueError("quote must be the user's own words that state this premium, copied from their message.")
+    if not quote or len(quote) > MAX_QUOTE:
+        raise ValueError(f"quote must be the exact wording that states this premium, at most {MAX_QUOTE} characters.")
+    if args["file_id"] is not None:
+        if not document(files, args["file_id"]).contains(quote):
+            raise ValueError("That quote is not in the document; copy the premium's wording exactly as printed.")
+    elif not _said(hooks.user_texts, quote):
+        raise ValueError("quote must be the user's own words that state this premium, copied from their message, "
+                         "or the document's wording with its file_id.")
     if Decimal(str(amount)).normalize() not in {n.normalize() for n in numbers_in(quote)}:
         raise ValueError("The quote does not contain that amount; pass the amount exactly as the user wrote it.")
 
 
-def set_premium(db, hooks, args):
-    premium = db.user_premium(args["amount"], args["period"], " ".join(args["quote"].split()))
+def set_premium(db, files, hooks, args):
+    name = files[args["file_id"]]["name"] if args["file_id"] else None
+    premium = db.user_premium(args["amount"], args["period"], " ".join(args["quote"].split()), name)
     hooks.premium_overrides[args["plan_id"]] = premium
     return {"status": "saved", "plan_id": args["plan_id"], "premium": premium,
             "message": ("Saved for this conversation only; compare_plans now uses it for this plan, labelled as "
-                        "provided by the user. Run compare_plans again to update the ranking.")}
+                        + (f"printed in {name} (unverified)" if name else "provided by the user")
+                        + ". Run compare_plans again to update the ranking.")}
 
 
 def plan_summary(db):
@@ -238,17 +254,19 @@ def build(db: PlanDB, directory: ProviderDirectory | None = None, files: dict | 
         ),
         Tool(
             name="set_premium",
-            description=("Use a premium the user stated for one plan (for example after a subsidy, or a plan with no "
-                         "published premium) in compare_plans, for this conversation only. Pass the amount and period "
-                         "as the user wrote them and their exact words; Python works out the year."),
+            description=("Use a premium for one plan in compare_plans, for this conversation only: one the user stated "
+                         "(for example after a subsidy; file_id null, their exact words), or one printed in an "
+                         "uploaded plan document (its file_id, the exact printed wording). Pass the amount and period "
+                         "as written; Python works out the year."),
             parameters=schema(
                 plan_id={"type": "string"},
                 amount={"type": "number"},
                 period={"type": "string", "enum": ["month", "year"]},
+                file_id={"type": ["string", "null"]},
                 quote={"type": "string"},
             ),
-            run=lambda args: set_premium(db, hooks, args),
-            validate=lambda args: _validate_premium(db, hooks, args),
+            run=lambda args: set_premium(db, files, hooks, args),
+            validate=lambda args: _validate_premium(db, files, hooks, args),
         ),
     ]
     return Skill(name=meta["name"], description=meta["description"], instructions=body, tools=tools)
