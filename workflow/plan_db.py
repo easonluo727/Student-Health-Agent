@@ -445,6 +445,18 @@ class PlanDB:
                 "source_url": row["source_url"], "source_page": row["source_page"], "quote": row["quote"],
                 "notes": row["notes"]}
 
+    @staticmethod
+    def user_premium(amount: float, period: str, quote: str) -> dict:
+        """A premium the user stated, in premium()'s shape, labelled user_provided. Python does the arithmetic."""
+        value = Decimal(str(amount)).quantize(Decimal("0.01"))
+        annual = float(value * 12 if period == "month" else value)
+        amount = float(value)
+        return {"status": "priced", "annual": annual, "period": period, "amount": amount,
+                "monthly": amount if period == "month" else None, "basis": "user_provided",
+                "message": f"${amount:,.2f} per {period}, ${annual:,.2f} a year, as the user stated (not checked "
+                           "against the insurer).", "source_kind": "user_message", "quote": quote,
+                "source_url": None, "source_page": None}
+
     # ------------------------------------------------------------------ costing
     @staticmethod
     def _rule(row: dict) -> dict:
@@ -637,14 +649,17 @@ class PlanDB:
 
     def compare(self, plan_ids: list[str], scenarios: list[str], profile: dict | None = None,
                 visits: dict | None = None, preferences: dict | None = None,
-                preferred_tiers: list[str] | None = None, find_doctor=None) -> dict:
+                preferred_tiers: list[str] | None = None, find_doctor=None,
+                premium_overrides: dict | None = None) -> dict:
         """A year of care under each plan for this person, ranked. find_doctor: see year().
 
         visits: {scenario: times a year} from the user's answers (0 drops a scenario); a chosen scenario without a
         count is counted once and marked assumed. A plan with several priced tiers is priced in its cheapest one for
         these visits. profile (age, zip, student_level) prices a year's premium. preferences ({"weights": {factor:
         1-5 or None}, "monthly_budget": USD a month or None}) rank the plans (rank_plans). preferred_tiers: tiers of
-        the places the user wants to keep going (from keep_providers); a plan with one prices visits there first."""
+        the places the user wants to keep going (from keep_providers); a plan with one prices visits there first.
+        premium_overrides: plan_id -> a premium the user stated in this conversation (user_premium), used instead of
+        the database's."""
         profile = profile or {}
         preferred = tuple(preferred_tiers or ())
         counts = visit_counts(scenarios, visits or {})
@@ -665,7 +680,8 @@ class PlanDB:
             if best["preferred_tier"] and any(v["network_tier"] == best["preferred_tier"] for v in best["visits"]):
                 best["tier_note"] = (f"Visits {best['preferred_tier']} can price are priced there, because you want "
                                      f"to keep going there; the rest at {best['network_tier']}.")
-            premium = self.premium(plan_id, profile.get("age"), profile.get("zip"), profile.get("student_level"))
+            premium = ((premium_overrides or {}).get(plan_id)
+                       or self.premium(plan_id, profile.get("age"), profile.get("zip"), profile.get("student_level")))
             best["premium"] = premium
             annual, care = premium.get("annual"), best["care"]["total"]
             best["year_total"] = round(annual + care, 2) if annual is not None and care is not None else None

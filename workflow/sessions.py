@@ -85,7 +85,7 @@ def dump(session):
         "bills": session.harness.bills,
         "results": session.harness.results,
         "hooks": {"user_texts": hooks.user_texts, "answers": hooks.answers,
-                  "from_memory": sorted(hooks.from_memory)},
+                  "from_memory": sorted(hooks.from_memory), "premium_overrides": hooks.premium_overrides},
         "guard": {"user_numbers": sorted(map(str, guard._user_numbers)),
                   "tool_numbers": sorted(map(str, guard._tool_numbers)),
                   "confirmed": [list(k) for k in guard._confirmed], "missing_fields": guard._missing_fields},
@@ -105,6 +105,7 @@ def load(state):
     hooks, guard = session.harness.hooks, session.harness.hooks.guard
     hooks.user_texts, hooks.answers = state["hooks"]["user_texts"], state["hooks"]["answers"]
     hooks.from_memory = set(state["hooks"].get("from_memory") or [])
+    hooks.premium_overrides = state["hooks"].get("premium_overrides") or {}
     g = state["guard"]
     guard._user_numbers = {Decimal(n) for n in g["user_numbers"]}
     guard._tool_numbers = {Decimal(n) for n in g["tool_numbers"]}

@@ -10,6 +10,8 @@
                   priorities and budget come from the questionnaire answers (hooks.py), never from the model
   link_network    links an uploaded plan to a network in the rate store, only with a quote (from the document or the
                   user's own message) that names the network (plan_db.PRINTED_NETWORKS); Python checks both
+  set_premium     a premium the user stated for one plan, for this conversation only (Hooks.premium_overrides, saved
+                  with the session, never in the policy database); compare_plans uses it, labelled "User provided"
 
 The model chooses from fixed options (plan ids, scenario keys, specialty); every amount comes from the databases.
 """
@@ -17,7 +19,9 @@ The model chooses from fixed options (plan ids, scenario keys, specialty); every
 from pathlib import Path
 
 import re
+from decimal import Decimal
 
+from guards import numbers_in
 from plan_db import DOCTOR_SCENARIOS, PRINTED_NETWORKS, PlanDB, visit_counts
 from provider_directory import (SPECIALTIES, ProviderDirectory, check_specialty, doctor_finder, estimate_nearby,
                                 visit_taxonomies)
@@ -27,6 +31,7 @@ from ...mcp import Tool, schema
 from ..documents.skill import document
 
 MAX_QUOTE = 300
+MAX_PREMIUM = {"month": 5000, "year": 60000}  # USD; more is a typo or a family's premium, not one person's
 
 NEEDS_SPECIALTY = ("Pass `specialty`: which kind of specialist the user will see (for example `pulmonology` for "
                    "asthma). A specialist visit is priced at nearby doctors of that specialty.")
@@ -82,7 +87,8 @@ def compare(db, directory, args):
             return visit_taxonomies(scenario, args["specialty"] if scenario == "specialist_followup" else None)
         find = doctor_finder(directory, str(profile["zip"]), taxonomies)
     return db.compare(args["plan_ids"], args["scenarios"], profile, args.get("visits"), args.get("preferences"),
-                      args.get("preferred_tiers"), find_doctor=find)
+                      args.get("preferred_tiers"), find_doctor=find,
+                      premium_overrides=args.get("premium_overrides"))
 
 
 def _said(texts, quote):
@@ -131,6 +137,28 @@ def link(db, files, args):
                         "compare_plans again. Tell the user the prices come from that network's published rates "
                         "and the plan itself is still unverified."),
             "_step": f"Linked the plan to {name} prices"}
+
+
+def _validate_premium(db, hooks, args):
+    if db.plan(args["plan_id"]) is None:
+        raise ValueError(f"Unknown plan_id {args['plan_id']!r}; use one from list_plans.")
+    amount = args["amount"]
+    if type(amount) not in (int, float) or not 0 < amount <= MAX_PREMIUM[args["period"]]:
+        raise ValueError(f"amount must be one person's premium per {args['period']}, above 0 and at most "
+                         f"${MAX_PREMIUM[args['period']]:,}.")
+    quote = args["quote"].strip()
+    if not quote or len(quote) > MAX_QUOTE or not _said(hooks.user_texts, quote):
+        raise ValueError("quote must be the user's own words that state this premium, copied from their message.")
+    if Decimal(str(amount)).normalize() not in {n.normalize() for n in numbers_in(quote)}:
+        raise ValueError("The quote does not contain that amount; pass the amount exactly as the user wrote it.")
+
+
+def set_premium(db, hooks, args):
+    premium = db.user_premium(args["amount"], args["period"], " ".join(args["quote"].split()))
+    hooks.premium_overrides[args["plan_id"]] = premium
+    return {"status": "saved", "plan_id": args["plan_id"], "premium": premium,
+            "message": ("Saved for this conversation only; compare_plans now uses it for this plan, labelled as "
+                        "provided by the user. Run compare_plans again to update the ranking.")}
 
 
 def plan_summary(db):
@@ -207,6 +235,20 @@ def build(db: PlanDB, directory: ProviderDirectory | None = None, files: dict | 
             ),
             run=lambda args: link(db, files, args),
             validate=lambda args: _validate_link(db, files, hooks, args),
+        ),
+        Tool(
+            name="set_premium",
+            description=("Use a premium the user stated for one plan (for example after a subsidy, or a plan with no "
+                         "published premium) in compare_plans, for this conversation only. Pass the amount and period "
+                         "as the user wrote them and their exact words; Python works out the year."),
+            parameters=schema(
+                plan_id={"type": "string"},
+                amount={"type": "number"},
+                period={"type": "string", "enum": ["month", "year"]},
+                quote={"type": "string"},
+            ),
+            run=lambda args: set_premium(db, hooks, args),
+            validate=lambda args: _validate_premium(db, hooks, args),
         ),
     ]
     return Skill(name=meta["name"], description=meta["description"], instructions=body, tools=tools)

@@ -52,8 +52,11 @@ def arena_report(result):
             "plan_id": e["plan_id"], "name": e["plan_name"], "insurer": e["insurer"],
             "network": " · ".join(filter(None, (e["plan_type"], e["network_tier"]))),
             "annual_premium": premium.get("annual"),
-            "source": _source(f"{e['plan_name']} premium", premium.get("source_page"), premium.get("quote"),
-                              premium.get("source_url")) if premium.get("annual") is not None else None,
+            "source": ({"kind": "user_message", "label": "User provided", "page": None,
+                        "quote": premium["quote"][:300], "url": None}
+                       if premium.get("basis") == "user_provided" else
+                       _source(f"{e['plan_name']} premium", premium.get("source_page"), premium.get("quote"),
+                               premium.get("source_url")) if premium.get("annual") is not None else None),
         })
 
     # Chart tabs: a whole year under each plan.

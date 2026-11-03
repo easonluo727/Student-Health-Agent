@@ -8,8 +8,9 @@
 
 The amount, confirmation and reply checks are guards.ConversationGuard, unchanged. This file
 adds the questionnaire rules, Python filling compare_plans' inputs from the answers (premium inputs: age, ZIP,
-student level; visit counts; priority ratings and the monthly budget), answers from the user's long-term memory
-(use_memory), and Python sending a form when a tool needs something from the user.
+student level; visit counts; priority ratings and the monthly budget; premiums the user stated for this
+conversation), answers from the user's long-term memory (use_memory), and Python sending a form when a tool needs
+something from the user.
 """
 
 import re
@@ -55,6 +56,9 @@ class Hooks:
         self.user_texts = []
         self.answers = {}  # question-bank id -> submitted value (None when the user doesn't know)
         self.from_memory = set()  # answers that came from the user's memory, not from this chat
+        # plan_id -> a premium the user stated in this chat (set_premium); used in place of the database's for this
+        # conversation only, never written to the shared policy database
+        self.premium_overrides = {}
 
     def use_memory(self, answers):
         """Answers from the user's long-term memory (memory.question_answers), at the start of each turn. An answer
@@ -111,6 +115,8 @@ class Hooks:
                                    "monthly_budget": self.answers.get("monthly_budget")}
             args["preferred_tiers"] = [PROVIDER_TIERS[v] for v in self.answers.get("keep_providers") or []
                                        if v in PROVIDER_TIERS]
+            args["premium_overrides"] = {plan_id: self.premium_overrides[plan_id] for plan_id in args["plan_ids"]
+                                         if plan_id in self.premium_overrides}
         return None
 
     def post_tool(self, name, args, result):
