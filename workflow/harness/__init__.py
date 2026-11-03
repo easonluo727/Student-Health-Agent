@@ -38,7 +38,7 @@ class Harness:
         self.progress = queue.Queue()  # progress lines from a running tool, shown in the chat as it works
         self.hooks = Hooks()
         self.skills = [questionnaire.build(), documents_skill.build(self.db, self.files, self.progress.put),
-                       plans_skill.build(self.db, directory), providers_skill.build(self.db, directory),
+                       plans_skill.build(self.db, directory, self.files, self.hooks), providers_skill.build(self.db, directory),
                        bills_skill.build(self.db, directory, self.bills, self.files),
                        pages_skill.build(self.results, self.hooks.guard)]
         self.tools = mcp.ToolRegistry([tool for skill in self.skills for tool in skill.tools])

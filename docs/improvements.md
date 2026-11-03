@@ -67,7 +67,8 @@ plan/row 保持 `verified=0`，但结构完整且没有其他 review flag 的行
 并且新计划会出现在 `/plans` 和比较 UI。生产环境要把 `POLICY_DB` 指向持久卷才能跨部署保留上传计划。
 
 **2026-11-01 改成 agent 自己读**（像 Claude Code 读代码）：上传时不再走固定流程，agent 用 `document_overview`、`search_document`、`read_pages`、`view_page` 自己找到要读的页，任何 PDF 或照片都能处理（保单、完整手册、账单、无关文件）。实测（muse-spark-open）：181 页 Anthem EOC 34 秒答对专科 copay 和免赔额并引页码；`extract_plan` 抽这本手册第 15–58 页 3 分钟得到 426 行，抽查与原文一致；PDF 账单和照片账单都走 `read_bill`；租约被认出不是保险文件。
-**还剩**：自动匹配 MRF 网络未实现，所以新计划只有固定 copay 能在没有 allowed amount 时直接计算；扫描件只能靠 `view_page` 逐页看，`extract_plan` 需要文字层；保险卡照片只能让 agent 按名字对计划列表。
+**2026-11-02 上传计划接上价格**：线上的 Student Medicover 上传计划在 Arena 里看病花费全空，原因有两个。一是上传计划从不写 `plan_networks`，价格接不上；现在 agent 在文件里找到网络名（或问用户保险卡上写的网络），调 `link_network`，Python 核对原话确实在文件或用户消息里、且命名的是这个网络（`plan_db.PRINTED_NETWORKS`），才写入 `confirmed=1`。二是抽取只给 deductible 和 out-of-pocket 两行标了 tier `Preferred`，看病条款都没有 tier，于是 Arena 按 `Preferred` 找条款全部落空；现在 tier 只从看病条款里认，只在 plan_level 行上出现的 tier 名适用于整个计划。
+**还剩**：`link_network` 只能连价格库里已有的网络（UHC Choice Plus、Cigna PPO、Anthem 三个、Health Net、L.A. Care），别的网络（如 Aetna、First Health）要先下载它的 MRF；租用网络（别家保险公司用 UHC 的网络）按网络本身公布的价格算，实际付的可能略有不同；用户在对话里描述、没有文件的计划还不能进数据库；扫描件只能靠 `view_page` 逐页看，`extract_plan` 需要文字层；保险卡照片只能让 agent 按名字对计划列表。
 
 ### 1.6 账单照片和 Gmail 申诉信（2026-10-26）
 

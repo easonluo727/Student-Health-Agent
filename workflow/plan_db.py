@@ -103,6 +103,19 @@ SCENARIO_EXCLUDES = {
 # Telehealth is left out: it is often a separate platform service and has no meaningful nearby-office location.
 DOCTOR_SCENARIOS = {"office_visit_established", "office_visit_new", "specialist_followup"}
 
+# Rate-store network (mrf_sources.plan_key) -> (how plan documents and insurance cards print its name, the
+# insurer's name). An uploaded plan is linked to one only with a quote that matches (link_network): the evidence
+# names the network, the same rule as plan_networks.confirmed. Only names specific to one network; "PPO" alone is not.
+PRINTED_NETWORKS = {
+    "uhc_ca_choice_plus": (re.compile(r"choice[\s-]*plus", re.I), "UnitedHealthcare Choice Plus"),
+    "cigna_national_ppo": (re.compile(r"cigna\W+(?:national\W+)?ppo", re.I), "Cigna PPO"),
+    "anthem_ca_prudent_buyer_ppo": (re.compile(r"prudent\s+buyer", re.I), "Anthem Blue Cross Prudent Buyer PPO"),
+    "anthem_ca_pathway_hmo": (re.compile(r"pathway\W+hmo|hmo\W+pathway", re.I), "Anthem Pathway HMO"),
+    "anthem_ca_pathway_epo": (re.compile(r"pathway\W+epo|epo\W+pathway", re.I), "Anthem Pathway EPO"),
+    "healthnet_ambetter_ca": (re.compile(r"ambetter", re.I), "Ambetter from Health Net"),
+    "lacare_covered": (re.compile(r"l\.?\s?a\.?\s+care\s+covered", re.I), "L.A. Care Covered"),
+}
+
 
 @lru_cache(maxsize=1)
 def _encounters():
@@ -180,6 +193,27 @@ class PlanDB:
                               [values(row, benefit_columns) for row in benefits])
         return True
 
+    def rate_networks(self) -> dict[str, str | None]:
+        """plan_key -> its network name in the rate store (None when the files name several), for the keys an
+        uploaded plan can be linked to: printed names known (PRINTED_NETWORKS) and rates loaded."""
+        if self.rates_path is None:
+            return {}
+        rows = _rates_con(self.rates_path).execute(
+            "SELECT plan_key, GROUP_CONCAT(DISTINCT network) FROM mrf_sources WHERE status='complete' GROUP BY 1")
+        return {key: (names if names and "," not in names else None) for key, names in rows
+                if key in PRINTED_NETWORKS}
+
+    def link_uploaded_network(self, plan_id: str, tier: str | None, plan_key: str, notes: str) -> None:
+        """Link an uploaded plan's tier to a rate-store network (confirmed: the caller checked the quote in notes)."""
+        if self.path is None:
+            raise ValueError("A database path is required to link a network.")
+        if not plan_id.startswith("upload_"):
+            raise ValueError("Only uploaded plans are linked here; database plans are linked by hand (db/README.md).")
+        mrf_network = self.rate_networks().get(plan_key)
+        with _POLICY_WRITE_LOCK, sqlite3.connect(self.path, timeout=30) as write:
+            write.execute("INSERT INTO plan_networks (plan_id, network_tier, mrf_plan_key, mrf_network, notes, "
+                          "confirmed) VALUES (?, ?, ?, ?, ?, 1)", (plan_id, tier or "", plan_key, mrf_network, notes))
+
     def warm(self) -> None:
         """Price every component of every scenario in every linked network, so requests don't wait."""
         if self.rates_path is None:
@@ -209,9 +243,10 @@ class PlanDB:
     def plans(self) -> list[dict]:
         out = []
         for p in self.con.execute("SELECT * FROM plans ORDER BY plan_id"):
-            tiers = [r[0] for r in self.con.execute(
-                "SELECT DISTINCT network_tier FROM benefits WHERE plan_id=? AND network='in' AND network_tier IS NOT NULL",
-                (p["plan_id"],))]
+            # A plan's tiers are the ones its benefits are priced under. A tier name only on plan_level rows (an
+            # extraction that labelled the deductible "Preferred" but no visit) is not a tier: those rows apply to
+            # the whole plan (_plan_level).
+            tiers = self._benefit_tiers(p["plan_id"])
             priced = [r[0] for r in self.con.execute("SELECT network_tier FROM plan_networks WHERE plan_id=?",
                                                      (p["plan_id"],))]
             out.append({**dict(p), "in_network_tiers": sorted(tiers), "priced_tiers": priced})
@@ -219,6 +254,11 @@ class PlanDB:
 
     def plan(self, plan_id: str) -> dict | None:
         return next((p for p in self.plans() if p["plan_id"] == plan_id), None)
+
+    def _benefit_tiers(self, plan_id: str) -> list[str]:
+        return [r[0] for r in self.con.execute(
+            "SELECT DISTINCT network_tier FROM benefits WHERE plan_id=? AND network='in' AND network_tier IS NOT NULL "
+            "AND network_tier != '' AND service != 'plan_level'", (plan_id,))]
 
     @staticmethod
     def scenarios() -> list[dict]:
@@ -274,8 +314,9 @@ class PlanDB:
         rows = [r for r in rows if re.search(pattern, r["service_as_printed"] or "", re.I)
                 and not re.search(r"drug|pharmacy|dental", r["service_as_printed"] or "", re.I)]
         if network == "in":
+            tiers = self._benefit_tiers(plan_id)
             exact = [r for r in rows if (r["network_tier"] or "") == (tier or "")]
-            rows = exact or [r for r in rows if r["network_tier"] is None]
+            rows = exact or [r for r in rows if (r["network_tier"] or "") not in tiers]  # untiered or not a tier
         return rows[0] if rows and rows[0]["copay_usd"] is not None else None
 
     def deductible(self, plan_id: str, network: str = "in", tier: str | None = None) -> float | None:
@@ -301,6 +342,10 @@ class PlanDB:
         status: priced (every component), partial (some), no_rates (none, or no network / no rate store)."""
         _, rows = _encounters()[scenario]
         link = self.network(plan_id, tier)
+        if link is None and plan_id.startswith("upload_"):
+            return {"status": "no_rates", "message": "No price network is linked to this uploaded plan yet, so only "
+                                                     "flat copays can be computed. Find the network's name in the "
+                                                     "document or ask the user, then call link_network."}
         if link is None:
             return {"status": "no_rates", "message": "This tier has no price data (e.g. a campus clinic, or "
                                                      "out-of-network); only flat copays can be computed."}

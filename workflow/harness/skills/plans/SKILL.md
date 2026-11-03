@@ -9,8 +9,24 @@ calculator. You choose the plan, the scenario and the network; you never pass or
 
 A plan with `uploaded: true` came from an uploaded PDF and is now part of the shared plan library. Its rows passed
 structural validation but were not checked by a person. State that limitation before every estimate. Never describe
-it as verified. Without a confirmed price-network link, fixed copays can still be estimated but deductible or
-coinsurance benefits may need more price data.
+it as verified.
+
+### Linking an uploaded plan to its prices (`link_network`)
+
+An uploaded plan starts with no price network (`price_network_linked: false`), so only flat copays can be priced and
+anything under a deductible or coinsurance comes back without a price. Before estimating or comparing such a plan:
+
+1. Find the network's name: `search_document` the upload for the insurer's network (for example
+   `network|PPO|Choice Plus|Prudent Buyer`), or ask the user what network their insurance card names.
+2. Call `link_network` with the plan, the network it names, and the exact words that name it: `file_id` and the
+   wording as printed, or `file_id` null and the user's own words. The price database has these networks:
+   UnitedHealthcare Choice Plus (`uhc_ca_choice_plus`), Cigna PPO (`cigna_national_ppo`), Anthem Prudent Buyer PPO
+   (`anthem_ca_prudent_buyer_ppo`), Anthem Pathway HMO / EPO, Ambetter from Health Net, L.A. Care Covered.
+3. If the network is not one of them, or nothing names it, don't link anything: say that prices for this plan's
+   network aren't available yet, so only flat copays can be estimated. Never pick a network because the insurer or
+   plan type looks similar.
+
+A plan is linked once; then run the estimate or comparison again.
 
 ### Scenarios
 

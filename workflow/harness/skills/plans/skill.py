@@ -8,18 +8,25 @@
                   ranked by the user's rated priorities (plan_db.rank_plans). Office and specialist visits are priced
                   at the nearest doctor with a rate in each plan's network. The premium inputs, ZIP, visit counts,
                   priorities and budget come from the questionnaire answers (hooks.py), never from the model
+  link_network    links an uploaded plan to a network in the rate store, only with a quote (from the document or the
+                  user's own message) that names the network (plan_db.PRINTED_NETWORKS); Python checks both
 
 The model chooses from fixed options (plan ids, scenario keys, specialty); every amount comes from the databases.
 """
 
 from pathlib import Path
 
-from plan_db import DOCTOR_SCENARIOS, PlanDB, visit_counts
+import re
+
+from plan_db import DOCTOR_SCENARIOS, PRINTED_NETWORKS, PlanDB, visit_counts
 from provider_directory import (SPECIALTIES, ProviderDirectory, check_specialty, doctor_finder, estimate_nearby,
                                 visit_taxonomies)
 
 from .. import Skill, read_skill_md
 from ...mcp import Tool, schema
+from ..documents.skill import document
+
+MAX_QUOTE = 300
 
 NEEDS_SPECIALTY = ("Pass `specialty`: which kind of specialist the user will see (for example `pulmonology` for "
                    "asthma). A specialist visit is priced at nearby doctors of that specialty.")
@@ -78,20 +85,71 @@ def compare(db, directory, args):
                       args.get("preferred_tiers"), find_doctor=find)
 
 
+def _said(texts, quote):
+    """Whether the user typed this wording (any spacing, any case) in one of their messages."""
+    pattern = re.compile(r"\s+".join(map(re.escape, quote.split())), re.I)
+    return any(pattern.search(text) for text in texts)
+
+
+def _validate_link(db, files, hooks, args):
+    plan = db.plan(args["plan_id"])
+    if plan is None or not args["plan_id"].startswith("upload_"):
+        raise ValueError("link_network is for uploaded plans (plan_id upload_...); database plans are already linked.")
+    tiers, tier = plan["in_network_tiers"], args["network_tier"]
+    if tiers and tier not in tiers:
+        raise ValueError(f"network_tier must be one of this plan's in-network tiers: {', '.join(tiers)}.")
+    if not tiers and tier is not None:
+        raise ValueError("This plan has one in-network level; pass network_tier null.")
+    if link := db.network(args["plan_id"], tier):
+        raise ValueError(f"This plan is already linked to {link['mrf_plan_key']}.")
+    available = db.rate_networks()
+    if args["network"] not in available:
+        raise ValueError("The price database has no rates for that network"
+                         + (f"; it has: {', '.join(available)}." if available else " (no rate store here)."))
+    quote = args["quote"].strip()
+    if not quote or len(quote) > MAX_QUOTE:
+        raise ValueError(f"quote must be the exact wording that names the network, at most {MAX_QUOTE} characters.")
+    pattern, name = PRINTED_NETWORKS[args["network"]]
+    if not pattern.search(quote):
+        raise ValueError(f"The quote does not name {name}. Quote the words that name the network, or ask the user "
+                         "which network is on their insurance card.")
+    if args["file_id"] is not None:
+        if not document(files, args["file_id"]).contains(quote):
+            raise ValueError("That quote is not in the document; copy it exactly as printed.")
+    elif not _said(hooks.user_texts, quote):
+        raise ValueError("The user did not write that; quote their message exactly, or pass the document's file_id.")
+
+
+def link(db, files, args):
+    quote = " ".join(args["quote"].split())
+    source = f"uploaded document {files[args['file_id']]['name']}" if args["file_id"] else "the user's message"
+    db.link_uploaded_network(args["plan_id"], args["network_tier"], args["network"],
+                             f'Linked by the agent from {source}: "{quote}"')
+    name = PRINTED_NETWORKS[args["network"]][1]
+    return {"status": "linked", "plan_id": args["plan_id"], "network_tier": args["network_tier"], "network": name,
+            "message": (f"Visits under this plan are now priced from {name}'s negotiated rates. Run estimate_cost or "
+                        "compare_plans again. Tell the user the prices come from that network's published rates "
+                        "and the plan itself is still unverified."),
+            "_step": f"Linked the plan to {name} prices"}
+
+
 def plan_summary(db):
     out = []
     for p in db.plans():
         summary = {k: p[k] for k in ("plan_id", "plan_name", "insurer", "plan_year", "plan_type", "deductible_in_usd",
                                      "oop_max_in_usd", "in_network_tiers", "verified")}
         summary["uploaded"] = p["plan_id"].startswith("upload_")
+        if summary["uploaded"]:
+            summary["price_network_linked"] = bool(p["priced_tiers"])
         if rules := db.rules(p["plan_id"]):
             summary["rules"] = rules
         out.append(summary)
     return out
 
 
-def build(db: PlanDB, directory: ProviderDirectory | None = None):
+def build(db: PlanDB, directory: ProviderDirectory | None = None, files: dict | None = None, hooks=None):
     directory = directory or ProviderDirectory()
+    files = {} if files is None else files
     scenarios = [s["scenario"] for s in db.scenarios()]
     meta, body = read_skill_md(Path(__file__).with_name("SKILL.md"), SCENARIOS="\n".join(
         f"- `{s['scenario']}`: {s['label']}" for s in db.scenarios()))
@@ -134,6 +192,21 @@ def build(db: PlanDB, directory: ProviderDirectory | None = None):
             ),
             run=lambda args: compare(db, directory, args),
             validate=lambda args: _validate(db, args),
+        ),
+        Tool(
+            name="link_network",
+            description=("Link an uploaded plan to its provider network in the price database, so deductible and "
+                         "coinsurance visits can be priced. Needs a quote that names the network: from the document "
+                         "(file_id) or from the user's own message (file_id null). Python checks the quote."),
+            parameters=schema(
+                plan_id={"type": "string"},
+                network_tier={"type": ["string", "null"]},
+                network={"type": "string", "enum": list(PRINTED_NETWORKS)},
+                file_id={"type": ["string", "null"]},
+                quote={"type": "string"},
+            ),
+            run=lambda args: link(db, files, args),
+            validate=lambda args: _validate_link(db, files, hooks, args),
         ),
     ]
     return Skill(name=meta["name"], description=meta["description"], instructions=body, tools=tools)

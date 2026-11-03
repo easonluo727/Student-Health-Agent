@@ -323,6 +323,59 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         self.assertFalse(any("Year total" in reason and "None" in reason
                              for reason in report["recommendation"]["reasons"]))
 
+    def _uploaded_copy(self):
+        """A fresh policy database with upload_medicover: Health Net Silver 70's in-network rows, where (like the
+        uploaded Student Medicover plan) only the deductible and out-of-pocket rows carry a tier name, "Preferred"."""
+        policy = Path(tempfile.mkdtemp(dir=self.tmp)) / "policy.sqlite"
+        shutil.copy(ROOT / "data" / "plans" / "policy.sqlite", policy)
+        with sqlite3.connect(policy) as con:
+            con.execute("CREATE TEMP TABLE p AS SELECT * FROM plans WHERE plan_id='healthnet_silver70_hmo_2026'")
+            con.execute("UPDATE p SET plan_id='upload_medicover', verified=0")
+            con.execute("INSERT INTO plans SELECT * FROM p")
+            con.execute("CREATE TEMP TABLE b AS SELECT * FROM benefits WHERE plan_id='healthnet_silver70_hmo_2026' "
+                        "AND network='in'")
+            con.execute("UPDATE b SET plan_id='upload_medicover', benefit_id='u' || benefit_id, verified=0, "
+                        "network_tier=CASE WHEN service='plan_level' THEN 'Preferred' END")
+            con.execute("INSERT INTO benefits SELECT * FROM b")
+        con.close()
+        return PlanDB(policy, Path(self.tmp) / "rates.sqlite")
+
+    def test_a_tier_named_only_on_plan_level_rows_is_not_a_tier(self):
+        db = self._uploaded_copy()
+        self.assertEqual(db.plan("upload_medicover")["in_network_tiers"], [])
+        self.assertEqual(db.deductible("upload_medicover"), 5200)  # the "Preferred" row applies to the whole plan
+        r = db.estimate("upload_medicover", "specialist_followup")
+        self.assertEqual((r["status"], r["patient_cost"]), ("estimated", 90))
+        # Database plans keep their tiers.
+        self.assertEqual(db.plan(UCSHIP)["in_network_tiers"], ["Ashe Center", "Network", "UC Family"])
+
+    def test_an_uploaded_plan_is_priced_once_linked_with_a_quote(self):
+        from types import SimpleNamespace
+        from harness.skills.plans.skill import _validate_link, link
+
+        db = self._uploaded_copy()
+        prices = db.allowed_amounts("upload_medicover", None, "knee_mri")
+        self.assertEqual(prices["status"], "no_rates")
+        self.assertIn("link_network", prices["message"])
+        hooks = SimpleNamespace(user_texts=["My card says Anthem Blue Cross  prudent buyer PPO network."])
+        args = {"plan_id": "upload_medicover", "network_tier": None, "network": PPO, "file_id": None,
+                "quote": "Anthem Blue Cross prudent buyer PPO"}
+        for bad, error in [({"quote": "Anthem Blue Cross PPO"}, "does not name"),           # too vague
+                           ({"quote": "Prudent Buyer PPO plan"}, "did not write"),          # not the user's words
+                           ({"network": HEALTHNET}, "does not name"),
+                           ({"network": "uhc_ca_choice_plus"}, "no rates"),                 # not in this rate store
+                           ({"network_tier": "Preferred"}, "one in-network level"),
+                           ({"plan_id": "healthnet_silver70_hmo_2026"}, "uploaded plans")]:
+            with self.assertRaisesRegex(ValueError, error):
+                _validate_link(db, {}, hooks, {**args, **bad})
+        _validate_link(db, {}, hooks, args)
+        self.assertEqual(link(db, {}, args)["status"], "linked")
+        with self.assertRaisesRegex(ValueError, "already linked"):
+            _validate_link(db, {}, hooks, args)
+        self.assertEqual(db.plan("upload_medicover")["priced_tiers"], [""])
+        self.assertEqual(db.allowed_amounts("upload_medicover", None, "knee_mri")["total"], 1000.0)
+        self.assertIn("prudent buyer", db.network("upload_medicover", None)["notes"])
+
     def test_unknown_inputs(self):
         self.assertEqual(self.db.estimate("nope", "knee_mri")["status"], "invalid_input")
         self.assertEqual(self.db.estimate(UCSHIP, "nope")["status"], "invalid_input")
