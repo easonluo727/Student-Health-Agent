@@ -106,13 +106,22 @@ def sse(event, data):
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-def say(text):
+SAY_PIECES = 150  # a reply is sent in at most this many pieces, SAY_DELAY seconds apart (at most ~2 s in all)
+SAY_DELAY = 0.012
+
+
+async def say(text):
+    """A reply, typed out: it has already passed check_reply, so it is sent in pieces only so the user can read along
+    instead of seeing it appear all at once. The transcript joins the pieces again (sessions.compact)."""
     message_id = f"msg_{uuid.uuid4().hex[:8]}"
-    return [
-        sse("message_start", {"message_id": message_id}),
-        sse("message_delta", {"message_id": message_id, "text": text}),
-        sse("message_end", {"message_id": message_id}),
-    ]
+    yield sse("message_start", {"message_id": message_id})
+    words = re.findall(r"\s*\S+\s*", text) or [text]
+    size = -(-len(words) // SAY_PIECES)  # words per piece
+    for i in range(0, len(words), size):
+        if i:
+            await asyncio.sleep(SAY_DELAY)
+        yield sse("message_delta", {"message_id": message_id, "text": "".join(words[i:i + size])})
+    yield sse("message_end", {"message_id": message_id})
 
 
 def tool_output(call, result):
@@ -253,14 +262,14 @@ async def agent_loop(session):
             if feedback is None:
                 for result_id in unshown:
                     yield page_event(session, result_id)
-                for chunk in say(text):
+                async for chunk in say(text):
                     yield chunk
                 return
             rejected += 1
             if rejected > MAX_REPLY_RETRIES:
                 reply = harness.hooks.fallback_reply()
                 session.history.append({"role": "assistant", "content": reply})
-                for chunk in say(reply):
+                async for chunk in say(reply):
                     yield chunk
                 return
             # Some chat templates (Qwen) allow a system message only at the start.
@@ -277,7 +286,7 @@ async def agent_loop(session):
     reply = ("I ran out of steps before I could finish this. Ask me about one part at a time, for example one "
              "benefit or one page of your document.")
     session.history.append({"role": "assistant", "content": reply})
-    for chunk in say(reply):
+    async for chunk in say(reply):
         yield chunk
 
 
@@ -370,14 +379,14 @@ async def session_turn(session, request, user_id=None):
         elif kind == "email_response":
             # Gmail sending isn't built (the card offers Copy instead); a closed draft needs no answer.
             if data.get("action") == "send":
-                for chunk in say("Sending from Gmail isn't available yet. Copy the letter from the card and send it "
+                async for chunk in say("Sending from Gmail isn't available yet. Copy the letter from the card and send it "
                                  "from your own email."):
                     yield chunk
             session.history.append({"role": "user", "content": f"[The user {'tried to send' if data.get('action') == 'send' else 'closed'} the appeal draft.]"})
             yield sse("done", {})
             return
         else:
-            for chunk in say("That card has expired. Please type your question instead."):
+            async for chunk in say("That card has expired. Please type your question instead."):
                 yield chunk
             yield sse("done", {})
             return

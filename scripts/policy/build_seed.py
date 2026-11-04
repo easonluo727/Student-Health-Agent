@@ -44,6 +44,12 @@ CATEGORIES = [("important questions", "plan_level"), ("excluded", "excluded"), (
 FLAG_PATTERNS = {"cap": r"maximum of \$|up to \$|allowance", "penalty": r"penalty|reduced by \d+%",
                  "balance_billing": r"(over|above) the allowed amount"}
 OUT_OF_NETWORK_NOTE = r"out-of-network|non-contracting"
+# A booklet's outpatient "Physician's Visits" row is the primary care office visit. The extraction model labels it
+# primary_care_visit in one plan and "other" in the next of the same format (seen 2026-11-03: Student Medicover
+# Prime vs Elite), so Python fixes the label; in an inpatient section the same words are hospital rounds.
+OFFICE_VISIT = re.compile(r"^(?:physician[’']?s?|primary care(?: physician)?|family (?:doctor|physician)|doctor[’']?s?)"
+                          r"(?: office)? visits?$", re.I)
+INPATIENT = re.compile(r"inpatient|hospital|confine|stay|surgery|maternity", re.I)
 PLAN_COLUMNS = ["plan_id", "insurer", "plan_name", "plan_year", "plan_type", "network_name", "deductible_in_usd",
                 "deductible_out_usd", "oop_max_in_usd", "oop_max_out_usd", "coinsurance_in_pct", "source_url"]
 BENEFIT_COLUMNS = ["benefit_id", "plan_id", "category", "section", "service", "service_as_printed", "component",
@@ -87,6 +93,14 @@ def category(section, service):
         return "plan_level"
     s = (section or "").lower()
     return next((c for key, c in CATEGORIES if key in s), "other")
+
+
+def service(section, printed, extracted):
+    """The service, with an outpatient physician's visit labelled "other" relabelled primary_care_visit."""
+    if (extracted == "other" and OFFICE_VISIT.match(" ".join(printed.split()))
+            and not INPATIENT.search(section or "")):
+        return "primary_care_visit"
+    return extracted
 
 
 def flags(row):
@@ -147,7 +161,8 @@ def build_plan(folder):
             setting = None
             if component and component not in COMPONENTS:
                 component, setting = None, component.upper()
-            row = {"plan_id": folder.name, "section": text(b.get("section")), "service": b["service"],
+            row = {"plan_id": folder.name, "section": text(b.get("section")),
+                   "service": service(text(b.get("section")), text(b["service_as_printed"]), b["service"]),
                    "service_as_printed": text(b["service_as_printed"]), "component": component, "setting": setting,
                    "network": b["network"], "network_tier": text(b.get("network_tier")),
                    "copay_usd": num(b.get("copay_usd"), "copay_usd"),

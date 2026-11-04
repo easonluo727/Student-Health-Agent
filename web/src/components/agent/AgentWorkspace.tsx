@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronRight, FileText, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReplyTarget, Source } from "@/agent/protocol";
@@ -33,6 +33,14 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
   const { state } = agent;
   const [source, setSource] = useState<Source | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  // Follow new text while the user is at the bottom of the chat; leave them alone once they scroll up to read.
+  const scroller = useRef<HTMLDivElement>(null);
+  const atBottom = useRef(true);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (state.items.at(-1)?.kind === "user") atBottom.current = true;  // the user just sent something
+    if (el && atBottom.current) el.scrollTop = el.scrollHeight;
+  }, [state.items, state.busy]);
   const empty = state.items.length === 0;
 
   const searches = state.items.filter(i => i.kind === "search");
@@ -72,7 +80,8 @@ export function AgentWorkspace({ agent, toolbar }: { agent: Agent; toolbar?: Rea
       {toolbar}
       <div className={`workspace-body ${canvasOpen ? "with-canvas" : "chat-only"}`}>
         <section className={`conversation ${empty ? "empty-conversation" : ""}`} aria-label="Conversation">
-          <div className="conversation-scroll">
+          <div className="conversation-scroll" ref={scroller}
+            onScroll={e => { const el = e.currentTarget; atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}>
             {empty ? <h1 className="empty-title">Ask what care will cost, which plan fits you, or drop in a bill.</h1> : state.items.map(item => {
               switch (item.kind) {
                 case "user": return <div className="user-message" key={item.id}>
