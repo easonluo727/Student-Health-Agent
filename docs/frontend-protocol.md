@@ -302,5 +302,5 @@ agent 起草申诉邮件，从用户自己的 Gmail 发出。**用户不点 "Sen
 - `email_draft`：`{ request_id, title, from, to[], cc?, subject, body, attachments?, sources? }`。`from` 为 `null` 表示没连 Gmail。发出后这一轮结束（和问卷卡片一样）。
 - 用户的回答是新的 `input`：`{ "type": "email_response", "request_id", "action": "send" | "cancel", "draft"?: { to, cc?, subject, body } }`。`draft` 是用户改过的版本，后端按它发送。
 - 后端用每个用户自己的 OAuth token 调 Gmail API 发信，然后发 `email_status`。
-- **现状（2026-11-01）**：后端会发 `email_draft`（`draft_appeal` 工具，信由 Python 按账单核对结果写），但还不能发信：`/integrations` 返回未连接且没有 `connect_url`，这时卡片显示 "Copy letter"，复制主题和正文。账单核对结果用 `estimate` 事件（标题 "Bill review"，每行是一项收费，`amount` 是用户应付）。
+- **现状（2026-11-01）**：后端会发 `email_draft`（`draft_appeal` 工具，信由 Python 按账单核对结果写），但还不能发信：`/integrations` 返回未连接且没有 `connect_url`，这时卡片显示 "Open in Gmail"（2026-11-03）：在新标签页打开 Gmail 写信页（`mail.google.com/mail/?view=cm`，带上收件人、抄送、主题和正文），用户在 Gmail 里点发送；附件要用户自己附上（卡片上有提示）。旁边保留 "Copy letter"，给不用 Gmail 的用户。账单核对结果用 `estimate` 事件（标题 "Bill review"，每行是一项收费，`amount` 是用户应付）。
 

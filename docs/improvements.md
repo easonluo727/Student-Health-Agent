@@ -83,7 +83,7 @@ plan/row 保持 `verified=0`，但结构完整且没有其他 review flag 的行
 
 - **前端和 mock 已做**（Lovable 项目 "Health Coverage Hub"，见 `web/README.md`）：上传照片、账单审核页、可编辑的邮件卡片、"Send from Gmail"。协议见 `docs/frontend-protocol.md` 最后一节。
 - **后端（2026-11-01 已做读账单、核对和申诉信）**：上传照片后 `workflow/bill_reader.py` 用训练时的同一个提示读出每一行（先试 `BILL_*` 配置的微调 Glimmer，失败退回主模型）；`audit_bill`（`workflow/bill_audit.py`，不用 LLM）按这家医生 NPI 自己的协商价和计划的 benefit 逐行算应付，标出多收、重复和总数对不上，结果推到账单卡片；`draft_appeal` 由 Python 按核对结果写申诉信，推 `email_draft` 卡片，用户复制后自己发。
-- **还没做**：Gmail OAuth 和发信（`email_status`，`/integrations` 仍返回未连接，卡片显示 "Copy letter"）；PDF 账单和 HEIC 照片（现在只读 JPEG、PNG、WebP 照片，PDF 仍按保单处理）；理疗（97110 等）没有对应的 benefit 映射，显示"没有数据"；账单上没有 NPI 时不按名字查医生；微调 Glimmer 的 Modal 服务脚本 `scripts/bills/modal_serve.py` 写好了，还没部署。
+- **还没做**：Gmail OAuth 和直接代发（`email_status`，`/integrations` 仍返回未连接；2026-11-03 起卡片用 "Open in Gmail" 打开填好的 Gmail 写信页，用户自己点发送，附件自己附）；PDF 账单和 HEIC 照片（现在只读 JPEG、PNG、WebP 照片，PDF 仍按保单处理）；理疗（97110 等）没有对应的 benefit 映射，显示"没有数据"；账单上没有 NPI 时不按名字查医生；微调 Glimmer 的 Modal 服务脚本 `scripts/bills/modal_serve.py` 写好了，还没部署。
 - **对比页的默认数字**：计划卡片显示滑块选中的场景，默认是中间那个（`healthy`，只含保费），不是 `expected`。要改的话在 Lovable 里改。
 
 ### 2. 按具体医生查价

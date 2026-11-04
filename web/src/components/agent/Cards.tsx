@@ -133,6 +133,7 @@ export function EmailCard({ draft, status, state, disabled, integrations, onRefr
   const [body, setBody] = useState(draft.body);
   const [connecting, setConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [opened, setOpened] = useState(false);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => () => { if (poll.current) clearInterval(poll.current); }, []);
   const from = draft.from ?? (integrations?.gmail.connected ? integrations.gmail.email : null);
@@ -143,10 +144,17 @@ export function EmailCard({ draft, status, state, disabled, integrations, onRefr
   const sending = status?.status === "sending";
   const locked = disabled || sending;
   const edit = (): EmailDraftEdit => ({ to: splitList(to), cc: splitList(cc), subject, body });
-  // Gmail sending isn't built: the user sends the letter from their own email.
+  // Gmail sending isn't built: Gmail's compose window opens with the letter filled in, and the user sends it there
+  // (or copies it into another email app). Nothing is sent unless they press Send in Gmail.
   async function copy() {
     await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
     setCopied(true);
+  }
+  function openInGmail() {
+    const e = encodeURIComponent, t = splitList(to), c = splitList(cc);
+    const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${e(t.join(","))}${c.length ? `&cc=${e(c.join(","))}` : ""}&su=${e(subject)}&body=${e(body)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setOpened(true);
   }
   function connect() {
     const url = integrations?.gmail.connect_url;
@@ -170,12 +178,16 @@ export function EmailCard({ draft, status, state, disabled, integrations, onRefr
     </div>
     <textarea aria-label="Email body" className="letter-editor" value={body} disabled={locked} onChange={e => setBody(e.target.value)} />
     {!!draft.attachments?.length && <div className="mt-3 flex flex-wrap gap-2">{draft.attachments.map(a => <span key={a.file_id} className="attachment-tag">{/\.(jpe?g|png|webp|heic|heif)$/i.test(a.name) ? <ImageIcon className="size-4" /> : <FileText className="size-4" />}{a.name}</span>)}</div>}
+    {!!draft.attachments?.length && !from && <p className="mt-2 text-xs text-muted-foreground">Gmail opens without attachments; attach these yourself before you send.</p>}
     {!!draft.sources?.length && <div className="mt-3"><SourceChips sources={draft.sources} /></div>}
     {status?.status === "failed" && <p className="mt-4 text-sm text-negative-deep">{status.message ?? "Gmail couldn't send this email."}</p>}
     <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
       {sending ? <span className="mr-auto inline-flex items-center gap-2 text-sm text-body"><Loader2 className="size-4 animate-spin" />Sending from Gmail…</span> : null}
       <Button variant="ghost" className="action-button" disabled={locked} onClick={onCancel}>Cancel</Button>
-      {!from && !integrations?.gmail.connect_url ? <Button className="action-button" onClick={copy}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : "Copy letter"}</Button>
+      {!from && !integrations?.gmail.connect_url ? <>
+          <Button variant="ghost" className="action-button" onClick={copy}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : "Copy letter"}</Button>
+          <Button className="action-button" disabled={!subject.trim()} onClick={openInGmail}>{opened ? <Check /> : <Mail />}{opened ? "Opened in Gmail" : "Open in Gmail"}</Button>
+        </>
         : !from ? <Button className="action-button" disabled={locked || connecting} onClick={connect}>{connecting ? <Loader2 className="animate-spin" /> : <Mail />}Connect Gmail</Button>
         : <Button className="action-button" disabled={locked || !splitList(to).length || !subject.trim()} onClick={() => onSend(edit())}>{status?.status === "failed" ? <RotateCcw /> : <Mail />}{status?.status === "failed" ? "Retry" : "Send from Gmail"}</Button>}
     </div>
