@@ -2,6 +2,8 @@
 
 **An AI health-insurance assistant for Los Angeles, with every cost traced to a policy page or negotiated rate.**
 
+**Try it live: https://agent-api-production-adc8.up.railway.app** (the source is open; the price and provider databases are not in git, so the live site is the way to use it).
+
 ## Built during the Meta Global AI Developer Hackathon (2026-10-26 to 11-04)
 
 > TallyHealth builds on an earlier prototype of ours: a plan-comparison chat and a database of insurers' negotiated rates, where every price was a network-wide median. **Most of what you see now was built during the hackathon, on Meta's models:**
@@ -76,38 +78,10 @@ Every model call goes through one client ([`workflow/llm_client.py`](workflow/ll
 
 **Plan database.** One row per price a plan states (service × network × tier), extracted from official plan PDFs ([`scripts/policy/extract_sbc.py`](scripts/policy/extract_sbc.py)) and built into [`data/plans/policy.sqlite`](data/plans/policy.sqlite) by [`scripts/policy/build_seed.py`](scripts/policy/build_seed.py). Trusted seed rows must be verified and flag-free; uploaded rows remain unverified but may be calculated when structurally complete and are always disclosed as such. [`data/plans/plan_networks.csv`](data/plans/plan_networks.csv) says which price network each plan uses. Details: [`db/README.md`](db/README.md).
 
-## Run it
-
-Requirements: Python 3.12+, Node 20+ with pnpm, and poppler (`brew install poppler`) for PDF rendering.
-
-```bash
-python -m venv .venv && .venv/bin/pip install -r requirements.txt
-
-# LLM settings (gitignored); any OpenAI-compatible endpoint
-cat > .env <<'EOF'
-LLM_BASE_URL=...
-LLM_API_KEY=...
-LLM_MODEL=...
-# optional, for the fast no-reasoning calls; Qwen on vLLM:
-# LLM_EXTRA_BODY={"chat_template_kwargs": {"enable_thinking": false}}
-# optional, read bill photos with another model (the fine-tuned Glimmer, scripts/bills/modal_serve.py):
-# BILL_BASE_URL=...  BILL_MODEL=bills-reader  BILL_API_KEY=...
-# optional, turns on "Sign in with Google" (an OAuth web client id whose JavaScript origins include the site):
-# GOOGLE_CLIENT_ID=....apps.googleusercontent.com
-EOF
-
-# 1. Agent service (port 8000)
-(cd workflow && ../.venv/bin/uvicorn server:app --port 8000) &
-# 2. Frontend (port 3000)
-cd web && pnpm install && echo "NEXT_PUBLIC_API_BASE=http://localhost:8000" > .env.local && pnpm dev
-```
-
-Open http://localhost:3000. Without `NEXT_PUBLIC_API_BASE`, the frontend runs against a built-in mock backend instead.
-
 ## Tests
 
 ```bash
-.venv/bin/python -m unittest discover tests   # calculator, plan database, guards, harness and data pipelines
+python -m unittest discover tests   # calculator, plan database, guards, harness and data pipelines
 cd web && pnpm lint && pnpm build
 ```
 
