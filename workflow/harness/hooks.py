@@ -6,11 +6,13 @@
   post_tool         after a tool runs; may rewrite the result or pause for confirmation
   check_reply       before a reply is shown; may reject it with feedback
 
-The amount, confirmation and reply checks are guards.ConversationGuard, unchanged. This file
-adds the questionnaire rules, Python filling compare_plans' inputs from the answers (premium inputs: age, ZIP,
-student level; visit counts; priority ratings and the monthly budget; premiums the user stated for this
-conversation), answers from the user's long-term memory (use_memory), and Python sending a form when a tool needs
-something from the user.
+The amount, confirmation and reply checks are guards.ConversationGuard. This file adds the questionnaire rules,
+Python filling compare_plans' inputs from the answers (premium inputs: age, ZIP, student level; visit counts;
+priority ratings and the monthly budget; premiums the user stated for this conversation), and Python sending a form
+when a tool needs something from the user.
+
+"Stated by the user" means stated anywhere: in this chat, or in an earlier one or Settings (remember, from
+memory.recall). Every check reads `said` and `known`, which hold both, and the guard counts both.
 """
 
 import re
@@ -53,23 +55,29 @@ def _no_confirm(summary):
 class Hooks:
     def __init__(self):
         self.guard = ConversationGuard(confirm=_no_confirm)
-        self.user_texts = []
-        self.answers = {}  # question-bank id -> submitted value (None when the user doesn't know)
-        self.from_memory = set()  # answers that came from the user's memory, not from this chat
+        self.user_texts = []  # what the user said in this chat
+        self.answers = {}  # question-bank id -> submitted value in this chat (None when the user doesn't know)
+        # What the user said before this chat (memory.recall), set each turn and not saved: it counts as stated.
+        self.past_texts = []
+        self.past_answers = {}
         # plan_id -> a premium the user stated in this chat (set_premium); used in place of the database's for this
         # conversation only, never written to the shared policy database
         self.premium_overrides = {}
 
-    def use_memory(self, answers):
-        """Answers from the user's long-term memory (memory.question_answers), at the start of each turn. An answer
-        given in this chat wins; one that came from memory follows memory, also when the user removed it."""
-        for qid in self.from_memory - answers.keys():
-            self.answers.pop(qid, None)
-        self.from_memory &= answers.keys()
-        for qid, value in answers.items():
-            if qid not in self.answers or qid in self.from_memory:
-                self.answers[qid] = value
-                self.from_memory.add(qid)
+    def remember(self, texts, answers):
+        """The user's long-term memory, at the start of each turn. An answer given in this chat wins."""
+        self.past_texts, self.past_answers = list(texts), dict(answers)
+        self.guard.remember(self.past_texts)
+
+    @property
+    def said(self):
+        """Everything the user said, before this chat and in it."""
+        return [*self.past_texts, *self.user_texts]
+
+    @property
+    def known(self):
+        """Every questionnaire answer the user gave, the newest winning."""
+        return {**self.past_answers, **self.answers}
 
     # Events ---------------------------------------------------------------
 
@@ -88,7 +96,6 @@ class Hooks:
             value = None if answer.get("unknown") else answer.get("value")
             if q["field"] in BY_ID:
                 self.answers[q["field"]] = value
-                self.from_memory.discard(q["field"])
             if q["kind"] == "number" and value is not None:
                 # Questionnaire numbers are user-stated amounts for the calculator guard.
                 numbers.append(str(value))
@@ -100,20 +107,21 @@ class Hooks:
         if name == "ask_questions":
             return self._check_questions(args)
         if name in ("estimate_cost", "find_providers"):  # the only amount the model passes is the remaining deductible
-            if self.answers.get("zip"):  # the ZIP the user gave in the form wins
-                args["zip_code"] = str(self.answers["zip"])
+            if self.known.get("zip"):  # the ZIP the user gave in the form wins
+                args["zip_code"] = str(self.known["zip"])
             return self.guard.pre_tool("calculate_estimate",
                                        {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
         if name == "audit_bill":  # like estimate_cost: the remaining deductible is the only amount the model passes
             return self.guard.pre_tool("calculate_estimate",
                                        {"allowed_amount": None, "remaining_deductible": args["remaining_deductible"]})
         if name == "compare_plans":  # who the user is and how they use care: only answers they gave, never the model's
-            args["profile"] = {field: self.answers.get(qid) for field, qid in PREMIUM_FIELDS.items()}
-            args["visits"] = {scenario: self.answers[qid] for qid, scenario in VISIT_FIELDS.items()
-                              if self.answers.get(qid) is not None}
-            args["preferences"] = {"weights": {f: self.answers.get(qid) for f, qid in WEIGHT_FIELDS.items()},
-                                   "monthly_budget": self.answers.get("monthly_budget")}
-            args["preferred_tiers"] = [PROVIDER_TIERS[v] for v in self.answers.get("keep_providers") or []
+            known = self.known
+            args["profile"] = {field: known.get(qid) for field, qid in PREMIUM_FIELDS.items()}
+            args["visits"] = {scenario: known[qid] for qid, scenario in VISIT_FIELDS.items()
+                              if known.get(qid) is not None}
+            args["preferences"] = {"weights": {f: known.get(qid) for f, qid in WEIGHT_FIELDS.items()},
+                                   "monthly_budget": known.get("monthly_budget")}
+            args["preferred_tiers"] = [PROVIDER_TIERS[v] for v in known.get("keep_providers") or []
                                        if v in PROVIDER_TIERS]
             args["premium_overrides"] = {plan_id: self.premium_overrides[plan_id] for plan_id in args["plan_ids"]
                                          if plan_id in self.premium_overrides}
@@ -125,7 +133,7 @@ class Hooks:
         if name == "audit_bill":
             result = self.guard.post_tool(name, args, result, None)
             ask = [CALCULATOR_FIELDS[f] for f in result.get("missing_fields") or [] if f in CALCULATOR_FIELDS]
-            ask = [qid for qid in ask if qid not in self.answers]
+            ask = [qid for qid in ask if qid not in self.known]
             return {**result, "auto_ask": ask} if ask and result.get("status") == "needs_information" else result
         if name == "estimate_cost":
             # Inputs are choices from fixed options, so there is nothing to confirm; record the result's
@@ -135,7 +143,7 @@ class Hooks:
                 # The ZIP: an office or specialist visit is priced at doctors near the user.
                 fields = {**CALCULATOR_FIELDS, "zip": PREMIUM_FIELDS["zip"]}
                 ask = [fields[f] for f in result.get("missing_fields") or [] if f in fields]
-                ask = [qid for qid in ask if qid not in self.answers]
+                ask = [qid for qid in ask if qid not in self.known]
                 if ask:
                     result = {**result, "auto_ask": ask}
             return result
@@ -143,14 +151,15 @@ class Hooks:
             # The premium inputs still missing, and how often the user expects each chosen visit.
             ask = [PREMIUM_FIELDS[f] for f in result.get("missing_fields") or [] if f in PREMIUM_FIELDS]
             ask += [qid for qid, scenario in VISIT_FIELDS.items() if scenario in args["scenarios"]]
-            ask = [qid for qid in ask if qid not in self.answers]
+            ask = [qid for qid in ask if qid not in self.known]
             result = self.guard.post_tool(name, args, result, None)
             return {**result, "auto_ask": ask} if ask else result
         return self.guard.post_tool(name, args, result, None)
 
     def _check_questions(self, args):
         ids = list(dict.fromkeys(args["question_ids"]))
-        answered = {qid: self.answers[qid] for qid in ids if qid in self.answers}
+        known = self.known
+        answered = {qid: known[qid] for qid in ids if qid in known}
         ids = [qid for qid in ids if qid not in answered]
         if not ids:
             return {"status": "already_answered", "answers": answered,
@@ -167,7 +176,7 @@ class Hooks:
 
     def _stated_value(self, qid, raw):
         """The prefill value in its form type, or None unless the user actually said it."""
-        q, said = BY_ID[qid], " ".join(self.user_texts)
+        q, said = BY_ID[qid], " ".join(self.said)
         raw = raw.strip()
         if q["kind"] in ("number", "weight"):
             try:

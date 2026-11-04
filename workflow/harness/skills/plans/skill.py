@@ -130,7 +130,7 @@ def _validate_link(db, files, hooks, args):
     if args["file_id"] is not None:
         if not document(files, args["file_id"]).contains(quote):
             raise ValueError("That quote is not in the document; copy it exactly as printed.")
-    elif not _said(hooks.user_texts, quote):
+    elif not _said(hooks.said, quote):
         raise ValueError("The user did not write that; quote their message exactly, or pass the document's file_id.")
 
 
@@ -160,7 +160,7 @@ def _validate_premium(db, files, hooks, args):
     if args["file_id"] is not None:
         if not document(files, args["file_id"]).contains(quote):
             raise ValueError("That quote is not in the document; copy the premium's wording exactly as printed.")
-    elif not _said(hooks.user_texts, quote):
+    elif not _said(hooks.said, quote):
         raise ValueError("quote must be the user's own words that state this premium, copied from their message, "
                          "or the document's wording with its file_id.")
     if Decimal(str(amount)).normalize() not in {n.normalize() for n in numbers_in(quote)}:

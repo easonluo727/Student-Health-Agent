@@ -41,7 +41,7 @@ class Session:
         self.uploads = self.harness.files  # file_id -> {"path", "name", "content_type", "sha256"}; tools read it
         self.attachment_notes = []
         self.context = None  # the last home-screen mode applied
-        # Per request, not saved in the state: the user's memory for the prompt (memory.py), and facts from this
+        # Per request, not saved in the state: the user's memory for the prompt (memory.recall), and facts from this
         # turn's tools for the database (see SessionStore._write).
         self.memory = ""
         self.records = []
@@ -85,7 +85,7 @@ def dump(session):
         "bills": session.harness.bills,
         "results": session.harness.results,
         "hooks": {"user_texts": hooks.user_texts, "answers": hooks.answers,
-                  "from_memory": sorted(hooks.from_memory), "premium_overrides": hooks.premium_overrides},
+                  "premium_overrides": hooks.premium_overrides},
         "guard": {"user_numbers": sorted(map(str, guard._user_numbers)),
                   "tool_numbers": sorted(map(str, guard._tool_numbers)),
                   "confirmed": [list(k) for k in guard._confirmed], "missing_fields": guard._missing_fields},
@@ -104,7 +104,6 @@ def load(state):
     session.harness.results.update(state.get("results") or {})  # and the pages skill this one
     hooks, guard = session.harness.hooks, session.harness.hooks.guard
     hooks.user_texts, hooks.answers = state["hooks"]["user_texts"], state["hooks"]["answers"]
-    hooks.from_memory = set(state["hooks"].get("from_memory") or [])
     hooks.premium_overrides = state["hooks"].get("premium_overrides") or {}
     g = state["guard"]
     guard._user_numbers = {Decimal(n) for n in g["user_numbers"]}

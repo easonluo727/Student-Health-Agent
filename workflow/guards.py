@@ -62,6 +62,7 @@ class ConversationGuard:
 
     def reset(self):
         self._user_numbers = set()
+        self._remembered = set()  # numbers the user stated in earlier chats (remember); not saved with the session
         self._tool_numbers = set()
         self._confirmed = set()
         self._missing_fields = []
@@ -70,6 +71,14 @@ class ConversationGuard:
 
     def record_user(self, text):
         self._user_numbers |= numbers_in(text)
+
+    def remember(self, texts):
+        """What the user said before this conversation, set each turn: its numbers count as stated."""
+        self._remembered = set().union(*map(numbers_in, texts))
+
+    def stated(self):
+        """Every number the user stated, in this conversation or before."""
+        return self._user_numbers | self._remembered
 
     def start_turn(self):
         self._missing_fields = []
@@ -83,7 +92,7 @@ class ConversationGuard:
         unstated = [
             field for field in AMOUNT_ARGS
             if args.get(field) is not None
-            and Decimal(str(args[field])).normalize() not in self._user_numbers
+            and Decimal(str(args[field])).normalize() not in self.stated()
         ]
         if unstated:
             return {
@@ -137,7 +146,7 @@ class ConversationGuard:
     def check_reply(self, text):
         """Return None if the reply may be shown, else feedback for the model."""
         problems = []
-        untraced = dollar_amounts_in(text) - self._user_numbers - self._tool_numbers
+        untraced = dollar_amounts_in(text) - self.stated() - self._tool_numbers
         if untraced:
             shown = ", ".join(f"${n:,}" for n in sorted(untraced))
             problems.append(

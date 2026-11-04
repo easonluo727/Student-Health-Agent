@@ -359,7 +359,7 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         prices = db.allowed_amounts("upload_medicover", None, "knee_mri")
         self.assertEqual(prices["status"], "no_rates")
         self.assertIn("link_network", prices["message"])
-        hooks = SimpleNamespace(user_texts=["My card says Anthem Blue Cross  prudent buyer PPO network."])
+        hooks = SimpleNamespace(said=["My card says Anthem Blue Cross  prudent buyer PPO network."])
         args = {"plan_id": "upload_medicover", "network_tier": None, "network": PPO, "file_id": None,
                 "quote": "Anthem Blue Cross prudent buyer PPO"}
         for bad, error in [({"quote": "Anthem Blue Cross PPO"}, "does not name"),           # too vague

@@ -75,7 +75,7 @@ def _validate(results, guard, args):
         raise ValueError(f"Notes are for highlighted doctors only: {', '.join(extra)}.")
     if long := [n for n, text in notes.items() if len(text) > MAX_NOTE]:
         raise ValueError(f"Keep each note to one sentence (at most {MAX_NOTE} characters): {', '.join(long)}.")
-    untraced = dollar_amounts_in(" ".join(notes.values())) - guard._user_numbers - guard._tool_numbers
+    untraced = dollar_amounts_in(" ".join(notes.values())) - guard.stated() - guard._tool_numbers
     if untraced:
         raise ValueError("Notes contain amounts that are not in the tool results: "
                          + ", ".join(f"${n:,}" for n in sorted(untraced)) + ". Use only amounts from the result.")

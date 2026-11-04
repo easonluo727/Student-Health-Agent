@@ -1,16 +1,20 @@
-"""The signed-in user's long-term memory: facts that last across conversations, and the markdown the agent reads.
+"""The signed-in user's long-term memory: everything they told us, in any chat or in Settings.
 
-The user sets the facts in Settings; Python also keeps their questionnaire answers to the same questions, so the newest
-answer wins wherever it was given. The model never writes here. Every turn, render() turns the facts and the user's
-past bill reviews and uploaded plans into a markdown section of the prompt. The user never sees that markdown; they
-see Settings and their files.
+Memory is not a list of chosen facts. It is what the user said: every message and questionnaire answer from their
+other conversations (the `input` events in session_events), and the values they set in Settings, oldest first. The
+newest answer to a question wins. Deleting a conversation forgets what was said in it.
 
-Facts are stored in the app database (appdb.py, user_facts) as JSON, one row per field, with where they came from.
+Every turn, recall() gives the harness three things: the texts (so the hooks count earlier statements as stated by
+the user: amounts, prefill, quotes), the questionnaire answers (so nothing is asked twice) and a markdown section of
+the prompt. The model never writes here, and the user never sees the markdown; they see their chats and Settings.
+
+Settings values are stored in the app database (appdb.py, user_facts) as JSON, one row per field.
 """
 
 import json
 import re
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,10 +22,10 @@ from appdb import APP_DB, migrate, transaction
 from harness.skills.questionnaire.bank import BY_ID
 
 ZIP = re.compile(r"^\d{5}$")
-# Fields kept for the user. The ones named like a question-bank id fill that question, so it isn't asked again.
-FIELDS = ("zip", "age", "plan_id")
-QUESTION_FIELDS = ("zip", "age")
+FIELDS = ("zip", "age", "plan_id")  # what Settings can set
 MAX_REVIEWS = 5
+MAX_MEMORY_CHARS = 8000  # what the user said, in the prompt; the oldest lines go first
+MAX_LINE_CHARS = 600
 
 
 def check(field, value, plan_ids=()):
@@ -45,20 +49,27 @@ def check(field, value, plan_ids=()):
     return value
 
 
+@dataclass
+class Recall:
+    texts: list  # what the user said, as text, oldest first
+    answers: dict  # question-bank id -> the newest known answer
+    prompt: str  # the memory section of the prompt ("" when there is nothing)
+
+
 class MemoryStore:
     def __init__(self, path: Path = APP_DB):
         migrate(path)
         self.path = path
 
     def facts(self, user_id: str) -> dict:
-        """{field: {"value", "source", "updated_at"}} for the fields the user has."""
+        """The Settings values: {field: {"value", "source", "updated_at"}}."""
         with transaction(self.path) as con:
             rows = con.execute("SELECT field, value, source, updated_at FROM user_facts WHERE user_id=?",
                                (user_id,)).fetchall()
         return {f: {"value": json.loads(v), "source": s, "updated_at": t} for f, v, s, t in rows if f in FIELDS}
 
-    def remember(self, user_id: str, values: dict, source: str, plan_ids=()) -> None:
-        """Set each field to its value (None forgets it), all or nothing. Raises ValueError on an invalid value."""
+    def remember(self, user_id: str, values: dict, plan_ids=()) -> None:
+        """Set each Settings field to its value (None forgets it), all or nothing. Raises ValueError on a bad value."""
         checked = {f: None if v is None else check(f, v, plan_ids) for f, v in values.items()}
         now = time.time()
         with transaction(self.path) as con:
@@ -67,9 +78,18 @@ class MemoryStore:
                     con.execute("DELETE FROM user_facts WHERE user_id=? AND field=?", (user_id, field))
                 else:
                     con.execute("INSERT INTO user_facts (user_id, field, value, source, updated_at) VALUES "
-                                "(?, ?, ?, ?, ?) ON CONFLICT(user_id, field) DO UPDATE SET value=excluded.value, "
-                                "source=excluded.source, updated_at=excluded.updated_at",
-                                (user_id, field, json.dumps(value), source, now))
+                                "(?, ?, ?, 'settings', ?) ON CONFLICT(user_id, field) DO UPDATE SET "
+                                "value=excluded.value, updated_at=excluded.updated_at",
+                                (user_id, field, json.dumps(value), now))
+
+    def inputs(self, user_id: str, exclude_session: str) -> list[tuple[float, dict]]:
+        """What the user sent in their other conversations, oldest first: [(time, input data)]."""
+        with transaction(self.path) as con:
+            rows = con.execute(
+                "SELECT e.created_at, e.data FROM session_events e JOIN sessions s ON s.session_id = e.session_id "
+                "WHERE s.user_id=? AND e.session_id != ? AND e.event='input' ORDER BY e.created_at, e.seq",
+                (user_id, exclude_session)).fetchall()
+        return [(at, json.loads(data)) for at, data in rows]
 
     def bill_reviews(self, user_id: str, limit: int = MAX_REVIEWS) -> list[dict]:
         """The user's latest bill reviews, newest first."""
@@ -92,14 +112,56 @@ class MemoryStore:
                 "GROUP BY u.plan_id ORDER BY MAX(u.created_at) DESC", (user_id,)).fetchall()
         return [{"plan_id": p, "plan_name": n, "uploaded_at": t} for p, n, t in rows]
 
-    def memory(self, user: dict, plan_names: dict) -> str:
-        return render(user, self.facts(user["user_id"]), self.bill_reviews(user["user_id"]),
-                      self.uploaded_plans(user["user_id"]), plan_names)
+    def recall(self, user: dict, session_id: str, plan_names: dict) -> Recall:
+        """Everything the user told us outside this conversation (this one's own history is already in the chat)."""
+        uid = user["user_id"]
+        said = statements(self.inputs(uid, session_id), self.facts(uid), plan_names)
+        answers = {}
+        for s in said:
+            answers.update(s["answers"])
+        return Recall([s["text"] for s in said], answers,
+                      render(user, said, self.bill_reviews(uid), self.uploaded_plans(uid), plan_names))
 
 
-def question_answers(facts: dict) -> dict:
-    """The facts that answer questionnaire questions, as the hooks' answers ({question id: value})."""
-    return {f: facts[f]["value"] for f in QUESTION_FIELDS if f in facts}
+def _shown(value):
+    return ", ".join(map(str, value)) if isinstance(value, list) else str(value)
+
+
+def statements(inputs, facts, plan_names) -> list[dict]:
+    """Each thing the user said as {"at", "where", "text", "answers"}, oldest first. Answers are only real values:
+    "I don't know" in an old chat doesn't stop the questionnaire from asking again."""
+    out = []
+    for at, data in inputs:
+        if data.get("type") == "message":
+            text = " ".join((data.get("text") or "").split())
+            names = [a.get("name") for a in data.get("attachments") or [] if a.get("name")]
+            if names:
+                text = " ".join(filter(None, [text, "[attached: " + ", ".join(names) + "]"]))
+            if text:
+                out.append({"at": at, "where": "chat", "text": text, "answers": {}})
+        elif data.get("type") == "form_response":
+            parts, answers = [], {}
+            for qid, answer in (data.get("answers") or {}).items():
+                if qid not in BY_ID or not isinstance(answer, dict):
+                    continue
+                value = None if answer.get("unknown") else answer.get("value")
+                if value in (None, "", []):
+                    parts.append(f"{BY_ID[qid]['label']} I don't know")
+                else:
+                    answers[qid] = value
+                    parts.append(f"{BY_ID[qid]['label']} {_shown(value)}")
+            if parts:
+                out.append({"at": at, "where": "questionnaire", "text": "; ".join(parts), "answers": answers})
+    labels = {"zip": "My ZIP code is", "age": "My age is"}
+    for field, fact in facts.items():
+        value = fact["value"]
+        if field == "plan_id":
+            text = f"My current plan is {plan_names.get(value, value)} (plan_id {value})"
+        else:
+            text = f"{labels[field]} {value}"
+        out.append({"at": fact["updated_at"], "where": "Settings", "text": text,
+                    "answers": {field: value} if field in BY_ID else {}})
+    return sorted(out, key=lambda s: s["at"])  # stable: a chat's inputs stay in order
 
 
 def _day(seconds):
@@ -110,20 +172,17 @@ def _usd(amount):
     return "unknown" if amount is None else f"${amount:,.2f}"
 
 
-def render(user: dict, facts: dict, reviews: list, plans: list, plan_names: dict) -> str:
-    """The memory section of the prompt, in three parts: how to use it (fixed), about the user, past activity."""
-    said = {"settings": "set in Settings", "form": "answered in a questionnaire"}
-    about = [f"- Name: {user['name']}" if user.get("name") else None]
-    if "plan_id" in facts:
-        f = facts["plan_id"]
-        about.append(f"- Current plan: {plan_names.get(f['value'], f['value'])} (plan_id {f['value']}) · "
-                     f"{said[f['source']]} {_day(f['updated_at'])}")
-    labels = {"zip": "ZIP", "age": "Age"}
-    for field in QUESTION_FIELDS:
-        if field in facts:
-            f = facts[field]
-            about.append(f"- {labels[field]}: {f['value']} · {said[f['source']]} {_day(f['updated_at'])}")
-    about = [line for line in about if line]
+def render(user: dict, said: list, reviews: list, plans: list, plan_names: dict) -> str:
+    """The memory section of the prompt: what the user said (newest kept when it's long), then past activity."""
+    lines, size = [], 0
+    for s in reversed(said):
+        text = s["text"] if len(s["text"]) <= MAX_LINE_CHARS else s["text"][:MAX_LINE_CHARS] + " …"
+        line = f"- {_day(s['at'])} · {s['where']}: {text}"
+        if size + len(line) > MAX_MEMORY_CHARS:
+            break
+        lines.append(line)
+        size += len(line)
+    lines.reverse()
 
     past = []
     for r in reviews:
@@ -141,22 +200,20 @@ def render(user: dict, facts: dict, reviews: list, plans: list, plan_names: dict
         name = plan_names.get(p["plan_id"]) or p["plan_name"] or p["plan_id"]  # the plan database is the authority
         past.append(f"- Uploaded plan {_day(p['uploaded_at'])}: {name} (plan_id {p['plan_id']})")
 
-    if not about and not past:
+    if not lines and not past:
         return ""
     return "\n".join([
-        "# What you know about this user (from earlier chats and their settings)",
+        "# What this user told you before",
         "",
-        "## 1. How to use this memory",
-        "- The user set these in Settings or told you in an earlier chat. Use them; don't ask for them again.",
-        "- ZIP and age already fill the questionnaire and compare_plans; Python does that, not you.",
-        "- If the user says something different now, the new answer wins.",
-        "- Amounts that change during the year (remaining deductible, what they've paid so far) are never kept here; "
-        "ask for them each time.",
-        "- Past bill reviews are summaries. To discuss a bill again, the user opens that chat or uploads it again.",
+        "Everything they said in earlier chats, in questionnaires and in Settings, oldest first. Use it and don't ask "
+        "for it again: Python already fills the questionnaire and checks amounts against it. If they say something "
+        "different now, the new answer wins. When you rely on something that changes during the year (the remaining "
+        "deductible, what they've paid, their plan), say when they told you.",
+        *([f"Their name: {user['name']}"] if user.get("name") else []),
         "",
-        "## 2. About the user",
-        *(about or ["- Nothing yet."]),
+        "## What they said",
+        *(lines or ["- Nothing yet."]),
         "",
-        "## 3. Past activity",
+        "## Past activity",
         *(past or ["- Nothing yet."]),
     ])

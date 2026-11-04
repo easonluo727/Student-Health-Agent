@@ -35,7 +35,7 @@ from harness.hooks import MAX_REPLY_RETRIES
 from harness.skills.pages.skill import missing as pages_missing, named as pages_named, store_result
 from harness.skills.questionnaire.skill import answers_message, build_form
 from plan_db import PlanDB
-from memory import FIELDS as MEMORY_FIELDS, QUESTION_FIELDS, MemoryStore, question_answers
+from memory import FIELDS as MEMORY_FIELDS, MemoryStore
 from sessions import NotYours, SessionStore, appeal_drafted, bill_review, file_kind, upload_folder
 
 load_env()
@@ -362,8 +362,6 @@ async def session_turn(session, request, user_id=None):
             if kind == "form_response":
                 answers = data.get("answers") or {}
                 hooks.on_form_answers(questions, answers)
-                if user_id:
-                    remember_answers(user_id, questions, answers)
                 session.history.append({"role": "user", "content": answers_message(questions, answers)})
             else:  # closing a form means "I don't know" to each question, so Python doesn't ask them again
                 hooks.on_form_answers(questions, {})
@@ -506,24 +504,13 @@ async def turn(body: TurnRequest, request: Request):
     except NotYours:
         raise HTTPException(404, NOT_FOUND)
     session.harness.set_viewer(body.session_id, STORE.plan_owners(body.session_id, user_id))
-    if user:  # what the user told us before: fills the questionnaire, and the agent reads it (memory.py)
-        session.harness.hooks.use_memory(question_answers(MEMORY.facts(user_id)))
-        session.memory = MEMORY.memory(user, {p["plan_id"]: p["name"]
-                                              for p in available_plans(session.harness.db.owners)})
+    if user:  # everything the user said in their other chats and in Settings counts here too (memory.py)
+        recall = MEMORY.recall(user, body.session_id, {p["plan_id"]: p["name"]
+                                                       for p in available_plans(session.harness.db.owners)})
+        session.harness.hooks.remember(recall.texts, recall.answers)
+        session.memory = recall.prompt
     return StreamingResponse(turn_events(session, body, user_id), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache, no-transform"})
-
-
-def remember_answers(user_id, questions, answers):
-    """Keep a signed-in user's answers to the questions that last (ZIP, age) in their memory, so the
-    newest answer wins next time too. An answer that doesn't pass the settings check is not kept."""
-    for q in questions:
-        answer = answers.get(q["field"]) or {}
-        if q["field"] in QUESTION_FIELDS and not answer.get("unknown") and answer.get("value") is not None:
-            try:
-                MEMORY.remember(user_id, {q["field"]: answer["value"]}, "form")
-            except ValueError:
-                pass
 
 
 # The signed-in user's own data: their conversations (to reopen or delete) and their files. Anything that isn't
@@ -592,7 +579,7 @@ async def update_my_settings(body: dict, request: Request):
         raise HTTPException(422, "Name must be text of at most 80 characters.")
     try:
         mine = [s["session_id"] for s in STORE.sessions_of(user_id)]
-        MEMORY.remember(user_id, facts, "settings", plan_ids={p["plan_id"] for p in available_plans(mine)})
+        MEMORY.remember(user_id, facts, plan_ids={p["plan_id"] for p in available_plans(mine)})
     except ValueError as error:
         raise HTTPException(422, str(error))
     user = ACCOUNTS.set_name(user_id, (name or "").strip() or None) if "name" in body else current_user(request)

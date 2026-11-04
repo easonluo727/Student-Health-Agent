@@ -12,7 +12,7 @@ they delete it. The plan and rate databases are separate: they hold shared data,
   sessions        one conversation: owner (NULL = anonymous), title, the model's state as JSON
   session_events  what the user saw, in order: their inputs and the server's SSE events, for reopening a chat
   uploads         one uploaded file; the file itself is in UPLOAD_DIR/<session_id>/; kind once the agent has read it
-  user_facts      what the user told us that lasts: settings and some questionnaire answers (memory.py)
+  user_facts      the values the user set in Settings (memory.py; the rest of their memory is their chats)
   bill_audits     the last review of each bill in a conversation, for the user's file list and the agent's memory
 
 The schema version is SQLite's user_version; migrate() brings a file up to date and is safe to call every start.
@@ -108,6 +108,11 @@ MIGRATIONS = [
         PRIMARY KEY (session_id, bill_id)
     );
     CREATE INDEX bill_audits_by_file ON bill_audits(file_id);
+    """,
+    # 3: memory is everything the user said (their chats), so user_facts keeps only Settings; the questionnaire
+    # answers once copied into it go (they are still in the chats' transcripts).
+    """
+    DELETE FROM user_facts WHERE source = 'form';
     """,
 ]
 
