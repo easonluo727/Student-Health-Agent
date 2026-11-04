@@ -46,7 +46,9 @@ THIN_SAMPLE = 10
 _POLICY_WRITE_LOCK = threading.Lock()
 
 sys.path.insert(0, str(ROOT / "scripts" / "mrf"))
+sys.path.insert(0, str(ROOT / "scripts" / "policy"))
 import allowed  # noqa: E402  (rate selection rules, shared with the MRF pipeline)
+import build_seed  # noqa: E402  (how an extracted row is labelled, shared with uploads)
 
 
 @dataclass(frozen=True)
@@ -152,21 +154,31 @@ def _component_at(rates_path: str, plan_key: str, code: str, billing_class: str,
 
 def _migrate(path: Path) -> None:
     """Bring a runtime database made by an older version up to db/schema.sql (2026-11-03): plans.owner (old uploads
-    get none, so nobody sees them until claim_uploaded), and no verified columns (uploads count like any plan)."""
+    get none, so nobody sees them until claim_uploaded), and no verified columns (uploads count like any plan).
+    Uploaded rows labelled "other" are relabelled by build_seed.service, so an upload made before a labelling rule
+    existed gets it too (seen 2026-11-03: an outpatient "Physician's Visits" row the model left as "other")."""
     def outdated(con):
         plans = {r[1] for r in con.execute("PRAGMA table_info(plans)")}
         benefits = {r[1] for r in con.execute("PRAGMA table_info(benefits)")}
         return "owner" not in plans or "verified" in plans or "verified" in benefits
 
+    def relabels(con):
+        rows = con.execute("SELECT benefit_id, section, service_as_printed, service FROM benefits "
+                           "WHERE plan_id LIKE 'upload\\_%' ESCAPE '\\' AND service = 'other'")
+        return [(new, benefit_id) for benefit_id, section, printed, old in rows
+                if (new := build_seed.service(section, printed or "", old)) != old]
+
     with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as con:
-        if not outdated(con):
-            return
+        stale, fix = outdated(con), relabels(con)
+    if not stale and not fix:
+        return
     with _POLICY_WRITE_LOCK, closing(sqlite3.connect(path, timeout=30)) as write, write:
         if "owner" not in {r[1] for r in write.execute("PRAGMA table_info(plans)")}:
             write.execute("ALTER TABLE plans ADD COLUMN owner TEXT")
         for table in ("plans", "benefits"):
             if "verified" in {r[1] for r in write.execute(f"PRAGMA table_info({table})")}:
                 write.execute(f"ALTER TABLE {table} DROP COLUMN verified")
+        write.executemany("UPDATE benefits SET service=? WHERE benefit_id=?", fix)
 
 
 class PlanDB:

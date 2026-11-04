@@ -117,6 +117,7 @@ plan/row 保持 `verified=0`，但结构完整且没有其他 review flag 的行
 - **L.A. Care Silver 70**：急诊诊所和心理门诊的 copay 行被判为"要先过自付额"。原因是 SBC 第 1 页只点名了初级诊疗、专科和预防保健；表头又写着"所有费用均为过自付额之后的金额"。Covered CA 的统一标准里，这些服务其实不走自付额。所以 Arena 里它比另外两个 Silver 贵（"自付额没付"时 $789.71，另外两个是 $665）。可以考虑用 `data/policy_pdfs/B_coveredca_designs.pdf`（Covered CA 统一档次设计）做交叉检查。
 - **UC SHIP 网外初级诊疗和专科走不走自付额**：Perplexity 版填的是 no。SBC 第 1 页免自付额清单里的 "network" 修饰到哪里有歧义，需要查手册（`A1_ucship_booklet.pdf`）定下来。
 - **Anthem EOC 的零售和邮寄两行**：Tier 2 药品有零售（$60）和邮寄（$180）两行。`plan_db.benefit()` 会降低邮寄行的优先级，取零售行，所以结果对。但抽取时可以再加一个字段区分这两种情况。
+- **上传手册的门诊 "Physician's Visits" 被标成 `other`（2026-11-03 已修）**：Student Medicover Prime 和 Elite 是同一种格式，模型给 Prime 标了 `primary_care_visit`，Elite 却标成 `other`，所以 Elite 的初级诊疗显示 needs review。现在 `build_seed.service()` 用代码改标（只改门诊的，住院同名那行是医生查房，不改）；`plan_db._migrate` 启动时也用这条规则修正已经上传的 plan。以后发现别的归类错误，往 `service()` 里加规则就行，旧上传会跟着修正。
 - **"走不走自付额"填 NOT FOUND 的行**：每个 plan 有 1–25 行（Anthem Gold 最多），这些行算不了钱。
 
 ### 7. 场景表（`plan_db.SCENARIOS`）

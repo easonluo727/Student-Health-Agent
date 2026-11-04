@@ -40,6 +40,16 @@ def run(benefits, plan=PLAN, sources=None, networks=None, premiums=None):
 
 
 class BuildSeed(unittest.TestCase):
+    def test_an_outpatient_physicians_visit_left_as_other_is_primary_care(self):
+        for section, printed, extracted, expected in [
+                ("Outpatient", "Physician’s Visits", "other", "primary_care_visit"),
+                (None, "Physician's Office Visits", "other", "primary_care_visit"),
+                ("Inpatient", "Physician’s Visits", "other", "other"),            # hospital rounds
+                ("Outpatient", "Physician's Visits for surgery", "other", "other"),
+                ("Outpatient", "Physician’s Visits", "specialist_visit", "specialist_visit")]:  # a label is kept
+            with self.subTest(section=section, printed=printed):
+                self.assertEqual(build_seed.service(section, printed, extracted), expected)
+
     def test_an_upload_is_built_like_any_plan(self):
         src = Path(tempfile.mkdtemp()) / "session_plan"
         src.mkdir()

@@ -2,6 +2,19 @@
 
 **An AI health-insurance assistant for Los Angeles, with every cost traced to a policy page or negotiated rate.**
 
+## Built during the Meta Global AI Developer Hackathon (2026-10-26 to 11-04)
+
+> TallyHealth builds on an earlier prototype of ours: a plan-comparison chat and a database of insurers' negotiated rates, where every price was a network-wide median. **Most of what you see now was built during the hackathon, on Meta's models:**
+
+- **Agent moved to Meta's Muse models.** The model provider is configuration only, and the agent falls back to another Muse model automatically when Meta's API reports one as unavailable.
+- **Doctor-level prices, no medians.** The agent finds in-network doctors near the user and prices each one at their own negotiated rate. It uses about 68,000 doctors from NPPES, which we geocoded.
+- **Arena ranks plans with real doctors.** Each plan is priced at the nearest doctor's own rate instead of the network median.
+- **Bill audit.** The user photographs a bill, Python checks every line against that doctor's negotiated rate and the user's plan, flags overcharges and duplicates, and drafts an appeal letter.
+- **Fine-tuned Muse Glimmer 30B to read bills.** We trained it on 900 generated bill images whose layouts were designed with Muse. On 100 test bills it got the whole bill right 86% of the time, up from 73% before training and above Muse Spark's 76%. Muse Spark refused 6 bills that contained HIV or STI tests.
+- **Read any plan PDF.** The agent reads an uploaded plan the way a coding agent reads a repository, then extracts, validates and prices it. The plan stays private to the user who uploaded it.
+- **New frontend.** A chat on the left and an agent-built canvas on the right. Every tool step can be opened to see what it did.
+- **Accounts and long-term memory.** Google sign-in, saved conversation history, and memory of what the user has told the agent across conversations.
+
 The LLM provider is configuration: any OpenAI-compatible endpoint works ([`workflow/llm_client.py`](workflow/llm_client.py)).
 
 ## The problem

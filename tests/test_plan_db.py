@@ -342,6 +342,27 @@ class PlanDbOnFixtureRates(unittest.TestCase):
         db.owners = ("session-1",)
         return db
 
+    def test_an_old_upload_is_relabelled_when_the_database_opens(self):
+        db = self._uploaded_copy()
+        with sqlite3.connect(db.path) as con:  # as the model left it: the office visit and hospital rounds as "other"
+            con.execute("UPDATE benefits SET service='other', section='Outpatient', service_as_printed='Physician’s "
+                        "Visits' WHERE plan_id='upload_medicover' AND service='primary_care_visit'")
+            con.execute("UPDATE benefits SET section='Inpatient', service_as_printed='Physician’s Visits' "
+                        "WHERE plan_id='upload_medicover' AND service='other' AND section != 'Outpatient'")
+        con.close()
+        self.assertIsNone(db.benefit("upload_medicover", "primary_care_visit", "in", None, "office_visit",
+                                     "office_visit_new"))
+        db = PlanDB(db.path, Path(self.tmp) / "rates.sqlite")
+        db.owners = ("session-1",)
+        services = dict(db.con.execute("SELECT section, group_concat(DISTINCT service) FROM benefits "
+                                       "WHERE plan_id='upload_medicover' AND section IN ('Outpatient', 'Inpatient') "
+                                       "GROUP BY section").fetchall())
+        self.assertEqual(services, {"Outpatient": "primary_care_visit", "Inpatient": "other"})
+        self.assertIsNotNone(db.benefit("upload_medicover", "primary_care_visit", "in", None, "office_visit",
+                                        "office_visit_new"))
+        self.assertEqual(db.estimate("upload_medicover", "office_visit_new", "in")["status"],
+                         db.estimate("healthnet_silver70_hmo_2026", "office_visit_new", "in")["status"])
+
     def test_a_tier_named_only_on_plan_level_rows_is_not_a_tier(self):
         db = self._uploaded_copy()
         self.assertEqual(db.plan("upload_medicover")["in_network_tiers"], [])
