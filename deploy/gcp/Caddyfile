@@ -1,0 +1,9 @@
+# HTTPS for SITE_DOMAIN (a certificate from Let's Encrypt, renewed by Caddy), proxied to the app. The chat stream
+# (/api/turn, SSE) is not compressed, so each event reaches the browser as soon as it is sent.
+{$SITE_DOMAIN} {
+	@compress not path /api/turn
+	encode @compress zstd gzip
+	reverse_proxy app:8000 {
+		flush_interval -1
+	}
+}

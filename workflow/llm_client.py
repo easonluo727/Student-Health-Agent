@@ -2,7 +2,9 @@
 
 Reads LLM_BASE_URL, LLM_API_KEY and LLM_MODEL from the environment, falling back
 to the gitignored .env at the repo root. Optional LLM_FALLBACK_MODELS (comma-separated) are tried
-in order when the main model answers 404 model_not_found. Optional LLM_EXTRA_BODY (JSON) is sent with
+in order when the main model answers 404 model_not_found or a gateway error (502, 503, 504) or can't be reached;
+when all of them fail, optional LLM_BACKUP_MODELS (comma-separated) are tried on a second provider,
+LLM_BACKUP_BASE_URL with LLM_BACKUP_API_KEY. Optional LLM_EXTRA_BODY (JSON) is sent with
 the fast, no-reasoning calls; for Qwen on vLLM use
 {"chat_template_kwargs": {"enable_thinking": false}}.
 
@@ -55,32 +57,75 @@ def model_unavailable(error) -> bool:
     return "model_not_found" in text or "model was not found" in text
 
 
+# Gateway errors (2026-11-04: "503 Internet Connection Server Error" after every question): the model's servers are
+# down or overloaded. The SDK has already retried the same model by then, so only another model can help.
+UNREACHABLE = (502, 503, 504)
+
+
 def make_client(timeout=90.0, max_retries=3):
     load_env()
     missing = [name for name in REQUIRED if not os.environ.get(name)]
     if missing:
         raise RuntimeError(f"Set {', '.join(missing)} (in the environment or {ENV_PATH}).")
-    from openai import NotFoundError, OpenAI
+    from openai import APIConnectionError, APIStatusError, NotFoundError, OpenAI
 
     fallbacks = fallback_models()
+    backup_models = [m.strip() for m in os.environ.get("LLM_BACKUP_MODELS", "").split(",") if m.strip()]
+    backup = (OpenAI(base_url=os.environ["LLM_BACKUP_BASE_URL"], api_key=os.environ["LLM_BACKUP_API_KEY"],
+                     timeout=timeout, max_retries=max_retries)
+              if backup_models and os.environ.get("LLM_BACKUP_BASE_URL") and os.environ.get("LLM_BACKUP_API_KEY")
+              else None)
 
     class Client(OpenAI):
         # Meta's API (2026-10-26) answers 404 model_not_found for a model it serves while that model's
         # servers are unreachable, sometimes for minutes; other models keep working meanwhile. So on that
         # 404 the same request goes to the next model in LLM_FALLBACK_MODELS, and the whole list is tried
-        # twice. The SDK's own retries (5xx, 429) still apply to each attempt.
+        # twice. The SDK's own retries (5xx, 429, timeouts) still apply to each attempt, so a gateway error
+        # (UNREACHABLE) or no connection moves on to the next model but never back to one that already failed
+        # that way. When every one of them is down, LLM_BACKUP_MODELS are tried in order on another provider
+        # (LLM_BACKUP_BASE_URL, LLM_BACKUP_API_KEY), once each.
+        backup_client = backup
+
         def request(self, cast_to, options, **kwargs):
             body = options.json_data
             if not isinstance(body, dict) or "model" not in body:
                 return super().request(cast_to, options, **kwargs)
             chain = [body["model"]] + [m for m in fallbacks if m != body["model"]]
+            down = set()
+            last = None
             for attempt, model in enumerate(chain * 2):
+                if model in down:
+                    continue
                 try:
                     return super().request(cast_to, options.model_copy(update={"json_data": {**body, "model": model}}),
                                            **kwargs)
                 except NotFoundError as error:
-                    if not model_unavailable(error) or attempt == 2 * len(chain) - 1:
+                    if not model_unavailable(error):
                         raise
+                    last = error
+                except APIStatusError as error:
+                    if error.status_code not in UNREACHABLE:
+                        raise
+                    down.add(model)
+                    last = error
+                except APIConnectionError as error:
+                    down.add(model)
+                    last = error
+            for model in backup_models if self.backup_client else []:
+                try:
+                    return self.backup_client.request(
+                        cast_to, options.model_copy(update={"json_data": {**body, "model": model}}), **kwargs)
+                except NotFoundError as error:
+                    if not model_unavailable(error):
+                        raise
+                    last = error
+                except APIStatusError as error:
+                    if error.status_code not in UNREACHABLE:
+                        raise
+                    last = error
+                except APIConnectionError as error:
+                    last = error
+            raise last
 
     return Client(
         base_url=os.environ["LLM_BASE_URL"],
