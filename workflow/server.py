@@ -41,6 +41,9 @@ from sessions import NotYours, SessionStore, appeal_drafted, bill_review, file_k
 load_env()
 ROOT = Path(__file__).resolve().parents[1]
 MAX_STEPS = 12  # model calls in one turn; then it must answer with what it has (agent_loop)
+# Railway (and most proxies) close a request that sends nothing for 5 minutes; a turn of model calls and tools can be
+# silent longer, which the browser shows as "network error". An SSE comment every HEARTBEAT seconds keeps it open.
+HEARTBEAT = 15
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", ROOT / "data" / "uploads"))  # /data/uploads on Railway
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 # The frontend's uuid. Only letters, digits and "-", so each id has its own upload folder (upload_folder).
@@ -330,6 +333,30 @@ def sse_event(chunk):
     return {"event": event.removeprefix("event: "), "data": json.loads(data.removeprefix("data: "))}
 
 
+async def with_heartbeat(chunks):
+    """The chunks, with an SSE comment (ignored by the frontend, not kept in the transcript) after HEARTBEAT seconds
+    of silence."""
+    chunks = chunks.__aiter__()
+    pending = asyncio.ensure_future(chunks.__anext__())
+    try:
+        while True:
+            done, _ = await asyncio.wait({pending}, timeout=HEARTBEAT)
+            if not done:
+                yield ": ping\n\n"
+                continue
+            try:
+                chunk = pending.result()
+            except StopAsyncIteration:
+                return
+            yield chunk
+            pending = asyncio.ensure_future(chunks.__anext__())
+    finally:  # the client went away: stop the turn (turn_events still saves what was said)
+        if pending.done():
+            await chunks.aclose()
+        else:
+            pending.cancel()
+
+
 async def turn_events(session, request, user_id):
     # What the user did (with the item they asked about), then what they saw.
     events = [{"event": "input", "data": {**request.input, **({"reply_target": request.reply_target}
@@ -518,7 +545,7 @@ async def turn(body: TurnRequest, request: Request):
                                                        for p in available_plans(session.harness.db.owners)})
         session.harness.hooks.remember(recall.texts, recall.answers)
         session.memory = recall.prompt
-    return StreamingResponse(turn_events(session, body, user_id), media_type="text/event-stream",
+    return StreamingResponse(with_heartbeat(turn_events(session, body, user_id)), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache, no-transform"})
 
 

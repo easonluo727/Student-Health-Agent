@@ -2,7 +2,7 @@
 
 **An AI health-insurance assistant for Los Angeles, with every cost traced to a policy page or negotiated rate.**
 
-**Try it live: https://agent-api-production-adc8.up.railway.app** (the source is open; the price and provider databases are not in git, so the live site is the way to use it).
+**Try it live: https://34-20-165-37.sslip.io** (the source is open; the price and provider databases are not in git, so the live site is the way to use it).
 
 ## Built during the Meta Global AI Developer Hackathon (2026-10-26 to 11-04)
 
@@ -72,7 +72,7 @@ Every model call goes through one client ([`workflow/llm_client.py`](workflow/ll
 
 ## The data
 
-**Price database (allowed amounts).** A streaming Python pipeline, with no LLM, read insurers' Transparency in Coverage files: 316 files, 70 GB compressed, 444 GB of JSON. It kept 629,842 negotiated rates for 41 billing codes across 68,333 Los Angeles providers in 7 networks (Anthem PPO Prudent Buyer, which UC SHIP uses; Anthem Pathway EPO and HMO; UnitedHealthcare Choice Plus; Cigna National PPO; Ambetter from Health Net; L.A. Care). They are grouped into 19 common visits. Office and specialist visits use a selected doctor's rate; other visits use the network median with a p10–p90 range. The 3.1 GB SQLite database is not in git and is mounted as a Railway volume. Details: [`scripts/mrf/README.md`](scripts/mrf/README.md).
+**Price database (allowed amounts).** A streaming Python pipeline, with no LLM, read insurers' Transparency in Coverage files: 316 files, 70 GB compressed, 444 GB of JSON. It kept 629,842 negotiated rates for 41 billing codes across 68,333 Los Angeles providers in 7 networks (Anthem PPO Prudent Buyer, which UC SHIP uses; Anthem Pathway EPO and HMO; UnitedHealthcare Choice Plus; Cigna National PPO; Ambetter from Health Net; L.A. Care). They are grouped into 19 common visits. Office and specialist visits use a selected doctor's rate; other visits use the network median with a p10–p90 range. The 3.1 GB SQLite database is not in git and is on the server's persistent disk. Details: [`scripts/mrf/README.md`](scripts/mrf/README.md).
 
 **Provider directory.** An offline pipeline matches the NPIs in the price database to NPPES identities, specialties and practice locations. The agent uses this separate SQLite database to find nearby doctors; a published rate does not guarantee current network participation or availability. Details: [`scripts/providers/README.md`](scripts/providers/README.md).
 

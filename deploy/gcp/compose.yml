@@ -1,0 +1,31 @@
+# The product on one Google Compute Engine VM (deploy/gcp/README.md): the app image from the root Dockerfile, behind
+# Caddy for HTTPS. /data is the VM's persistent disk (rates, providers, policy and app databases, uploads), mounted
+# into the app the same way the Railway volume was.
+services:
+  app:
+    build: ../..
+    env_file: /opt/tally/app.env
+    environment:
+      PORT: "8000"
+    volumes:
+      - /data:/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:
